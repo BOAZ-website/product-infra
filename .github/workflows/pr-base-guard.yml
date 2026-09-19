@@ -1,0 +1,77 @@
+name: PR Base Guard
+
+# PR base 가 main 이면 "핫픽스가 맞는지" 안내 코멘트를 남깁니다.
+# 기능/테스트 PR 은 base 가 dev 여야 하므로 실수를 잡아줍니다.
+# 차단하지 않으며(소프트 경고), base 를 dev 로 고치면 봇이 코멘트를 지웁니다.
+# head 브랜치가 hotfix/* 또는 release/* 이면 정당한 main 타깃이므로 스킵합니다.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  check-base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warn when base is main
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const MARKER = '<!-- pr-base-guard -->';
+            const pr = context.payload.pull_request;
+            const issue_number = pr.number;
+            const baseRef = pr.base.ref;
+            const headRef = pr.head.ref;
+
+            const isHotfixLike = /^(hotfix|release)\//i.test(headRef);
+            const isRelease = headRef === 'dev'; // dev → main 릴리즈 PR 은 정당한 main 타깃
+            const needsWarning = baseRef === 'main' && !isHotfixLike && !isRelease;
+
+            // 봇이 이전에 남긴 안내 코멘트 찾기 (전체 페이지 조회)
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100,
+            });
+            const prev = comments.find(
+              (c) => c.user.type === 'Bot' && c.body.includes(MARKER)
+            );
+
+            if (!needsWarning) {
+              // base 를 dev 로 고쳤거나 핫픽스면 이전 안내 코멘트 제거 (self-clearing)
+              if (prev) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: prev.id,
+                });
+              }
+              return;
+            }
+
+            // 경고가 필요한데 이미 안내 코멘트가 있으면 중복 방지
+            if (prev) return;
+
+            const body = [
+              MARKER,
+              '🤖 **이 PR 의 base 가 `main` 입니다.**',
+              '',
+              '핫픽스(운영 긴급)라면 그대로 두셔도 됩니다.',
+              '기능 / 버그 / 테스트 PR 이라면 base 를 `dev` 로 바꿔주세요.',
+              '(PR 상단 base 드롭다운에서 `main → dev` 로 변경하면 커밋·리뷰가 유지된 채 타깃만 바뀝니다.)',
+              '',
+              '_알림용이며 머지를 막지 않습니다. base 를 `dev` 로 바꾸면 이 코멘트는 자동으로 사라집니다._',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body,
+            });
