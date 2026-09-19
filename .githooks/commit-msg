@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#
+# product-infra 커밋 메시지 검증 훅
+# 양식: type: 커밋 내용 간단 설명 (#이슈번호)
+#   예) feat: bootstrap state bucket 구성 (#3)
+#
+# 활성화(각자 1회): git config core.hooksPath .githooks
+# mac / linux / windows(Git bash) 공통으로 동작합니다.
+#
+# 부득이한 경우에만 git commit --no-verify 로 건너뛸 수 있습니다.
+
+msg=$(head -n1 "$1")
+
+# 1) merge 커밋은 통과
+if printf '%s' "$msg" | grep -qE '^(Merge pull request #[0-9]+|Merge branch|Merge remote-tracking branch)'; then
+  exit 0
+fi
+
+# 2) revert 커밋도 통과 (git이 자동 생성)
+if printf '%s' "$msg" | grep -qE '^Revert "'; then
+  exit 0
+fi
+
+allowed="feat fix docs style refactor test chore"
+
+fail() {
+  echo ""
+  echo "❌ 커밋 실패: 커밋 메시지 양식이 올바르지 않습니다."
+  echo ""
+  echo "   양식) type: 커밋 내용 간단 설명 (#이슈번호)"
+  echo "   예시) feat: bootstrap state bucket 구성 (#3)"
+  echo ""
+  echo "   허용 type (소문자): $allowed"
+  echo ""
+  echo "   입력한 메시지:"
+  echo "   > $msg"
+  echo ""
+  echo "   $1"
+  echo ""
+  echo "   (부득이한 경우에만 git commit --no-verify 로 건너뛸 수 있습니다.)"
+  echo ""
+  exit 1
+}
+
+# 3) 기본 형태: "type: 내용" (type 뒤 콜론+공백 1개 이상)
+if ! printf '%s' "$msg" | grep -qE '^[a-zA-Z]+:[[:space:]]+.+'; then
+  fail "→ 'type: 내용' 형태가 아닙니다. type 뒤에 콜론(:)과 공백이 필요합니다."
+fi
+
+# 4) type 은 소문자만 허용 (Feat: 등 대문자 거부)
+rawtype=$(printf '%s' "$msg" | sed -E 's/^([a-zA-Z]+):.*/\1/')
+if printf '%s' "$rawtype" | grep -qE '[A-Z]'; then
+  fail "→ type '$rawtype' 에 대문자가 있습니다. type 은 소문자로 써주세요. (예: feat)"
+fi
+
+# 5) type 화이트리스트 검사
+case " $allowed " in
+  *" $rawtype "*) ;;
+  *) fail "→ '$rawtype' 는 허용되지 않은 type 입니다." ;;
+esac
+
+# 6) 끝에 (#이슈번호) 필수
+if ! printf '%s' "$msg" | grep -qE '\(#[0-9]+\)[[:space:]]*$'; then
+  fail "→ 끝에 이슈번호 '(#숫자)' 가 없습니다. 예: ... 구성 (#3)"
+fi
+
+# 7) 이슈번호 앞에 실제 설명이 있어야 함 (feat: (#3) 처럼 설명이 빈 경우 거부)
+rest=${msg#*:}
+desc=$(printf '%s' "$rest" | sed -E 's/\(#[0-9]+\)[[:space:]]*$//' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+if [ -z "$desc" ]; then
+  fail "→ 설명이 비어 있습니다. 이슈번호 앞에 커밋 설명을 적어주세요. 예: feat: bootstrap state bucket 구성 (#3)"
+fi
+
+exit 0

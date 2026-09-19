@@ -1,0 +1,98 @@
+name: CI
+
+# Terraform 정적 검증 CI.
+# AWS 자격증명이 필요 없는 검증만 수행한다: fmt, init(-backend=false), validate, tflint.
+# 실제 plan / drift / apply 는 OIDC role 과 backend 가 확정된 뒤 별도 workflow(plan.yml/apply.yml)에서 다룬다.
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: "1.9.8"
+
+jobs:
+  fmt:
+    name: Terraform Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+
+  validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      # bootstrap, envs/*, modules/* 하위의 Terraform root 를 자동 탐색해 검증한다.
+      # backend/provider 자격증명 없이 검증하기 위해 -backend=false 로 init 한다.
+      - name: terraform validate (all roots)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          # *.tf 를 포함하는 디렉터리를 root 후보로 수집 (modules 포함).
+          mapfile -t dirs < <(find bootstrap envs modules -type f -name '*.tf' 2>/dev/null \
+            | xargs -r -n1 dirname | sort -u)
+
+          if [ "${#dirs[@]}" -eq 0 ]; then
+            echo "검증할 Terraform root 가 아직 없습니다. 스킵합니다."
+            exit 0
+          fi
+
+          rc=0
+          for d in "${dirs[@]}"; do
+            echo "::group::validate ${d}"
+            if terraform -chdir="${d}" init -backend=false -input=false -no-color; then
+              terraform -chdir="${d}" validate -no-color || rc=1
+            else
+              echo "init 실패: ${d}"
+              rc=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $rc
+
+  tflint:
+    name: TFLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: Run TFLint
+        run: |
+          set -euo pipefail
+          if [ ! -f .tflint.hcl ]; then
+            echo ".tflint.hcl 이 없어 기본 설정으로 실행합니다."
+          fi
+          tflint --init || true
+          tflint --recursive --no-color
