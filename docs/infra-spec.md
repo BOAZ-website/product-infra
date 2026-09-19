@@ -4,7 +4,7 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
 
 - 성격: 현행 상태(as-is) 기술. "지금 무엇이 어떻게 구성되어 있는가"만 담는다.
 - 값 기준: AWS read-only 실측 (`--profile product-readonly --region ap-northeast-2`)
-- "어떻게 Terraform으로 옮길지"는 이 문서 범위가 아니다 → [`terraform-migration-plan.md`](./terraform-migration-plan.md), [`../terraform-migration-spec.md`](../terraform-migration-spec.md) 참조
+- "어떻게 Terraform으로 옮길지"는 이 문서 범위가 아니다 → [`terraform-migration-plan.md`](./terraform-migration-plan.md), [`../.kiro/specs/product-infra-migration/requirements.md`](../.kiro/specs/product-infra-migration/requirements.md) 참조
 - 이번 마이그레이션은 lift-and-codify이므로, 인프라 구성 자체는 마이그레이션 전후가 동일하다. 즉 이 문서는 마이그레이션과 무관하게 유효한 현행 인프라의 source of truth다.
 
 ---
@@ -236,5 +236,5 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
 ## 참고
 
 - 마이그레이션 계획: [`terraform-migration-plan.md`](./terraform-migration-plan.md)
-- 마이그레이션 요구사항 명세(EARS): [`../terraform-migration-spec.md`](../terraform-migration-spec.md)
+- 마이그레이션 요구사항 명세(EARS): [`../.kiro/specs/product-infra-migration/requirements.md`](../.kiro/specs/product-infra-migration/requirements.md)
 - 현행 시즌 운영 스크립트/절차: `backend/infra/scripts/README.md`

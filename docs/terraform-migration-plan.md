@@ -3,7 +3,7 @@
 운영 중인 BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의 AWS 인프라를 **무중단으로 Terraform 코드화(lift-and-codify)** 하기 위한 종합 실행 계획이다.
 
 - 성격: 실행 중심 종합 플랜 (요약 + 단계별 실행 + 검증)
-- 상세 요구사항 명세: [`terraform-migration-spec.md`](../terraform-migration-spec.md) (EARS 표기, 인벤토리, 리스크)
+- 상세 요구사항 명세: [`.kiro/specs/product-infra-migration/requirements.md`](../.kiro/specs/product-infra-migration/requirements.md) (EARS 표기)
 - 설계/구현 태스크: [`.kiro/specs/product-infra-migration/`](../.kiro/specs/product-infra-migration/) (`design.md`, `tasks.md`)
 
 > 이 문서는 "무엇을 어떤 순서로, 어떻게 검증하며" 진행할지를 담는다. 각 항목의 근거·수용 기준은 위 상세 문서를 참조한다.
@@ -236,7 +236,7 @@ product-infra/
 | 문서 | 내용 |
 |---|---|
 | [`infra-spec.md`](./infra-spec.md) | 현행 인프라 SPEC (as-is 사실, AWS 실측 기준). 마이그레이션과 무관하게 유효한 현행 구성의 source of truth |
-| [`terraform-migration-spec.md`](../terraform-migration-spec.md) | 상세 요구사항 명세(EARS), 전체 인벤토리, 리스크 (본 플랜보다 깊은 명세) |
+| [`.kiro/specs/product-infra-migration/requirements.md`](../.kiro/specs/product-infra-migration/requirements.md) | 요구사항 명세(EARS, R1~R13) — 마이그레이션 수용 기준의 source of truth |
 | [`.kiro/specs/product-infra-migration/design.md`](../.kiro/specs/product-infra-migration/design.md) | 아키텍처, 저장소 구조, state/backend, 모듈 인터페이스, correctness properties |
 | [`.kiro/specs/product-infra-migration/tasks.md`](../.kiro/specs/product-infra-migration/tasks.md) | 단계별 구현 태스크(선행 관계·관련 요구사항 매핑) |
 | `backend/infra/scripts/README.md` | 현행 시즌 전환 절차·검증 커맨드(런북 계승 대상) |
