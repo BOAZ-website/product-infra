@@ -1,0 +1,31 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl.tmp
+*.tfstate
+*.tfstate.*
+*.tfplan
+plan.bin
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# 변수 파일 (예시 파일은 추적)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# backend 설정 (예시 파일은 추적)
+backend.hcl
+!backend.hcl.example
+
+# 로컬 티켓/작업 메모 (저장소 추적 제외)
+TICKET-*.md
+
+# OS / 편집기
+.DS_Store
+*.swp
+.idea/
+.vscode/
