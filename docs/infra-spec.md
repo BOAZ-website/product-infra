@@ -226,7 +226,7 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
 
 ## 14. 관측된 특이사항
 
-- api CloudFront origin이 EC2-A **퍼블릭 DNS 문자열**에 의존 → EC2-A 재시작 시 DNS 변경 위험 (EIP 미적용).
+- api CloudFront origin이 EC2-A **퍼블릭 DNS 문자열**에 의존. EC2-A에 EIP(`eipalloc-0d58d66169c7560bb`)가 연결되어 있어 재시작해도 DNS는 유지됨 (2026-09-23 조사 기준, `docs/inventory.md` 참조).
 - RDS Multi-AZ를 시즌마다 토글하는 구조 (가용성 설정을 트래픽 이벤트에 연동).
 - private subnet에 NAT 없음 → private subnet 리소스는 아웃바운드 인터넷 불가.
 - GitHub OIDC trust에 동일 repo subject가 중복 기재됨 (동작 무해).
