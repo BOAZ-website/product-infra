@@ -29,6 +29,7 @@ fail=0
 report() { echo "  $1:$2: $3"; fail=1; }
 
 ipv4='([0-9]{1,3}\.){3}[0-9]{1,3}'
+placeholder='^((var|local|env|secrets|data|module)\..+|aws_[a-z0-9_]+\..+|x{3,}|\*{3,}|example|examples|placeholder|sensitive|changeme|dummy|redacted)$'
 private_ip='^(10\.|127\.|0\.0\.0\.0|169\.254\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)'
 
 while IFS= read -r f; do
@@ -61,13 +62,17 @@ while IFS= read -r f; do
   printf '%s\n' "$content" | grep -nE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' | while IFS=: read -r line _; do echo "  $f:$line: 개인 키"; done | grep . && fail=1
 
   # 일반 자격 증명: 키=값 형태의 비밀번호·토큰·시크릿
-  #   변수 참조·자리표시자는 제외: ${...}, <...>, var., env., secrets., example, xxx, ***
-  #   값(8자 이상, 공백 없음)에 숫자가 섞인 경우만 잡는다(설명 문장 오탐 방지)
-  printf '%s\n' "$content" \
-    | grep -noiE "(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key)[\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_.@!#%^&*-]{8,}" \
-    | grep -viE '\$\{|<[^>]+>|var\.|env\.|secrets\.|example|xxx|\*\*\*|sensitive|placeholder' \
-    | grep -E '[:=][[:space:]]*["'"'"']?[^[:space:]]*[0-9]' \
-    | while IFS=: read -r line _; do echo "  $f:$line: 비밀번호·토큰·시크릿 값으로 보이는 키=값"; done | grep . && fail=1
+  #   값 전체가 변수 참조·자리표시자일 때만 제외: var.·local.·env.·secrets.·aws_* 참조, example, xxx, *** 등
+  #   ${...}, <...> 형태는 값 문자 범위에 들지 않아 처음부터 잡히지 않는다
+  #   값이 줄 끝·따옴표·쉼표·}·주석으로 끝날 때만 잡는다(값 뒤로 문장이 이어지는 설명문 오탐 방지)
+  while IFS= read -r hit; do
+    [ -z "$hit" ] && continue
+    line=${hit%%:*}
+    value=$(printf '%s' "${hit#*:}" | sed -E "s/^[^:=]*[:=][[:space:]]*[\"']?//; s/([\"',;}]|[[:space:]]*(#|\/\/)|[[:space:]]*)$//")
+    printf '%s' "$value" | grep -qiE "$placeholder" && continue
+    report "$f" "$line" "비밀번호·토큰·시크릿 값으로 보이는 키=값"
+  done < <(printf '%s\n' "$content" \
+    | grep -noiE "(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key)[\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_.@!#%^&*-]{8,}([\"',;}]|[[:space:]]*(#|//)|[[:space:]]*$)" || true)
   # 서비스 토큰 형식: GitHub, Slack, OpenAI 형식, Context7
   printf '%s\n' "$content" \
     | grep -nE '\bgh[pousr]_[A-Za-z0-9]{36,}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}\b|\bsk-[A-Za-z0-9]{20,}\b|\bctx7sk-[A-Za-z0-9-]{20,}\b' \

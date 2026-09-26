@@ -29,3 +29,6 @@ TICKET-*.md
 *.swp
 .idea/
 .vscode/
+
+# 로컬 AI 도구 상태 (oh-my-claudecode)
+.omc/
