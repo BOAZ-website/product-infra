@@ -255,7 +255,7 @@
 | STA-02 | 버전·provider 규칙 | STA | 하루이틀 | STA-01 | 없음 | MS1 | 예 | 대기 |
 | STA-03 | state 버킷 구현 | STA | 한 주 | STA-02 | state 버킷·키 | MS1 | 예 | 대기 |
 | STA-04 | envs/prod backend 초기화 | STA | 하루이틀 | STA-03 | state 버킷·키 | MS1 | 예 | 대기 |
-| STA-05 | PR CI(fmt·validate·plan) | STA | 한 주 | STA-02 | 브랜치 전략 | MS1 | 예 | 일부 완료(fmt·validate·tflint) |
+| STA-05 | PR CI(fmt·validate·plan) | STA | 한 주 | STA-02 | 없음 | MS1 | 예 | 일부 완료(fmt·validate·tflint) |
 | STA-06 | property 테스트 실행 환경 | STA | 한 주 | STA-01 | 없음 | MS1 | 예 | 대기 |
 | STA-07 | 안전 게이트 + P1·P6 | STA | 2~3주 | STA-04, STA-06 | 없음 | MS1 | 예 | 대기 |
 | STA-08 | 그룹 간 연결 점검 | STA | 하루이틀 | CMP-03, RDB-01, CDN-03, DEP-02 | 없음 | MS2b | 예 | 대기 |
@@ -313,7 +313,7 @@
 | 앱 시크릿 SecureString 범위 | 잔여 항목은 현행 유지, 후속 이슈로 분리 | 백엔드 리드 | 2026-10-16 | IAM-03, IAM-04 | 일부 해소 |
 | 관리 대상 버킷·레코드 | 서비스 버킷만 관리, 나머지는 제외 사유 기록 | 운영진 + 인프라 담당 | 2026-10-09 | STO-01, STO-02 | 대기 |
 | WAF WebACL 관리 방식 | CloudFront에서 기존 WebACL을 참조만 함, WebACL 자체 import는 보류 | 인프라 담당 | 2026-10-16 | CDN-02, CDN-03 | 신규 |
-| 브랜치 전략 | 조직 표준(dev → main) | 인프라 담당 + 운영진 | 2026-10-16 | STA-05 | 신규 |
+| 브랜치 전략 | 조직 표준(dev → main) | 인프라 담당 + 운영진 | 2026-10-16 | 없음(apply 실행 브랜치는 STA-11에서 확정) | 사실상 해소(README 협업 규약에 dev → main 명시, base 검사 workflow 동작 중) |
 | Network ACL 관리 방식 | 현행 그대로 import | 인프라 담당 | 2026-10-09 | NET-01 | 대기 |
 | CloudTrail 존재 여부 | 조사 후 결정 | 인프라 담당 | 2026-10-09 | 없음(감사 수단) | 신규 |
 | apply 승인자 | 2명 이상 | 운영진 | 2027-01-31 | STA-11 | 대기 |

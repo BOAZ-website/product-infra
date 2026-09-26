@@ -13,7 +13,7 @@
 | EC2-B 시작·중지 제어 방식 (`aws_ec2_instance_state` vs ASG). 현재 launch template·ASG 없음 | 결정 대기 | [확인 필요] | 서버 코드 편입 전 | compute 모듈, season_mode 전환 |
 | 앱 파라미터 보강 범위: secret 6개는 이미 SecureString(`alias/aws/ssm`). 남은 String `DB_URL`·`DB_USERNAME` 전환 여부, CMK 전환 여부 | 결정 대기 | [확인 필요] | 파라미터 코드 편입 전 | params 모듈 |
 | 코드 반영(apply) 승인자 지정 (GitHub Environment reviewer) | 결정 대기 | [확인 필요] | apply workflow 활성화 전 | terraform-apply workflow |
-| 인프라 저장소 브랜치 전략(조직 표준 dev → main 적용 여부) | 결정 대기 | [확인 필요] | PR CI 구성 전 | PR·apply workflow 트리거 |
+| 인프라 저장소 브랜치 전략(조직 표준 dev → main 적용 여부) | 결정 완료: dev → main(README 협업 규약, base 검사 workflow). apply 실행 브랜치는 STA-11에서 확정 | 인프라 담당 | 2026-09-26 | 없음 |
 
 ## 조사에서 확인된 결정 필요 사항
 
