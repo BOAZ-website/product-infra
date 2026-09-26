@@ -85,6 +85,7 @@
 | STA-05-01 | `terraform fmt -check`, `validate`, plan 실행 후 결과를 PR 코멘트로 게시 | 샘플 PR에 자동 코멘트 확인 |
 | STA-05-02 | 세 검사가 모두 성공해야 apply 대상으로 표시 | 검사 하나를 일부러 실패시키면 표시되지 않음 |
 | STA-05-03 | GitHub OIDC 인증 사용, 장기 액세스 키 사용 안 함 | workflow에 `id-token: write` 존재, 저장소 시크릿에 액세스 키 없음 |
+| STA-05-04 | `pull_request_target` 트리거를 쓰지 않음. checkout은 `persist-credentials: false`. 외부 액션은 커밋 SHA로, 설치 도구는 버전으로 고정(`latest` 금지) | workflow에 `pull_request_target`·`latest` 없음, `uses:`가 SHA로 고정 |
 
 ## STA-06 property 테스트 실행 환경
 
@@ -165,6 +166,7 @@
 | --- | --- | --- |
 | STA-11-01 | GitHub Environment 승인 전에는 apply 실행 안 함 | 승인 없이 머지하면 apply 작업이 대기 상태로 멈춤 |
 | STA-11-02 | plan용 읽기 롤과 apply용 쓰기 롤 분리 | 두 workflow가 서로 다른 롤을 사용(실제 ARN은 비공개 변수) |
+| STA-11-03 | 롤 신뢰 조건(OIDC `sub`)을 이 저장소의 `main` 브랜치·`prod` environment로 정확히 고정(와일드카드 금지). apply는 `main` push에서만 실행 | 다른 브랜치·PR에서 apply 롤을 요청하면 거부됨 |
 
 ## STA-12 drift 감지 CI + P9
 

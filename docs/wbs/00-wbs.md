@@ -95,7 +95,8 @@
 | 저장소 폴더 구조 | `bootstrap/`, `envs/prod/`, `modules/*`, `tests/*`, `.gitignore` | #7, PR #9 | 완료(머지) |
 | AWS 운영 자원 조사 | inventory·decisions·import-log 문서 3종(tasks.md 1.1~1.3) | #8, PR #10 | 완료(머지). `docs/records/`로 이동(#14) |
 | WBS·문서 개편 | 구 `docs/wbs.md`를 `docs/wbs/`로 대체, 문서 구조 개편 | #11, PR #12 | 완료(머지) |
-| 조사 기록 이동·현행 인프라 문서 정리 | `docs/records/` 이동, `docs/overview/current-infra.md` 정리(개인 IP 삭제, EIP·WAF 반영) | #14 | 진행 중 |
+| 조사 기록 이동·현행 인프라 문서 정리 | `docs/records/` 이동, `docs/overview/current-infra.md` 정리(개인 IP 삭제, EIP·WAF 반영) | #14, PR #15 | 완료(머지) |
+| 공개 저장소 보안 정보 공개 방지 | 보안 정보 공개 금지 규칙(README·CLAUDE.md), 검사 스크립트·회귀 테스트, 커밋 전 훅, CI(민감 정보 검사·gitleaks), GitHub secret scanning·push protection | #16, PR #17 | 진행 중(push protection·secret scanning은 2026-09-26 적용) |
 | 관리자 콘솔 인프라 요구사항 | 요구사항 정리(R1~R18) | #13 | 인프라 항목은 이 WBS에 반영(2026-09-26 반영 현황 코멘트). 다른 저장소 이슈 3건 생성 후 종료 |
 
 - 이 표의 "완료" 항목은 티켓으로 만들지 않았음. 부분 완료 티켓(STA-01, STA-05, STA-13, DOC-03)은 각 명세서에 진행 내용을 적었음
