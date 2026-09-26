@@ -75,7 +75,10 @@ CI는 자격증명 없이 `fmt -check` / `validate`(`-backend=false`) / `tflint`
 - 다른 문서에는 역할명으로 쓴다. 예: "EC2-A", "api CloudFront 배포", "운영진 개인 IP 2개"
 - 이미지·PDF·압축·오피스 문서 같은 바이너리 파일은 내용을 자동 검사할 수 없으므로 이 저장소에 올리지 않는다. 필요하면 노션에 첨부하되, 첨부 전에 이 규칙대로 민감 정보를 지우거나 가린다(노션 첨부물도 공개 범위를 벗어날 수 있음).
 - 조사할 때 알게 된 값도 위 규칙을 따른다. 필요하면 AWS에서 직접 조회한다.
-- 자동 검사: `scripts/check-sensitive.sh`가 CI와 커밋 전 훅(`.githooks/pre-commit`)에서 돌아간다. 걸리면 값을 지우거나 역할명으로 바꾼다. 훅을 건너뛰지 않는다.
+- 자동 검사는 세 겹이다. 걸리면 값을 지우거나 역할명으로 바꾼다. 훅을 건너뛰지 않는다.
+  - GitHub push protection: 알려진 키·토큰 형식이 든 커밋은 push 자체가 거부된다(저장소 설정). secret scanning도 켜져 있어 저장소 전체를 상시 검사한다
+  - gitleaks(CI): git 이력 전체에서 비밀번호·토큰·키를 찾는다
+  - `scripts/check-sensitive.sh`(CI·커밋 전 훅 `.githooks/pre-commit`): 기성 도구가 모르는 이 저장소 규칙(공인 IP, EC2 퍼블릭 DNS, 계정 ID, 자원 ID)과 키=값 형태 자격 증명을 검사한다. 회귀 테스트는 `scripts/test-check-sensitive.sh`
 - 실수로 올렸다면 즉시 인프라 리드에게 알린다. 파일에서 지워도 git 이력에는 남으므로 이력 정리가 필요하다.
 
 ## 협업 규약

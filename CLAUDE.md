@@ -12,6 +12,8 @@ AI 도구(Claude Code, Kiro 등)가 이 저장소에서 작업할 때 따르는 
 - AWS 조사 결과를 문서로 옮길 때도 위 규칙을 적용한다. 조회한 값을 그대로 붙여 넣지 않는다.
 - 시크릿은 조회 자체를 하지 않는다(SSM 복호화, RDS 비밀번호 조회 금지).
 - 커밋 전 `scripts/check-sensitive.sh`를 실행하거나 `.githooks/pre-commit` 훅을 켠다(`git config core.hooksPath .githooks`). 검사를 건너뛰지 않는다(`--no-verify` 금지).
+- push protection에 막히면 우회(bypass)하지 말고 값을 지운 뒤 커밋을 다시 만든다. CI의 gitleaks가 실패해도 같다.
+- `scripts/check-sensitive.sh`의 검사식을 바꾸면 `scripts/test-check-sensitive.sh`에 사례를 추가하고 함께 통과시킨다.
 - 규칙 원문: README.md "보안 정보 공개 금지"
 
 ## 문서 위치
