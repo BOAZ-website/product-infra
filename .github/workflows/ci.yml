@@ -109,7 +109,10 @@ jobs:
           rc=0
           for d in "${dirs[@]}"; do
             echo "::group::validate ${d}"
-            if terraform -chdir="${d}" init -backend=false -input=false -no-color; then
+            # 잠금 파일이 커밋된 root는 잠금 파일을 바꾸지 않고 검증한다(체크섬 불일치 시 실패).
+            lock_opt=""
+            if [ -f "${d}/.terraform.lock.hcl" ]; then lock_opt="-lockfile=readonly"; fi
+            if terraform -chdir="${d}" init -backend=false -input=false -no-color ${lock_opt}; then
               terraform -chdir="${d}" validate -no-color || rc=1
             else
               echo "init 실패: ${d}"
@@ -122,6 +125,9 @@ jobs:
   tflint:
     name: TFLint
     runs-on: ubuntu-latest
+    env:
+      # .tflint.hcl의 required_version과 함께 올린다
+      TFLINT_VERSION: "v0.64.0"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -131,13 +137,14 @@ jobs:
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
-          tflint_version: latest
+          tflint_version: ${{ env.TFLINT_VERSION }}
 
+      # 플러그인 설치 실패를 무시하지 않는다(무시하면 AWS 규칙 없이 통과함).
+      # --recursive에서 모든 디렉터리가 저장소 루트 설정을 쓰도록 절대 경로로 지정한다.
       - name: Run TFLint
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ ! -f .tflint.hcl ]; then
-            echo ".tflint.hcl 이 없어 기본 설정으로 실행합니다."
-          fi
-          tflint --init || true
-          tflint --recursive --no-color
+          tflint --init --config "${GITHUB_WORKSPACE}/.tflint.hcl"
+          tflint --recursive --config "${GITHUB_WORKSPACE}/.tflint.hcl" --no-color

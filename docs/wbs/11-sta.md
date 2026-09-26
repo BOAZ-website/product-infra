@@ -17,17 +17,17 @@
 
 **목적:** 설계 문서에 정한 폴더 구조를 만듦
 
-> 진행: STA-01-01은 PR #9로 완료(머지). STA-01-03(그룹별 파일)이 남음.
+> 진행: 완료. STA-01-01은 #7(PR #9), STA-01-02는 #16(PR #17)의 민감 정보 검사로 충족, STA-01-03은 #23.
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | 없음 | 없음 | Phase 1 | 2.1 | #7, PR #9 |
+| 하루이틀 | 없음 | 없음 | Phase 1 | 2.1 | #7, #23 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | STA-01-01 | `bootstrap/`, `envs/prod/`, `modules/` 하위 8개, `docs/`, `.github/workflows/`, `scripts/`, `tests/` 생성 | `find` 결과에 폴더 모두 존재 |
 | STA-01-02 | 계정 ID·리전·자원 ID를 코드에 직접 쓰지 않았는지 검사 | 저장소 전체 검색 결과에 계정 ID 패턴 없음 |
-| STA-01-03 | `envs/prod`를 그룹별 파일(`network.tf`, `iam.tf` … `deploy.tf`)과 `imports/` 폴더로 나누고 빈 파일을 미리 만들어 둠. 공통 파일(`versions.tf`, `providers.tf`, `backend.tf`)은 STA 담당만 수정 | `envs/prod`에 그룹 파일 8개와 `imports/` 존재 |
+| STA-01-03 | `envs/prod`를 그룹별 파일(`network.tf`, `iam.tf` … `deploy.tf`)과 그룹별 import 파일(`imports_network.tf` … `imports_deploy.tf`)로 나누고 빈 파일을 미리 만들어 둠. import 블록은 root 모듈 바로 아래 파일에만 둘 수 있어 하위 폴더를 쓰지 않음. 공통 파일(`versions.tf`, `providers.tf`, `backend.tf`)은 STA 담당만 수정 | `envs/prod`에 그룹 파일 8개와 `imports_<그룹>.tf` 8개 존재 |
 
 ## STA-02 버전·provider 규칙
 
@@ -35,14 +35,16 @@
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | STA-01 | 없음(DOC-04에서 버전 정정) | Phase 1 | 2.2 | 없음 |
+| 하루이틀 | STA-01 | 없음(DOC-04에서 버전 정정) | Phase 1 | 2.2 | #24 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | STA-02-01 | Terraform `>= 1.11.0, < 2.0.0`, AWS provider 버전 범위 지정 | `versions.tf`에 값 존재, `terraform version` 결과가 범위 안 |
-| STA-02-02 | 기본 서울 리전 provider와 CloudFront 인증서 조회용 us-east-1 provider 구성 | `providers.tf`에 두 provider 블록 존재 |
+| STA-02-02 | 기본 서울 리전 provider와 CloudFront 인증서 조회용 us-east-1 provider 구성. envs/prod는 `default_tags` 없이 둠(적용은 STA-09 뒤 태그 전용 PR), bootstrap은 처음부터 적용 | `providers.tf`에 두 provider 블록 존재 |
 | STA-02-03 | `.terraform.lock.hcl` 생성·커밋 | `terraform providers lock` 실행 후 파일이 git에 추가됨 |
 | STA-02-04 | `.tflint.hcl` 작성: AWS 규칙 묶음 사용, `terraform_documented_variables`·`terraform_documented_outputs` 켜기(모든 variable·output에 `description` 필수). CI의 `tflint_version: latest`를 고정 버전으로 교체 | `description` 없는 variable을 넣으면 tflint 실패, `ci.yml`에 `latest` 없음 |
+
+> 진행: 완료(#24). Terraform `>= 1.11.0`, AWS provider 6.x(잠금 6.66.0), 잠금 파일은 root마다(envs/prod, bootstrap) linux_amd64·darwin_arm64·darwin_amd64 체크섬 포함. tflint 0.64.0·aws 규칙 0.49.0, CI에서 플러그인 설치 실패를 무시하지 않도록 수정
 
 ## STA-03 state 버킷 구현
 
@@ -201,5 +203,5 @@
 ## 확인 필요 사항
 
 - property 테스트 범위: 설계대로 hypothesis 테스트 유지 vs plan 검사 스크립트와 고정 입력 테스트 몇 개로 축소 [확인 필요]
-- AWS provider 6.x 사용 여부 [추정: 신규 저장소는 6.x로 시작 권장, 공식 문서 확인 필요]
+- AWS provider 6.x 사용 여부: 6.x로 확정(결정 레지스터 "AWS provider 버전", #24)
 - apply 승인자 1~2명 [확인 필요]

@@ -33,7 +33,7 @@
 **목적:** iam 모듈을 작성하고 롤·정책을 import해 plan "No changes"를 확인함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조. 직전 재조사는 IAM-01-04로 대신함
-> 수정 파일: `modules/iam/`, `envs/prod/iam.tf`, `envs/prod/imports/iam.tf`
+> 수정 파일: `modules/iam/`, `envs/prod/iam.tf`, `envs/prod/imports_iam.tf`
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -52,7 +52,7 @@
 **목적:** params 모듈을 작성하고 `/boaz/infra/*` 12개를 import함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/params/`, `envs/prod/params.tf`, `envs/prod/imports/params.tf`
+> 수정 파일: `modules/params/`, `envs/prod/params.tf`, `envs/prod/imports_params.tf`
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

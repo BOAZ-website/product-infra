@@ -18,7 +18,7 @@
 **목적:** compute 모듈을 작성하고 EC2-A/B와 Elastic IP를 import함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/compute/`, `envs/prod/compute.tf`, `envs/prod/imports/compute.tf`. 인스턴스 프로파일은 iam 그룹 output을 참조
+> 수정 파일: `modules/compute/`, `envs/prod/compute.tf`, `envs/prod/imports_compute.tf`. 인스턴스 프로파일은 iam 그룹 output을 참조
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

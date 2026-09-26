@@ -53,7 +53,7 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 3. **[Ubiquitous]** THE Terraform_Configuration SHALL 환경별 진입점을 `envs/prod/`에 두고, 동일 규칙의 `envs/<env>/` 추가로 환경 확장이 가능한 구조를 제공한다.
 4. **[Ubiquitous]** THE Terraform_Configuration SHALL 계정 ID·리전·리소스 ID를 모듈 코드에 하드코딩하지 않고 변수·provider 설정·관리 리소스 attribute 참조로만 공급한다.
 5. **[Unwanted-event]** IF 모듈 코드에 계정 ID·리전·리소스 ID의 리터럴이 존재하거나 필수 구조 검증에 실패하면, THEN THE Terraform_Configuration SHALL plan·apply를 허용하지 않고 실패 원인과 조치 결과를 CI 결과 또는 Import_Log에 기록한다.
-6. **[Ubiquitous]** THE Terraform_Configuration SHALL `required_version`으로 Terraform 버전을 `>= 1.11.0, < 2.0.0`으로 제한하고 AWS Provider 버전을 `docs/records/decisions.md`의 "AWS provider 버전" 결정 범위(현재 기준 `>= 5.0.0, < 6.0.0`)로 제한한다.
+6. **[Ubiquitous]** THE Terraform_Configuration SHALL `required_version`으로 Terraform 버전을 `>= 1.11.0, < 2.0.0`으로 제한하고 AWS Provider 버전을 `>= 6.0.0, < 7.0.0`으로 제한한다(`docs/records/decisions.md` "AWS provider 버전").
 7. **[Ubiquitous]** THE Infra_Repository SHALL `.terraform.lock.hcl`을 버전 관리 대상으로 커밋하고 provider 무결성 검증에 사용한다.
 
 ### Requirement 2: State 저장·동시성·부트스트랩 보호
@@ -197,7 +197,7 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 
 #### Acceptance Criteria
 
-1. **[Ubiquitous]** THE Terraform_Configuration SHALL provider `default_tags`로 태그를 지원하는 운영 리소스에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`를 적용하고 적용 불가 리소스와 사유를 목록화한다. 해당 목록은 문서화만 하며 최신성 검증이나 apply 차단 조건으로 사용하지 않는다.
+1. **[Ubiquitous]** THE Terraform_Configuration SHALL provider `default_tags`로 태그를 지원하는 운영 리소스에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`를 적용하고 적용 불가 리소스와 사유를 목록화한다. 적용 시점은 모든 import와 최종 No changes 확인 뒤 태그 전용 변경으로 한다(import 단계 적용 시 태그 diff 발생). 해당 목록은 문서화만 하며 최신성 검증이나 apply 차단 조건으로 사용하지 않는다.
 2. **[Ubiquitous]** THE Terraform_Configuration SHALL `app=boaz-api` 같은 기능적 태그를 `default_tags`의 공통 태그와 별도 resource/module 입력으로 관리한다.
 3. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확인한 기존 리소스 이름을 변경하지 않고 이름 변경·교체가 plan에 포함되면 apply를 차단한다.
 4. **[Unwanted-event]** IF 공통 태그 또는 기능 태그 적용이 기존 CodeDeploy 대상·workflow 계약·리소스 식별자를 변경하거나 교체를 유발하면, THEN THE Terraform_Configuration SHALL 해당 plan을 차단하고 예외와 승인 여부를 기록한다.
