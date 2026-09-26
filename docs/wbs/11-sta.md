@@ -31,7 +31,7 @@
 
 ## STA-02 버전·provider 규칙
 
-**목적:** Terraform·AWS provider 버전과 리전 설정을 고정함
+**목적:** Terraform·AWS provider 버전과 리전 설정, tflint 규칙을 고정함
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -42,6 +42,7 @@
 | STA-02-01 | Terraform `>= 1.11.0, < 2.0.0`, AWS provider 버전 범위 지정 | `versions.tf`에 값 존재, `terraform version` 결과가 범위 안 |
 | STA-02-02 | 기본 서울 리전 provider와 CloudFront 인증서 조회용 us-east-1 provider 구성 | `providers.tf`에 두 provider 블록 존재 |
 | STA-02-03 | `.terraform.lock.hcl` 생성·커밋 | `terraform providers lock` 실행 후 파일이 git에 추가됨 |
+| STA-02-04 | `.tflint.hcl` 작성: AWS 규칙 묶음 사용, `terraform_documented_variables`·`terraform_documented_outputs` 켜기(모든 variable·output에 `description` 필수). CI의 `tflint_version: latest`를 고정 버전으로 교체 | `description` 없는 variable을 넣으면 tflint 실패, `ci.yml`에 `latest` 없음 |
 
 ## STA-03 state 버킷 구현
 
