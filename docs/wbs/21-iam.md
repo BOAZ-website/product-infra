@@ -44,7 +44,7 @@
 | IAM-02-01 | GitHub OIDC provider, backend·frontend 배포 롤, CodeDeploy 서비스 롤, EC2 인스턴스 프로파일 import | `terraform state list`에 각 주소 존재 |
 | IAM-02-02 | 롤에 붙은 정책 연결과 인라인 정책도 함께 import | plan에 정책 연결 삭제 없음 |
 | IAM-02-03 | Terraform plan용 롤과 apply용 롤은 bootstrap에서 관리자 권한으로 먼저 만들고, 신뢰 조건을 운영 환경(`environment:production`)으로 제한 | 두 롤이 서로 다른 ARN, 코드에 액세스 키 없음 |
-| IAM-02-04 | EC2 롤 권한은 SSM 파라미터 읽기, 배포 번들 S3 읽기, CodeDeploy 에이전트 권한만 | 정책에 이 3가지 외 동작 없음 |
+| IAM-02-04 | EC2 롤에 현재 연결된 권한을 그대로 import: SSM 파라미터 읽기, 배포 번들 S3 읽기, CodeDeploy 에이전트, CloudWatch Agent 전송(`CloudWatchAgentServerPolicy`, OBS-01에 필요), Session Manager(`AmazonSSMManagedInstanceCore`). 권한 축소는 plan "No changes" 확인 뒤 별도 PR | plan에 정책 연결 변경 없음, 조사 기록의 관리형 정책 5개와 일치 |
 | IAM-02-05 | EC2 인스턴스 프로파일은 iam 그룹이 관리하고 compute 그룹에 output으로 제공 | compute 코드가 iam output을 참조 |
 
 ## IAM-03 SSM 파라미터 그룹 import + P7

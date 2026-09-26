@@ -38,7 +38,8 @@
 
 - 리전 `ap-northeast-2`. CloudFront 인증서만 `us-east-1`
 - backend: EC2 + CodeDeploy(systemd `boaz.service`)
-- frontend·admin: S3 + CloudFront, 각 CloudFront에 WAF 연결
+- frontend·admin: S3 + CloudFront, 각 CloudFront(api 포함)에 WAF 연결
+- 직접 접근 제한: ALB 보안 그룹은 TCP 80을 CloudFront 관리형 prefix list(`com.amazonaws.global.cloudfront.origin-facing`)에서만 허용. EC2 보안 그룹은 TCP 8080을 ALB 보안 그룹과 CloudFront prefix list에서만 허용. prefix list는 모든 CloudFront 배포를 포함하므로 우리 배포에서 온 요청만 받도록 하는 오리진 보호는 별도 보완 항목(관리자 CloudFront 보안 설정)에서 다룬다
 - EC2-A에는 Elastic IP가 연결되어 있음
 - 현재 IaC 없음. 시즌 전환은 `backend/infra/scripts/`의 셸·파이썬 스크립트로 수행
 - 자원별 실제 식별자는 `docs/records/inventory.md`(조사 기록)에만 적는다. 다른 문서에는 역할명(EC2-A, api CloudFront 등)으로 쓴다
@@ -77,7 +78,7 @@ product-infra/
 | `api_origin` | `ec2` / `alb` | api CloudFront origin (EC2-A:8080 / ALB:80) |
 
 - `api_origin = alb`이면 `season_capacity = on`이어야 한다(사전 조건으로 강제).
-- 시즌 시작: `season_capacity = on` apply → EC2-B 기동 → **최신 번들 재배포 성공** → Target Group 대상 정상 확인 → `api_origin = alb` apply
+- 시즌 시작: EC2-B 기동(런북 단계, CLI) → **최신 번들 재배포 성공** → `season_capacity = on` apply(ALB 생성, EC2-B Target Group 등록, Multi-AZ) → Target Group 대상 정상 확인 → `api_origin = alb` apply. 현행 `season-up.sh`와 같은 순서로, 재배포가 끝나기 전에는 EC2-B를 Target Group에 등록하지 않는다
 - 시즌 종료: `api_origin = ec2` apply → CloudFront `Deployed` 확인 → `season_capacity = off` apply. 반영 전에 ALB를 지우면 502
 - RDS Multi-AZ 전환은 수십 분 걸리므로 별도 단계로 분리
 - EC2-B 켜기·끄기는 `aws_ec2_instance_state` 사용
@@ -93,7 +94,7 @@ product-infra/
 - 조사로 확정되지 않은 식별자로 import·apply 금지(추정값 금지)
 - 시크릿·비밀번호는 코드·tfvars·plan·로그에 두지 않음(`ignore_changes`, `sensitive`)
 - 기존 배포 workflow가 참조하는 이름·버킷·배포 ID·롤 ARN 유지(Terraform output으로 계약 검사)
-- 콘솔 수동 변경 금지. 장애 대응 중 변경했다면 3일 안에 코드 반영·기록
+- 콘솔 수동 변경 금지. 장애 대응 중 변경했다면 즉시 기록하고 3일 안에 코드 반영(시즌 동결 중이면 동결 종료 후 3일 안에)
 - "state 등록만 하는 apply(import)"와 "자원을 바꾸는 apply"를 구분해 리뷰한다
 
 ---
@@ -104,7 +105,7 @@ product-infra/
 | --- | --- | --- |
 | import 시 속성 불일치로 교체 plan | 운영 자원 삭제 | `prevent_destroy` 먼저 적용, 그룹 단위 import, 안전 게이트(STA-07) |
 | CloudFront origin 교체 중 반영 지연 | 502·5xx | origin 복귀 → `Deployed` 확인 → ALB 삭제 순서 |
-| 시즌 시작 때 EC2-B가 옛 버전 앱으로 서비스 | 버전 혼재, 스키마 불일치 | 재배포 성공 후에만 Target Group 등록 |
+| 시즌 시작 때 EC2-B가 옛 버전 앱으로 서비스 | 버전 혼재, 스키마 불일치 | 재배포 성공 후에만 `season_capacity = on`으로 Target Group 등록 |
 | RDS 비밀번호가 state에 기록 | 시크릿 유출 | `ignore_changes = [password]`, state 버킷 암호화·접근 제한 |
 | import 중 스크립트로 시즌 전환 | state와 실제 불일치, 잘못된 apply | 시즌 동결 기간 apply 금지, 전환 수단 하나로 통일 |
 | 콘솔 수동 변경 | 예기치 않은 apply | 일일 drift 감지 |

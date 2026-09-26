@@ -47,7 +47,7 @@
 | --- | --- | --- |
 | CMP-02-01 | Target Group의 등록 대상·상태 확인 설정·포트·보안 그룹·서브넷 import | `terraform state list`에 Target Group 존재 |
 | CMP-02-02 | `season_capacity = off`면 ALB·listener 없음, `on`이면 있음 | off·on 각각의 plan에서 존재 여부가 모델과 일치 |
-| CMP-02-03 | 모든 대상이 정상(healthy)이 되기 전에는 CloudFront origin이 바뀌지 않도록 의존 관계 설정 | `terraform graph`에서 origin 변경이 상태 확인 뒤에 위치 |
+| CMP-02-03 | origin 교체는 `api_origin` 별도 apply로만 하고, 그 전에 실제 대상 상태를 확인하는 단계를 둠(Terraform 의존 관계는 상태 검사 통과를 기다리지 않음). 확인 방법은 SEA-02와 같음 | `api_origin = alb` apply 직전 `aws elbv2 describe-target-health` 결과에서 모든 대상이 healthy |
 
 ## CMP-03 EC2-B 재배포 순서 게이트
 
@@ -59,7 +59,7 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| CMP-03-01 | 재배포가 성공해야 Target Group에 등록되도록 스크립트·런북에 순서 명시. 현행 `season-up.sh`의 재배포 단계를 그대로 옮김 | 재배포 전에 등록하는 경우를 검증 스크립트가 실패로 판정 |
+| CMP-03-01 | EC2-B 기동 → 재배포 성공 → `season_capacity = on` apply(Target Group 등록) 순서를 런북에 명시. 현행 `season-up.sh`의 재배포 단계를 그대로 옮김 | 재배포 전에 등록하는 경우를 검증 스크립트가 실패로 판정 |
 | CMP-03-02 | 12월 시즌 전 EC2-B를 한 번 켜서 OS 패치·CodeDeploy 에이전트 상태 확인 후 다시 끔 | 점검 결과 기록, EC2-B 다시 stopped |
 
 ---

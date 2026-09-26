@@ -26,7 +26,7 @@
 | OPS-01-01 | season-up 7일 전 ~ season-down 3~7일 후 apply workflow 비활성화, 로컬 apply 금지 | 해당 기간 apply 실행 0건 |
 | OPS-01-02 | 시즌 전환은 `season-up.sh`·`season-down.sh`로만 수행, Terraform과 섞어 쓰지 않음 | 해당 기간 `envs/prod` 커밋 없음 |
 | OPS-01-03 | drift 감지 CI는 알림만 보내고 스크립트가 만든 차이는 "알려진 차이"로 기록 | drift workflow 로그에 apply 없음 |
-| OPS-01-04 | 장애 대응 중 콘솔 변경은 허용하되 3일 안에 코드 반영·기록 | 변경 기록과 반영 커밋 존재 |
+| OPS-01-04 | 장애 대응 중 콘솔 변경은 허용. 변경 내용은 즉시 `decisions.md`에 기록하고, 코드 반영 PR은 동결 종료 후 3일 안에 올림(동결 중에는 `envs/prod` 커밋 금지 유지) | 변경 기록 시각이 변경 당일, 반영 커밋이 동결 종료 후 3일 이내 |
 
 ## OPS-02 시즌 종료 후 plan 재확인
 
