@@ -33,4 +33,4 @@
 ## 🔔 참고 사항 / 승인
 
 - 운영 승인 필요 여부:
-- 관련 문서 업데이트: <!-- docs/import-log.md, decisions.md, runbook-season.md 등 -->
+- 관련 문서 업데이트: <!-- docs/records/import-log.md, docs/records/decisions.md, 런북 등 -->

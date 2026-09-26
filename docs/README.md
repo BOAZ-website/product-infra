@@ -19,7 +19,7 @@
 
 | 경로 | 내용 | 원본 |
 | --- | --- | --- |
-| `overview/` | 배경·목표·원칙·시즌 전환 모델, 현행 인프라 설명 | 저장소 |
+| `overview/` | 배경·목표·원칙·시즌 전환 모델(`migration-plan.md`), 현행 인프라(`current-infra.md`) | 저장소 |
 | `wbs/` | WBS와 명세서 12개. 티켓 키 `NET-01`, 기능 ID `NET-01-01` | 노션(이 폴더는 노션 페이지 원본 마크다운) |
 | `guides/` | 팀원 공통 작업 절차 | 저장소 |
 | `records/` | 조사 기록(inventory), 결정 기록(decisions), import 기록(import-log) | 저장소 |
@@ -31,10 +31,5 @@
 - 작업 순서·티켓·완료 조건의 기준은 노션 WBS·명세서. 노션을 고치면 같은 주 안에 `docs/wbs/`에 PR로 반영한다.
 - `guides/`·`records/`는 저장소가 원본. 노션에는 링크로 둔다.
 - `.kiro/specs/product-infra-migration/`(requirements·design·tasks)은 초기 설계 참고용. 명세서의 P1~P10 검증 속성 정의가 `design.md`에 있다. 내용이 WBS와 다르면 WBS를 따른다.
-- 계정 ID, 개인 IP는 어떤 문서에도 적지 않는다. 자원 식별자는 `records/inventory.md`에만 적는다.
+- 개인 IP는 어떤 문서에도 적지 않는다. 계정 ID·자원 ID는 `records/`(조사·import 기록)에만 적고, 다른 문서에는 역할명(EC2-A, api CloudFront 등)으로 쓴다.
 
-## 정리 예정
-
-- `infra-spec.md` → `overview/current-infra.md`로 이동, SSH 허용 개인 IP 삭제(PR #10 머지 후)
-- PR #10의 `inventory.md`·`decisions.md`·`import-log.md` → `records/`로 이동(PR #10 머지 후)
-- PR #12의 `wbs.md`는 `wbs/`로 대체되어 머지하지 않고 닫음
