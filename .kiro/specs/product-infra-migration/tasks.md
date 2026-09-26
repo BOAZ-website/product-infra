@@ -1,5 +1,7 @@
 # Implementation Plan: BOAZ 운영 AWS 인프라 Terraform 마이그레이션
 
+> **참고용 문서.** 작업 순서·완료 조건의 기준은 노션 WBS·명세서(저장소 사본: `docs/wbs/`)임. 이 문서의 저장소 이름(`BOAZ-website/infra`), 시즌 변수(`season_mode` 단일 변수), Terraform 버전(1.9) 등은 정정 전 값이며, 현재 기준은 `design.md`·`requirements.md`와 `docs/wbs/`를 따름
+
 ## Overview
 
 신규 `BOAZ-website/infra` 저장소에 운영 AWS 인프라를 lift-and-codify 방식으로 Terraform 코드화한다. 기존 운영 리소스는 삭제 후 재생성하지 않고 AWS CLI로 실제 식별자와 현재 설정을 확정한 뒤 선언적 `import` 블록으로 편입한다. `season_mode`는 `off`와 `on`만 허용하며, 운영 리소스에 대한 apply는 조사·plan·위험 action 검사·승인 게이트를 모두 통과한 뒤에만 가능하도록 한다.

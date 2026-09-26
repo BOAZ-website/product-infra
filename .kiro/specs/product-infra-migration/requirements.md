@@ -25,7 +25,7 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 ## Glossary
 
 - **Infra_Repository**: `BOAZ-website/product-infra` 신규 저장소.
-- **Terraform_Configuration**: Terraform ≥ 1.9와 AWS Provider ≥ 5.x로 작성된 `bootstrap/`, `modules/`, `envs/prod/` 구성.
+- **Terraform_Configuration**: Terraform ≥ 1.11과 AWS Provider(버전 범위는 `docs/records/decisions.md` "AWS provider 버전" 결정)로 작성된 `bootstrap/`, `modules/`, `envs/prod/` 구성.
 - **Import_Procedure**: 운영 리소스의 실제 식별자와 설정을 조사하고 Terraform `import` 블록으로 state에 편입한 뒤 plan을 수렴시키는 절차.
 - **Protected_Resource**: EC2, RDS, CloudFront, Route53, S3 등 운영 중 삭제·교체 시 중단 또는 데이터 손실을 일으킬 수 있어 삭제와 교체를 차단해야 하는 리소스.
 - **Season_Controller**: `season_capacity`·`api_origin` 변수와 조건식·리소스 의존성으로 평시와 모집 시즌 상태를 제어하는 Terraform 구성.
@@ -137,7 +137,7 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 1. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확정한 배포 번들·프론트엔드·지원서 업로드·아카이빙 S3 버킷을 import하거나 각 버킷의 관리 제외 사유를 기록한다.
 2. **[Ubiquitous]** THE Terraform_Configuration SHALL 각 S3 버킷의 versioning·암호화·퍼블릭 액세스 차단·lifecycle·bucket policy를 `aws_s3_bucket_versioning`, `aws_s3_bucket_server_side_encryption_configuration`, `aws_s3_bucket_public_access_block`, `aws_s3_bucket_lifecycle_configuration`, `aws_s3_bucket_policy` 등 별도 리소스로 정의한다.
 3. **[Optional]** WHERE 운영 승인으로 보존 기간이 정해지면, THE Terraform_Configuration SHALL 배포 번들 버킷의 `deploy-bundle-<sha>.zip` 누적을 줄이는 lifecycle 규칙을 제안하고 적용 전 보존 기준과 삭제 승인자를 문서화한다.
-4. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확정한 API·www·dev CloudFront 배포, Route53 레코드, ACM 인증서를 import하거나 관리 제외 사유를 기록하며 미확인 ID·ARN·리전은 import ID로 사용하지 않는다. 검증되지 않은 ID·ARN·리전이 하나라도 import ID로 사용되면 전체 import 작업을 차단한다.
+4. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확정한 API·www·admin CloudFront 배포, Route53 레코드, ACM 인증서를 import하거나 관리 제외 사유를 기록하며 미확인 ID·ARN·리전은 import ID로 사용하지 않는다. 검증되지 않은 ID·ARN·리전이 하나라도 import ID로 사용되면 전체 import 작업을 차단한다.
 5. **[Unwanted-event]** IF API CloudFront의 origin 수가 정확히 1개가 아니거나 현재 설정을 확인할 수 없으면, THEN THE Terraform_Configuration SHALL 검증 오류를 발생시켜 plan·apply를 차단한다.
 6. **[Event-driven]** WHEN Season_Mode가 `on`이고 ALB DNS·리스너 포트가 사전 조사 및 plan에서 유효하면, THE Season_Controller SHALL API CloudFront origin을 Terraform ALB resource attribute의 DNS와 포트 80으로 계획한다.
 7. **[Event-driven]** WHEN Season_Mode가 `off`이고 EC2-A origin이 사전 조사로 확정되면, THE Season_Controller SHALL API CloudFront origin을 EC2-A resource attribute의 origin과 포트 8080으로 계획한다.
