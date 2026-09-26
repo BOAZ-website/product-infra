@@ -68,7 +68,7 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| DOC-04-01 | `required_version`과 CI `TF_VERSION`(현재 `ci.yml`에 1.9.8)을 1.11 이상으로 상향(S3 잠금 기능 `use_lockfile`은 1.10에서 도입, 1.11에서 정식) | versions 파일과 workflow에서 1.11 이상 값 확인 |
+| DOC-04-01 | `required_version`과 CI `TF_VERSION`(기존 `ci.yml` 1.9.8)을 1.11 이상으로 상향(S3 잠금 기능 `use_lockfile`은 1.10에서 도입, 1.11에서 정식) | versions 파일과 workflow에서 1.11 이상 값 확인 |
 | DOC-04-02 | 기본 태그 값 `Repository`를 실제 저장소명 `product-infra`로 정정 | 변경 내용 확인 |
 | DOC-04-03 | "state 등록만 하는 apply"와 "자원을 바꾸는 apply"를 구분하는 문구 추가 | 문서에 두 개념이 별도 절로 존재 |
 | DOC-04-04 | 시즌 모델을 변수 2개(`season_capacity`: ALB·EC2-B·Multi-AZ / `api_origin`: ec2·alb)로 바꾸기로 설계 문서에 기록 | design.md에 2변수 표 존재 |
@@ -77,6 +77,8 @@
 | DOC-04-07 | 보안 그룹 규칙을 규칙별 개별 리소스로 관리하기로 확정하고 inventory.md 표기 통일 | design.md와 inventory.md 표기 일치 |
 | DOC-04-08 | infra-spec.md의 SSH 허용 개인 IP 기재 삭제, Session Manager 전환 우선순위 기록(#14에서 `docs/overview/current-infra.md`로 반영) | IP 주소 패턴 검색 결과 없음 |
 | DOC-04-09 | infra-spec.md 최신화(#13): EC2-A Elastic IP "미적용" → 연결됨, www·api·admin CloudFront의 WAF 연결 추가(#14에서 반영) | 문서가 inventory 조사 결과와 일치 |
+
+> 진행: 완료(#2). 03은 #11(migration-plan.md), 08·09는 #14, 나머지(01·02·04·05·06·07)는 #2 후속 PR에서 `.kiro` 스펙 원본·`ci.yml`·inventory.md에 반영. AWS provider 버전 범위는 결정 레지스터 "AWS provider 버전"을 따르도록 두고 값은 바꾸지 않음
 
 ## DOC-05 PR #9·#10 리뷰·머지
 

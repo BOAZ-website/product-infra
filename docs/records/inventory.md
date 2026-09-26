@@ -36,7 +36,7 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 
 ## 3. 보안그룹
 
-모든 규칙은 SG 인라인 규칙. 코드 편입 시 인라인 규칙과 별도 rule 리소스를 섞지 않음
+현재 규칙은 모두 각 SG에 직접 정의됨. 코드 편입 시 규칙별 개별 리소스(`aws_vpc_security_group_ingress_rule`·`aws_vpc_security_group_egress_rule`)로 관리하고, `aws_security_group`의 인라인 `ingress`·`egress` 블록과 섞지 않음(설계 문서 `modules/network`와 같은 기준)
 
 | 자원 | 식별자 | ingress | egress | ownership |
 |---|---|---|---|---|

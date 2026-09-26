@@ -4,13 +4,14 @@
 
 ### 목적과 범위
 
-이 설계는 운영 중인 BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버 AWS 인프라를 신규 `BOAZ-website/infra` 저장소로 코드화하는 lift-and-codify 설계다. 애플리케이션 코드, `backend/.github/workflows/cd.yml`, `frontend/.github/workflows/deploy-www.yml`, `frontend/.github/workflows/deploy-dev.yml`, CodeDeploy hook, Spring 설정은 수정하지 않는다.
+이 설계는 운영 중인 BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버 AWS 인프라를 신규 `BOAZ-website/product-infra` 저장소로 코드화하는 lift-and-codify 설계다. 애플리케이션 코드, `backend/.github/workflows/cd.yml`, `frontend/.github/workflows/deploy-www.yml`, `frontend/.github/workflows/deploy-dev.yml`, CodeDeploy hook, Spring 설정은 수정하지 않는다.
 
 현재 운영 스크립트의 동작을 보존한다.
 
-- 평시(`season_mode = "off"`): CloudFront → EC2-A:8080, EC2-B 중지, ALB/listener 없음, Target Group은 EC2-A, RDS Multi-AZ false.
-- 모집 시즌(`season_mode = "on"`): CloudFront → ALB:80 → EC2-A/B:8080, EC2-B 실행 및 `app=boaz-api`, RDS Multi-AZ true.
-- 시즌 종료는 반드시 CloudFront origin 복귀 apply → CloudFront `Deployed` 확인 → ALB 제거 apply의 두 단계로 실행한다.
+- 평시(`season_capacity = "off"`, `api_origin = "ec2"`): CloudFront → EC2-A:8080, EC2-B 중지, ALB/listener 없음, Target Group은 EC2-A, RDS Multi-AZ false.
+- 모집 시즌(`season_capacity = "on"`, `api_origin = "alb"`): CloudFront → ALB:80 → EC2-A/B:8080, EC2-B 실행 및 `app=boaz-api`, RDS Multi-AZ true.
+- 시즌 시작은 EC2-B 기동 → 최신 번들 재배포 성공 → `season_capacity = "on"` apply → target healthy 확인 → `api_origin = "alb"` apply 순서로 실행한다.
+- 시즌 종료는 반드시 `api_origin = "ec2"` apply(origin 복귀) → CloudFront `Deployed` 확인 → `season_capacity = "off"` apply(ALB 제거)의 두 단계로 실행한다.
 
 운영 리소스는 삭제 후 재생성하지 않는다. AWS CLI 사전 조사에서 실제 식별자와 현재 설정을 확인한 리소스만 Terraform `import` 블록으로 취득한다. 조사할 수 없는 대상은 추정해서 생성·import하지 않고 `docs/import-log.md`에 `미확인` 또는 `관리 제외`로 기록한다.
 
@@ -18,7 +19,7 @@
 
 1. `requirements.md`를 source of truth로 사용하고, 이 문서의 예시 placeholder를 실제 AWS 식별자로 오인하지 않는다.
 2. 모든 AWS 사전 조사는 `--profile tf --region ap-northeast-2`를 사용한다. CloudFront 전역 API는 profile만 사용하고, CloudFront ACM은 `us-east-1` provider alias로 조회한다.
-3. Terraform은 `>= 1.9.0, < 2.0.0`, AWS provider는 `>= 5.0.0, < 6.0.0`으로 고정한다. `.terraform.lock.hcl`을 커밋한다.
+3. Terraform은 `>= 1.11.0, < 2.0.0`으로 고정한다(S3 backend 자체 잠금 `use_lockfile`은 1.10에서 도입, 1.11에서 정식 지원). AWS provider 버전 범위는 `docs/records/decisions.md`의 "AWS provider 버전" 결정에 따른다(현재 기준 `>= 5.0.0, < 6.0.0`). `.terraform.lock.hcl`을 커밋한다.
 4. 운영 리소스의 `destroy`·`replace`, Secret_Parameter 값 노출, 미확정 식별자 사용, backend/lock 실패는 apply 전에 차단한다.
 5. 기존 배포 workflow가 기대하는 이름·버킷·배포 ID·role ARN을 output과 계약 검사로 보존한다.
 
@@ -43,7 +44,7 @@
 
 ### 논리 구조
 
-`BOAZ-website/infra`는 운영 리소스를 소유하는 유일한 Terraform 저장소다. `bootstrap`은 state 저장 기반을 먼저 만들고, `envs/prod`는 운영 리소스만 관리한다. 재사용 가능한 책임은 `modules/*`로 분리한다.
+`BOAZ-website/product-infra`는 운영 리소스를 소유하는 유일한 Terraform 저장소다. `bootstrap`은 state 저장 기반을 먼저 만들고, `envs/prod`는 운영 리소스만 관리한다. 재사용 가능한 책임은 `modules/*`로 분리한다.
 
 ```mermaid
 flowchart TB
@@ -51,7 +52,7 @@ flowchart TB
   pr[Infra PR]
   ci[Infrastructure CI\nfmt validate plan drift]
   bootstrap[bootstrap\nS3 state bucket + native lock policy]
-  prod[envs/prod\nseason_mode + provider + backend]
+  prod[envs/prod\nseason_capacity + api_origin + provider + backend]
   modules[modules\nnetwork compute database storage cdn deploy iam params]
   state[(S3 Terraform state\nversioning + encryption)]
   lock[(S3 .tflock\nuse_lockfile=true)]
@@ -84,7 +85,7 @@ flowchart TB
 
 ```hcl
 terraform {
-  required_version = ">= 1.9.0, < 2.0.0"
+  required_version = ">= 1.11.0, < 2.0.0"
 
   required_providers {
     aws = {
@@ -95,14 +96,14 @@ terraform {
 }
 ```
 
-provider는 기본 `aws`를 `ap-northeast-2`에 두고, CloudFront ACM용 `aws.us_east_1` alias를 둔다. 두 provider 모두 `default_tags`에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/infra`를 적용한다. 적용 불가 리소스는 `docs/import-log.md`에 리소스 종류와 사유를 목록화하며, 공통 태그 목록 자체는 apply 차단 조건으로 사용하지 않는다.
+provider는 기본 `aws`를 `ap-northeast-2`에 두고, CloudFront ACM용 `aws.us_east_1` alias를 둔다. 두 provider 모두 `default_tags`에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`를 적용한다. 적용 불가 리소스는 `docs/import-log.md`에 리소스 종류와 사유를 목록화하며, 공통 태그 목록 자체는 apply 차단 조건으로 사용하지 않는다.
 
 ## Components and Interfaces
 
 ### 저장소 구조
 
 ```text
-BOAZ-website/infra/
+BOAZ-website/product-infra/
 ├── bootstrap/
 │   ├── versions.tf
 │   ├── providers.tf
@@ -221,7 +222,7 @@ CloudFront → ALB SG inbound는 조사로 확정한 prefix list ID만 허용한
 - `aws_eip`는 권고안으로만 기록하며 승인 전 생성하지 않음
 - instance profile은 `modules/iam` output을 입력으로 받음
 
-입력: 확정된 instance IDs, subnet/SG, `season_mode`, `drift_risk_confirmed`, EC2-B desired state, 기능 태그 map, IAM instance profile.
+입력: 확정된 instance IDs, subnet/SG, `season_capacity`, `drift_risk_confirmed`, EC2-B desired state, 기능 태그 map, IAM instance profile.
 
 출력: `ec2_a_id`, `ec2_b_id`, `ec2_a_origin`, `ec2_a_dns`, `ec2_b_state`, `ec2_a_private_ip`, `instance_profile_name`.
 
@@ -238,7 +239,7 @@ CloudFront → ALB SG inbound는 조사로 확정한 prefix list ID만 허용한
 - `aws_db_parameter_group`
 - RDS SG는 network module의 SG rule과 연결
 
-입력: 확인된 DB identifier, instance class/storage/engine version, subnet group, parameter group, SG, `season_mode`, password 관리 정책.
+입력: 확인된 DB identifier, instance class/storage/engine version, subnet group, parameter group, SG, `season_capacity`, password 관리 정책.
 
 출력: `db_instance_id`, `db_endpoint`, `db_port`, `multi_az`, `db_subnet_group_name`, `db_security_group_id`.
 
@@ -265,20 +266,20 @@ CloudFront → ALB SG inbound는 조사로 확정한 prefix list ID만 허용한
 
 #### `modules/cdn`
 
-책임: API/www/dev CloudFront distribution, Route53 record, ACM certificate를 관리하고 API origin 전환 안전성을 보장한다.
+책임: API/www/admin CloudFront distribution, Route53 record, ACM certificate를 관리하고 API origin 전환 안전성을 보장한다.
 
 주요 resource/data:
 
-- `aws_cloudfront_distribution.api`, `.www`, `.dev`
+- `aws_cloudfront_distribution.api`, `.www`, `.admin`
 - `aws_route53_zone`, `aws_route53_record`
 - `aws_acm_certificate` 또는 확정 ARN data source with provider `aws.us_east_1`
 - API origin 검증용 variable validation/precondition/check
 
-입력: 확정된 distribution IDs, aliases, origin, cache/behavior/error response policy, `season_mode`, ALB DNS, EC2-A DNS, ACM ARN/region, Route53 zone/record.
+입력: 확정된 distribution IDs, aliases, origin, cache/behavior/error response policy, `api_origin`, ALB DNS, EC2-A DNS, ACM ARN/region, Route53 zone/record.
 
-출력: `api_distribution_id`, `api_origin_domain`, `api_origin_port`, `www_distribution_id`, `dev_distribution_id`, `route53_zone_id`, `acm_certificate_arn`, `workflow_distribution_contract`.
+출력: `api_distribution_id`, `api_origin_domain`, `api_origin_port`, `www_distribution_id`, `admin_distribution_id`, `route53_zone_id`, `acm_certificate_arn`, `workflow_distribution_contract`.
 
-API distribution의 `Origins.Quantity == 1`을 plan 전 검증한다. 1개가 아니거나 현재 설정을 읽을 수 없으면 plan/apply를 실패시킨다. `season_mode=on`에서는 `aws_lb` resource attribute의 DNS와 port 80, `off`에서는 EC2-A resource attribute와 port 8080을 사용한다. EC2-A domain은 SSM literal을 source로 삼지 않는다. www/dev SPA의 403/404 → `/index.html`, cache policy, aliases, viewer certificate를 import 후 보존한다.
+API distribution의 `Origins.Quantity == 1`을 plan 전 검증한다. 1개가 아니거나 현재 설정을 읽을 수 없으면 plan/apply를 실패시킨다. `api_origin=alb`에서는 `aws_lb` resource attribute의 DNS와 port 80, `ec2`에서는 EC2-A resource attribute와 port 8080을 사용한다. EC2-A domain은 SSM literal을 source로 삼지 않는다. www SPA의 403/404 → `/index.html`, cache policy, aliases, viewer certificate를 import 후 보존한다.
 
 ACM 인증서가 CloudFront viewer certificate이면 `aws.us_east_1` provider로 조회/관리한다. certificate ARN과 region을 AWS CLI로 확인하지 못하면 import·plan·apply를 진행하지 않는다.
 
@@ -330,39 +331,55 @@ EC2 role에는 SSM `GetParameter`/`GetParameters` with decryption, 배포 bundle
 
 정확히 12개가 아니거나 값이 resource/module output이 아닌 literal이면 plan/apply를 차단한다. secret 값은 query, `--with-decryption`, state, plan, output, log에 넣지 않는다. 기존 루트 parameter 이름은 변경하지 않고 `/boaz/app/*` 이관은 후속 과제로 기록한다. `register-ssm-params.sh`는 migration 완료 후 deprecated/deleted 상태를 기록한다.
 
-### `season_mode` 상태 모델
+### 시즌 상태 모델: `season_capacity` + `api_origin`
+
+한 번의 apply로는 "대상 healthy 확인 후 origin 교체", "origin 복귀 반영 후 ALB 제거" 순서를 보장할 수 없으므로 시즌 상태를 변수 2개로 나눈다.
+
+| 변수 | 값 | 제어 대상 |
+|---|---|---|
+| `season_capacity` | `off` / `on` | ALB·listener, EC2-B 실행 상태와 기능 태그, Target Group 등록 대상, RDS Multi-AZ |
+| `api_origin` | `ec2` / `alb` | API CloudFront origin (EC2-A:8080 / ALB DNS:80) |
 
 ```mermaid
 stateDiagram-v2
   [*] --> Off
-  Off --> On: season_mode = "on"\nALB/health gate 통과
-  On --> Off: season_mode = "off"\norigin 복귀 및 Deployed 확인
-  Off --> Off: invalid mode 거부
-  On --> On: plan/apply 후 health 재검증
+  Off --> CapacityOn: season_capacity = "on"\n(EC2-B 재배포 성공 후)
+  CapacityOn --> On: api_origin = "alb"\n모든 target healthy
+  On --> CapacityOn: api_origin = "ec2"\norigin 복귀
+  CapacityOn --> Off: season_capacity = "off"\nDeployed 확인 후
 ```
 
-| 항목 | `off` | `on` |
-|---|---|---|
-| ALB/listener | absent | ALB present, listener HTTP :80 |
-| EC2-A | running, 기존 기능 보존 | running, 기존 기능 보존 |
-| EC2-B | stopped, `app=boaz-api` 없음 | running, `app=boaz-api` |
-| Target Group | EC2-A 단독 | EC2-A + EC2-B |
-| API CloudFront origin | EC2-A resource attribute, `8080` | ALB resource attribute DNS, `80` |
-| RDS | `multi_az=false` | `multi_az=true` |
+| 상태 | `season_capacity` | `api_origin` | ALB/listener | EC2-B | Target Group | API CloudFront origin | RDS |
+|---|---|---|---|---|---|---|---|
+| Off(평시) | `off` | `ec2` | absent | stopped, `app=boaz-api` 없음 | EC2-A 단독 | EC2-A, `8080` | `multi_az=false` |
+| CapacityOn(전환 중) | `on` | `ec2` | ALB present, listener HTTP :80 | running, `app=boaz-api` | EC2-A + EC2-B | EC2-A, `8080` | `multi_az=true` |
+| On(모집 시즌) | `on` | `alb` | ALB present, listener HTTP :80 | running, `app=boaz-api` | EC2-A + EC2-B | ALB resource attribute DNS, `80` | `multi_az=true` |
 
-`season_mode` variable validation은 정확히 `off` 또는 `on`만 허용한다. 오타와 임의 mode는 plan 이전에 실패한다. ALB DNS, EC2-A origin, IDs는 수동 variable로 받지 않고 resource attribute/output reference로 연결한다.
+- `season_capacity`는 `off`·`on`, `api_origin`은 `ec2`·`alb`만 허용한다. 오타와 임의 값은 plan 이전에 실패한다.
+- `api_origin = "alb"`이면서 `season_capacity = "off"`인 조합은 precondition으로 plan 전에 실패시킨다(ALB 없이 origin을 ALB로 바꾸는 상태 금지).
+- RDS Multi-AZ 전환은 수십 분 걸리므로 runbook에서 별도 단계로 분리한다.
+- ALB DNS, EC2-A origin, IDs는 수동 variable로 받지 않고 resource attribute/output reference로 연결한다.
 
 ## Data Models
 
 ### Terraform 입력 모델
 
 ```hcl
-variable "season_mode" {
+variable "season_capacity" {
   type        = string
-  description = "운영 시즌 상태"
+  description = "시즌 용량 상태(ALB·EC2-B·Target Group 등록·RDS Multi-AZ)"
   validation {
-    condition     = contains(["off", "on"], var.season_mode)
-    error_message = "season_mode must be exactly off or on."
+    condition     = contains(["off", "on"], var.season_capacity)
+    error_message = "season_capacity must be exactly off or on."
+  }
+}
+
+variable "api_origin" {
+  type        = string
+  description = "API CloudFront origin 대상(ec2: EC2-A:8080, alb: ALB:80)"
+  validation {
+    condition     = contains(["ec2", "alb"], var.api_origin)
+    error_message = "api_origin must be exactly ec2 or alb."
   }
 }
 
@@ -417,7 +434,7 @@ backend_deploy_role_arn
 frontend_www_bucket_name
 frontend_dev_bucket_name
 frontend_www_distribution_id
-frontend_dev_distribution_id
+frontend_admin_distribution_id
 ```
 
 Infra CI는 output을 기존 workflow의 literal/secret reference와 비교한다. 현재 backend workflow에서 확인된 이름은 `boaz-backend`, `codedeploy-prod`, `boaz-codedeploy-bucket`, region `ap-northeast-2`이며, role ARN은 저장소 파일의 현행 참조값으로만 기록하고 AWS 조사 전에는 확정하지 않는다. frontend secret의 실제 값은 조회·기록하지 않고 secret 이름과 실행 결과로만 계약을 검증한다.
@@ -432,7 +449,7 @@ Infra CI는 output을 기존 workflow의 literal/secret reference와 비교한�
 2. EC2-A/B ID, state, SG, subnet, IAM profile, AMI, public/private DNS, user_data drift 위험.
 3. SG 전체 inbound/outbound와 CloudFront managed prefix list ID.
 4. RDS instance, subnet group, parameter group, SG, Multi-AZ, deletion protection.
-5. API/www/dev CloudFront ID, origin 수와 domain/port, behaviors, cache/error response, aliases, viewer certificate.
+5. API/www/admin CloudFront ID, origin 수와 domain/port, behaviors, cache/error response, aliases, viewer certificate.
 6. S3 bucket 전체 목록, region, versioning, encryption, public access block, policy, lifecycle.
 7. Route53 hosted zone와 `www`, `dev`, `api` record.
 8. ACM ARN와 certificate region.
@@ -472,38 +489,51 @@ Protected_Resource인 RDS, EC2, CloudFront, Route53 record, S3에는 `prevent_de
 
 ## 시즌 전환과 안전 게이트
 
-### 시즌 시작: dependency graph와 health precondition
+### 시즌 시작: 재배포 게이트, dependency graph와 health precondition
 
-`season_mode=on` plan은 다음 dependency를 만든다.
+시즌 시작은 다음 순서를 예외 없이 적용한다. 현행 `season-up.sh`와 같은 순서이며, 재배포가 끝나기 전에는 EC2-B를 Target Group에 등록하지 않는다.
 
 ```mermaid
 flowchart LR
-  alb[ALB 생성/ACTIVE] --> listener[HTTP listener :80]
-  listener --> register[EC2-A/B Target 등록]
-  register --> healthy[모든 target healthy]
-  healthy --> origin[CloudFront API origin = ALB DNS:80]
-  healthy --> rds[RDS multi_az=true]
+  start[EC2-B 기동\nrunbook, CLI] --> redeploy[최신 번들 재배포 성공]
+  redeploy --> cap[season_capacity = on apply\nALB·listener·TG 등록·Multi-AZ]
+  cap --> healthy[모든 target healthy]
+  healthy --> origin[api_origin = alb apply\nCloudFront origin = ALB DNS:80]
 ```
+
+**1단계: EC2-B 기동과 재배포(runbook)**
+
+- EC2-B를 기동하고 마지막 성공 배포를 EC2-B에 재배포한다.
+- 재배포가 실패하거나 결과를 확인할 수 없으면 중지한다. 이 경우 `season_capacity = "on"` apply를 실행하지 않고 EC2-B를 다시 중지해 평시 상태를 유지한다.
+
+**2단계: `season_capacity = "on"` apply**
 
 - ALB는 확인된 subnet/SG만 사용한다.
 - listener는 ALB가 ACTIVE인 뒤 생성한다.
-- Target Group은 EC2-A와 EC2-B를 등록하고, `describe-target-health`에서 모든 필수 target이 `healthy`인지 read-only health gate로 확인한다.
-- health gate가 통과하지 않으면 CloudFront origin update와 이후 의존 작업을 실행하지 않는다.
-- CloudFront update는 `aws_lb` resource attribute DNS를 사용한다. `ALB_DNS` 수동 입력은 금지한다.
+- Target Group은 EC2-A와 EC2-B를 등록한다.
 - RDS Multi-AZ plan은 replacement가 아닌 in-place인지 확인한다.
-- health check timeout은 900초이며, timeout이면 이전 검증 상태와 증적을 유지하고 후속 apply를 중단한다.
+
+**검증 gate**
+
+- `describe-target-health`에서 모든 필수 target이 `healthy`인지 read-only health gate로 확인한다(15초 간격, 최대 900초).
+- timeout이거나 healthy가 아닌 target이 있으면 `api_origin = "alb"` apply를 실행하지 않는다. 이전 검증 상태와 증적을 유지하고 원인을 기록한다.
+
+**3단계: `api_origin = "alb"` apply**
+
+- CloudFront update는 `aws_lb` resource attribute DNS를 사용한다. `ALB_DNS` 수동 입력은 금지한다.
+- apply 후 CloudFront `Deployed`, origin domain/port, API health HTTP 200을 확인한다.
 
 Terraform precondition/check는 resource attribute와 조사 결과의 정적·계획 검증에 사용한다. AWS target health처럼 apply 직전 외부 상태는 CI/runbook의 read-only preflight가 JSON 증적을 만들고, origin update 단계의 gate가 그 증적과 freshness/모든 target healthy 조건을 확인하도록 한다. 단순 `check` warning만으로 통과시키지 않고 실패를 apply blocker로 처리한다.
 
 ### 시즌 종료: 항상 두 단계 apply
 
-`season_mode=off` 전환은 다음 순서를 예외 없이 적용한다.
+시즌 종료는 다음 순서를 예외 없이 적용한다.
 
-**1단계: origin 복귀 apply**
+**1단계: `api_origin = "ec2"` apply(origin 복귀)**
 
-- ALB와 기존 target이 아직 존재하는 상태에서 `season_mode=off` 계획을 만든다.
+- `season_capacity = "on"`을 유지한 채 `api_origin = "ec2"` 계획을 만든다. ALB와 기존 target은 그대로 남는다.
 - CloudFront API origin을 EC2-A resource attribute와 port 8080으로 변경한다.
-- 이 단계에서는 ALB를 제거하는 작업을 포함하지 않는다. full destroy plan을 그대로 apply하지 않고, 승인된 origin-only phase plan으로 제한한다.
+- 이 단계의 plan에는 ALB 제거가 포함되지 않는다. plan에 ALB·listener·target 변경이 있으면 apply하지 않는다.
 
 **검증 gate**
 
@@ -511,20 +541,20 @@ Terraform precondition/check는 resource attribute와 조사 결과의 정적·�
 - origin domain/port가 EC2-A:8080인지, API health HTTP 200인지, 5xx가 없는지 확인한다.
 - `Deployed`가 아니면 2단계 apply를 차단하고 기존 ALB와 운영 상태를 보존한다.
 
-**2단계: ALB 제거 apply**
+**2단계: `season_capacity = "off"` apply(ALB 제거)**
 
-- 동일한 `season_mode=off`로 fresh plan을 만든다.
+- `api_origin = "ec2"`를 유지한 채 `season_capacity = "off"`로 fresh plan을 만든다.
 - `aws_lb`/listener absent, EC2-B deregistered/stopped, 기능 태그 없음, Target Group EC2-A 단독, RDS Multi-AZ false가 최종 계획인지 확인한다.
 - 1단계의 `Deployed` 증적이 유효할 때만 apply한다.
 - apply 후 CloudFront origin, ALB 부재, EC2-B stopped, target health, RDS, API health를 재검증한다.
 
-이 phase gate는 서비스 상태를 표현하는 `season_mode`를 두 개의 시즌 mode로 늘리는 것이 아니다. `season_mode`는 여전히 `off`/`on`만 허용하며, 1단계와 2단계는 runbook과 CI의 명시적 plan scope/승인 gate다. 일반 full plan이 ALB destroy를 포함할 때는 자동 apply하지 않는다.
+두 단계는 서로 다른 변수를 바꾸는 별개의 apply다. 한 번의 apply로 `api_origin`과 `season_capacity`를 함께 바꾸지 않는다. ALB destroy를 포함한 plan은 자동 apply하지 않는다.
 
 ### EC2-B 상태 제어 선택
 
 #### 선택: `aws_ec2_instance_state`
 
-EC2-B는 이미 존재하는 인스턴스 ID를 보존하고 시즌에만 실행/중지한다. `aws_ec2_instance_state`는 instance identity와 AMI/user_data 관리를 분리하면서 running/stopped 상태만 제어하므로 현재 lift-and-codify 범위에 적합하다. `season_mode=on`에서는 `running`과 `app=boaz-api`, `off`에서는 `stopped`와 기능 태그 없음으로 관리한다.
+EC2-B는 이미 존재하는 인스턴스 ID를 보존하고 시즌에만 실행/중지한다. `aws_ec2_instance_state`는 instance identity와 AMI/user_data 관리를 분리하면서 running/stopped 상태만 제어하므로 현재 lift-and-codify 범위에 적합하다. `season_capacity=on`에서는 `running`과 `app=boaz-api`, `off`에서는 `stopped`와 기능 태그 없음으로 관리한다. EC2-B 기동은 재배포 게이트 때문에 runbook 1단계에서 먼저 수행하며, Terraform은 그 결과를 `running`으로 수렴시킨다.
 
 #### ASG 대안과 trade-off
 
@@ -541,7 +571,9 @@ ASG는 Requirements의 ECS/EKS/ASG 전환 범위 밖이며 기존 workflow 계�
 |---|---|---|
 | `tf` profile/account/region 확인 실패 | bootstrap/import/plan/apply 중단 | `inventory.md`에 실패 명령과 시각 기록 |
 | backend init 실패 또는 S3 lock 획득 실패 | state 변경 없이 즉시 실패 | lock 복구 절차와 owner 확인, 임의 force-unlock 금지 |
-| `season_mode`가 `off`/`on` 이외 | variable validation에서 plan 전 실패 | 입력값을 log에 secret 없이 기록 |
+| `season_capacity`가 `off`/`on` 이외, `api_origin`이 `ec2`/`alb` 이외 | variable validation에서 plan 전 실패 | 입력값을 log에 secret 없이 기록 |
+| `api_origin = alb`이면서 `season_capacity = off` | precondition에서 plan 전 실패 | 입력 조합과 현재 상태 기록 |
+| 시즌 시작 시 EC2-B 재배포 실패 | `season_capacity = on` apply 차단 | 배포 ID와 실패 로그 기록, EC2-B 중지 |
 | `import ID·현재 설정 미확정` | import/apply 금지 | `unconfirmed` 또는 `excluded`와 추가 조사 항목 기록 |
 | `0.0.0.0/0` 또는 `::/0` SSH 등 승인되지 않은 과도한 SG 규칙 변경 | 해당 SG 규칙 변경만 apply 차단; 무관한 리소스의 plan/apply는 허용 | 현행 규칙·위험·축소안·승인 상태를 `docs/import-log.md`에 기록 |
 | plan에 destroy/replace 포함 | CI apply gate 실패 | plan JSON, 대상, 원인, 수정 방향 기록 |
@@ -576,9 +608,9 @@ For all AWS resources whose identifiers are confirmed in `Import_Log`, declarati
 
 실제 import ID·현재 설정·AWS 상태는 AWS CLI와 단계별 대표 plan으로 검증한다. import block의 주소·ID와 inventory를 비교하고, 잔여 diff·관리 제외·허용 신규 resource를 `Import_Log`에 기록한다.
 
-### Property 3: season_mode 상태 매핑
+### Property 3: 시즌 상태 매핑
 
-For any valid `season_mode`, the planned state SHALL equal the canonical model: `off` means ALB/listener absent, EC2-B stopped without the functional tag, EC2-A-only target, API origin EC2-A:8080, and RDS Multi-AZ false; `on` means ALB/listener :80 present, EC2-B running with `app=boaz-api`, EC2-A/B targets, API origin ALB DNS:80, and RDS Multi-AZ true. Any other mode SHALL fail validation.
+For any valid combination of `season_capacity` and `api_origin`, the planned state SHALL equal the canonical model: `season_capacity=off` means ALB/listener absent, EC2-B stopped without the functional tag, EC2-A-only target, and RDS Multi-AZ false; `season_capacity=on` means ALB/listener :80 present, EC2-B running with `app=boaz-api`, EC2-A/B targets, and RDS Multi-AZ true; `api_origin=ec2` means API origin EC2-A:8080 and `api_origin=alb` means API origin ALB DNS:80. The combination `api_origin=alb` with `season_capacity=off`, and any other value, SHALL fail before plan.
 
 **Validates: Requirements 5.3, 5.4, 6.2, 6.3, 10.1, 10.2, 10.3**
 
@@ -648,8 +680,8 @@ For every completed on/off rehearsal, the recorded evidence SHALL include ALB st
 |---|---|---|
 | P1 보호 리소스 무교체 불변식 | plan JSON의 RDS/EC2/CloudFront/Route53/S3 action에 delete/replace가 없는지 검사하고 `prevent_destroy` 및 순수 action gate를 검증 | DoD 1, 2, 9; 모든 import group plan |
 | P2 Import 수렴 | `imports.tf` ID와 inventory 조사값 대조, group plan의 residual diff를 log에 기록, 최종 exact No changes 확인 | DoD 1, 2; import rehearsal |
-| P3 시즌 상태 매핑 | `season_mode=off/on`의 순수 canonical model property test와 plan JSON 비교, invalid mode validation | DoD 3, 8; on/off 리허설 |
-| P4 시즌 시작 dependency | ALB/listener/TG health/origin 순서의 plan graph와 preflight event timestamp 검사, 900초 timeout 실패 fixture 검증 | DoD 3, 4, 7; on 리허설 |
+| P3 시즌 상태 매핑 | `season_capacity`·`api_origin` 유효 조합 3개의 순수 canonical model property test와 plan JSON 비교, 잘못된 값·조합 validation | DoD 3, 8; on/off 리허설 |
+| P4 시즌 시작 dependency | 재배포 성공 → `season_capacity=on` → TG health → `api_origin=alb` 순서의 preflight event timestamp 검사, 재배포 실패·900초 timeout 실패 fixture 검증 | DoD 3, 4, 7; on 리허설 |
 | P5 시즌 종료 안전 순서 | origin-only 1단계 apply와 `Deployed` 증적 없이는 2단계 plan/apply가 실패하는지 검사 | DoD 3, 8, 9; off 리허설 |
 | P6 시크릿 비노출 | fixture 기반 redaction property test와 tracked files, Terraform plan stdout/JSON, state/log의 secret 부재 검사 | DoD 2, 7, 9 |
 | P7 infra parameter 파생 | 12개 exact count·resource/module output reference property test, hardcoded literal 부재, deprecated script 검사 | DoD 2, 8 |
@@ -661,9 +693,9 @@ For every completed on/off rehearsal, the recorded evidence SHALL include ALB st
 
 ### PBT 적용성 판단
 
-이 기능 전체에 PBT를 적용하지는 않는다. Terraform configuration validation, 단순 CRUD/import, AWS API 호출, CloudFront·ALB·RDS의 외부 상태, GitHub Environment와 운영 runbook 결과는 100회 이상 입력을 생성해도 가치가 커지지 않으므로 plan JSON 정적 검사, 대표 통합 테스트, smoke test로 확인한다. 반면 입력 공간이 넓고 결과가 결정적인 순수 로직에는 Python `hypothesis`를 사용한다. 최소 적용 범위는 P1의 destroy/replace action gate, P3의 `season_mode` off/on canonical state model, P6의 secret redaction, P7의 `/boaz/infra/*` 정확히 12개 파라미터 파생 검증, P8의 workflow output 계약 비교다.
+이 기능 전체에 PBT를 적용하지는 않는다. Terraform configuration validation, 단순 CRUD/import, AWS API 호출, CloudFront·ALB·RDS의 외부 상태, GitHub Environment와 운영 runbook 결과는 100회 이상 입력을 생성해도 가치가 커지지 않으므로 plan JSON 정적 검사, 대표 통합 테스트, smoke test로 확인한다. 반면 입력 공간이 넓고 결과가 결정적인 순수 로직에는 Python `hypothesis`를 사용한다. 최소 적용 범위는 P1의 destroy/replace action gate, P3의 `season_capacity`·`api_origin` 조합 canonical state model, P6의 secret redaction, P7의 `/boaz/infra/*` 정확히 12개 파라미터 파생 검증, P8의 workflow output 계약 비교다.
 
-PBT 구현 위치는 인프라 저장소의 `tests/property/test_design_invariants.py`로 정하고, 적용 대상 각 Property마다 단 하나의 property-based test를 둔다. 각 테스트 주석은 `Feature: product-infra-migration, Property {number}: {property_text}` 형식으로 설계 Property와 요구사항을 연결한다. `season_mode` 생성기는 `off`, `on`, invalid 문자열을 만들고 유효 입력은 canonical model과 동치여야 하며 invalid 입력은 validation error여야 한다. action gate 생성기는 protected resource 주소와 `no-op`·`update`·`create`·`delete`·replacement action 조합을 만들고 delete/replace가 하나라도 있으면 false여야 한다. parameter 생성기는 기준 12개 이름 집합에 누락·중복·추가 항목과 resource/module reference·hardcoded literal을 조합하고, 정확히 12개이며 모든 값이 reference일 때만 통과해야 한다. redaction 생성기는 임의 secret 문자열과 중첩 plan/state/log fixture를 만들고 결과에 원문이 남지 않아야 한다. workflow contract 생성기는 app/group, bucket, distribution ID, role ARN map과 참조 token을 만들고 완전 일치할 때만 통과해야 한다. 모든 property test는 `@settings(max_examples=100)` 이상으로 구성하고, 실패 시 생성 입력·판정 이유·관련 Property를 출력한다.
+PBT 구현 위치는 인프라 저장소의 `tests/property/test_design_invariants.py`로 정하고, 적용 대상 각 Property마다 단 하나의 property-based test를 둔다. 각 테스트 주석은 `Feature: product-infra-migration, Property {number}: {property_text}` 형식으로 설계 Property와 요구사항을 연결한다. 시즌 상태 생성기는 `season_capacity`(`off`, `on`, invalid 문자열)와 `api_origin`(`ec2`, `alb`, invalid 문자열) 조합을 만들고, 유효 조합은 canonical model과 동치여야 하며 invalid 값과 `off`+`alb` 조합은 plan 전 오류여야 한다. action gate 생성기는 protected resource 주소와 `no-op`·`update`·`create`·`delete`·replacement action 조합을 만들고 delete/replace가 하나라도 있으면 false여야 한다. parameter 생성기는 기준 12개 이름 집합에 누락·중복·추가 항목과 resource/module reference·hardcoded literal을 조합하고, 정확히 12개이며 모든 값이 reference일 때만 통과해야 한다. redaction 생성기는 임의 secret 문자열과 중첩 plan/state/log fixture를 만들고 결과에 원문이 남지 않아야 한다. workflow contract 생성기는 app/group, bucket, distribution ID, role ARN map과 참조 token을 만들고 완전 일치할 때만 통과해야 한다. 모든 property test는 `@settings(max_examples=100)` 이상으로 구성하고, 실패 시 생성 입력·판정 이유·관련 Property를 출력한다.
 
 대표 실행 명령은 `python -m pytest tests/property/test_design_invariants.py -q`이며, CI에서는 `python -m pytest tests/property -q`를 사용한다. 이 테스트들은 AWS에 요청하지 않고 pure fixture만 다룬다. AWS API와 외부 인프라 상태는 기존처럼 `terraform show -json plan.bin`, 단계별 import plan, on/off 리허설, CloudFront `Deployed` 대기, target health와 API health 대표 검증으로 별도 확인한다.
 
@@ -672,7 +704,7 @@ PBT 구현 위치는 인프라 저장소의 `tests/property/test_design_invarian
 - `terraform fmt -check -recursive`
 - `terraform init -backend=false` 및 provider lock 검증
 - `terraform validate`
-- variable validation: `season_mode`, 확정 ID 형식, 12개 parameter count
+- variable validation: `season_capacity`, `api_origin`, 두 변수 조합, 확정 ID 형식, 12개 parameter count
 - Terraform configuration AST/grep 검사: module의 account ID/region/resource ID literal, DynamoDB lock, secret literal, `register-ssm-params.sh` 실행 참조
 - `terraform plan -out=plan.bin` 후 `terraform show -json plan.bin` 검사:
   - `delete`/`replace` 대상
@@ -688,8 +720,8 @@ PBT 구현 위치는 인프라 저장소의 `tests/property/test_design_invarian
 
 1. bootstrap bucket의 versioning/SSE/public block/lock policy smoke.
 2. `envs/prod` import 그룹별 plan과 최종 No changes plan.
-3. `season_mode=on` 리허설: ALB ACTIVE → listener → EC2-A/B healthy → CloudFront origin → RDS Multi-AZ → API health.
-4. `season_mode=off` 리허설: origin 복귀 → `Deployed` 확인 → ALB 제거 → EC2-B stopped/target 단독/RDS 복귀/API health.
+3. 시즌 시작 리허설: EC2-B 기동 → 재배포 성공 → `season_capacity=on`(ALB ACTIVE → listener → EC2-A/B healthy, RDS Multi-AZ) → `api_origin=alb` → API health.
+4. 시즌 종료 리허설: `api_origin=ec2`(origin 복귀) → `Deployed` 확인 → `season_capacity=off`(ALB 제거) → EC2-B stopped/target 단독/RDS 복귀/API health.
 5. backend `workflow_dispatch`: 기존 app/group/S3 계약으로 CodeDeploy 성공.
 6. frontend dev/main: 기존 bucket sync와 CloudFront invalidation 성공.
 7. PR plan/comment, 승인 apply, 24시간 이내 scheduled drift plan.
@@ -742,7 +774,7 @@ OIDC provider, role ARN, environment reviewer가 AWS CLI/결정으로 확정되�
 - `docs/import-log.md`: 모든 import/exclusion, 조사 명령·시점·식별자·plan diff·승인·복구 조치.
 - `docs/workflow-contract.md`: 기존 backend/frontend workflow의 이름·secret key·role ARN·bucket·distribution ID 계약과 output 검증 규칙.
 - `docs/decisions.md`: EIP, EC2-B 상태 방식, secret SecureString 전환, branch 전략, Environment 승인자, S3 lifecycle 보존 기준 등 결정 필요 항목.
-- 기존 `backend/infra/scripts/README.md`: 신규 `BOAZ-website/infra`로 이관한다는 안내와 구 스크립트 deprecated 표시. 애플리케이션 workflow는 수정하지 않는다.
+- 기존 `backend/infra/scripts/README.md`: 신규 `BOAZ-website/product-infra`로 이관한다는 안내와 구 스크립트 deprecated 표시. 애플리케이션 workflow는 수정하지 않는다.
 
 폐기 대상은 `season-up.sh`, `season-down.sh`, `cf_set_origin.py`, `register-ssm-params.sh`다. Terraform/runbook이 동작하고 DoD가 충족되기 전에는 파일을 임의 삭제하지 않고 deprecated 경고와 신규 절차 링크를 먼저 추가한다. 이후 별도 승인 commit에서 삭제한다.
 
@@ -756,7 +788,7 @@ OIDC provider, role ARN, environment reviewer가 AWS CLI/결정으로 확정되�
 4. 모든 SG ingress/egress와 CloudFront prefix list 실제 ID.
 5. RDS instance class/storage/engine minor version/parameter/subnet group/SG/current Multi-AZ/deletion protection.
 6. API CloudFront api CloudFront 배포 ID의 실제 origin 수·domain·port·cache/behavior·certificate·alias.
-7. www/dev CloudFront distribution ID와 origin/error/cache policy.
+7. www/admin CloudFront distribution ID와 origin/error/cache policy.
 8. 모든 S3 bucket 이름/region/versioning/encryption/public block/policy/lifecycle.
 9. Route53 hosted zone 및 `www`, `dev`, `api` records.
 10. ACM certificate ARN와 region; CloudFront viewer certificate의 us-east-1 여부.
