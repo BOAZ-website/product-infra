@@ -40,7 +40,10 @@ while IFS= read -r f; do
       report "$f" 0 "내용을 검사할 수 없는 바이너리 파일. 이 저장소에는 올리지 않는다(필요하면 노션에 첨부)"
       continue ;;
   esac
-  content=$(read_file "$f") || continue
+  if ! content=$(read_file "$f"); then
+    report "$f" 0 "파일을 읽을 수 없어 검사하지 못함(권한·인코딩 확인 필요)"
+    continue
+  fi
 
   # 1) 공인 IP (사설 대역·0.0.0.0 제외)
   while IFS= read -r hit; do
