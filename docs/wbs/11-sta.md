@@ -4,9 +4,9 @@
 
 ## 명세서 목적
 
-- Terraform state를 안전하게 저장할 곳을 만든다.
-- 운영 apply 전에 반드시 통과해야 하는 검사(삭제·교체 차단, 시크릿 비노출, 배포 계약 일치)를 자동화한다.
-- PR 검사, 승인 후 apply, drift 감지 CI 3종을 만든다.
+- Terraform state를 안전하게 저장할 곳을 만듦
+- 운영 apply 전에 반드시 통과해야 하는 검사(삭제·교체 차단, 시크릿 비노출, 배포 계약 일치)를 자동화함
+- PR 검사, 승인 후 apply, drift 감지 CI 3종을 만듦
 
 **범위:** 저장소 구조, bootstrap, envs/prod backend, 안전 게이트, 모듈 연결, CI workflow, property 테스트 실행 환경
 **범위 밖:** 각 자원 그룹 코드(→ NET·IAM·STO·CMP·RDB·CDN·DEP 명세서)
@@ -15,13 +15,13 @@
 
 ## STA-01 저장소 디렉터리 구조
 
-**목적:** 설계 문서에 정한 폴더 구조를 만든다.
+**목적:** 설계 문서에 정한 폴더 구조를 만듦
 
 > 진행: STA-01-01은 PR #9로 완료(머지). STA-01-03(그룹별 파일)이 남음.
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | 없음 | 없음 | MS1 | 2.1 | #7, PR #9 |
+| 하루이틀 | 없음 | 없음 | Phase 1 | 2.1 | #7, PR #9 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -31,25 +31,26 @@
 
 ## STA-02 버전·provider 규칙
 
-**목적:** Terraform·AWS provider 버전과 리전 설정을 고정한다.
+**목적:** Terraform·AWS provider 버전과 리전 설정, tflint 규칙을 고정함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | STA-01 | 없음(DOC-04에서 버전 정정) | MS1 | 2.2 | 없음 |
+| 하루이틀 | STA-01 | 없음(DOC-04에서 버전 정정) | Phase 1 | 2.2 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | STA-02-01 | Terraform `>= 1.11.0, < 2.0.0`, AWS provider 버전 범위 지정 | `versions.tf`에 값 존재, `terraform version` 결과가 범위 안 |
 | STA-02-02 | 기본 서울 리전 provider와 CloudFront 인증서 조회용 us-east-1 provider 구성 | `providers.tf`에 두 provider 블록 존재 |
 | STA-02-03 | `.terraform.lock.hcl` 생성·커밋 | `terraform providers lock` 실행 후 파일이 git에 추가됨 |
+| STA-02-04 | `.tflint.hcl` 작성: AWS 규칙 묶음 사용, `terraform_documented_variables`·`terraform_documented_outputs` 켜기(모든 variable·output에 `description` 필수). CI의 `tflint_version: latest`를 고정 버전으로 교체 | `description` 없는 variable을 넣으면 tflint 실패, `ci.yml`에 `latest` 없음 |
 
 ## STA-03 state 버킷 구현
 
-**목적:** state를 저장할 전용 S3 버킷을 보호 설정과 함께 만든다.
+**목적:** state를 저장할 전용 S3 버킷을 보호 설정과 함께 만듦
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | STA-02 | state 버킷·키 | MS1 | 3.1 | 없음 |
+| 한 주 | STA-02 | state 버킷·키 | Phase 1 | 3.1 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -59,11 +60,11 @@
 
 ## STA-04 envs/prod backend 초기화
 
-**목적:** 운영 환경 코드가 STA-03 버킷에 state를 저장하도록 연결한다.
+**목적:** 운영 환경 코드가 STA-03 버킷에 state를 저장하도록 연결함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | STA-03 | state 버킷·키 | MS1 | 3.2 | 없음 |
+| 하루이틀 | STA-03 | state 버킷·키 | Phase 1 | 3.2 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -72,27 +73,28 @@
 
 ## STA-05 PR CI(fmt·validate·plan)
 
-**목적:** PR마다 형식·문법 검사와 plan을 자동 실행하고 결과를 PR에 남긴다.
+**목적:** PR마다 형식·문법 검사와 plan을 자동 실행하고 결과를 PR에 남김
 
 > 진행: `.github/workflows/ci.yml`에 AWS 권한 없이 도는 `fmt -check`·`init -backend=false`·`validate`·tflint가 이미 있음(PR #3). 남은 것은 plan 실행·PR 코멘트·OIDC 연결.
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | STA-02 | 없음(브랜치 전략 해소: dev → main) | MS1 | 7.4 | 없음 |
+| 한 주 | STA-02 | 없음(브랜치 전략 해소: dev → main) | Phase 2 준비 | 7.4 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | STA-05-01 | `terraform fmt -check`, `validate`, plan 실행 후 결과를 PR 코멘트로 게시 | 샘플 PR에 자동 코멘트 확인 |
 | STA-05-02 | 세 검사가 모두 성공해야 apply 대상으로 표시 | 검사 하나를 일부러 실패시키면 표시되지 않음 |
 | STA-05-03 | GitHub OIDC 인증 사용, 장기 액세스 키 사용 안 함 | workflow에 `id-token: write` 존재, 저장소 시크릿에 액세스 키 없음 |
+| STA-05-04 | `pull_request_target` 트리거를 쓰지 않음. checkout은 `persist-credentials: false`. 외부 액션은 커밋 SHA로, 설치 도구는 버전으로 고정(`latest` 금지) | workflow에 `pull_request_target`·`latest` 없음, `uses:`가 SHA로 고정 |
 
 ## STA-06 property 테스트 실행 환경
 
-**목적:** 설계 문서의 검증 속성(P1~P10) 테스트를 돌릴 Python 환경을 만든다.
+**목적:** 설계 문서의 검증 속성(P1~P10) 테스트를 돌릴 Python 환경을 만듦
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | STA-01 | 없음 | MS1 | 신규 | 없음 |
+| 한 주 | STA-01 | 없음 | Phase 2 준비 | 신규 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -100,11 +102,11 @@
 
 ## STA-07 안전 게이트 + P1·P6
 
-**목적:** import를 시작하기 전에 삭제·교체·시크릿 노출을 막는 검사를 만든다. MS2a 모든 그룹의 시작 조건.
+**목적:** import를 시작하기 전에 삭제·교체·시크릿 노출을 막는 검사를 만듦. Phase 2 1차 모든 그룹의 시작 조건
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 2~3주 | STA-04, STA-06 | 없음 | MS1 | 5.3, 8.1, 8.3 | 없음 |
+| 2~3주 | STA-04, STA-06 | 없음 | Phase 2 준비 | 5.3, 8.1, 8.3 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -116,11 +118,11 @@
 
 ## STA-08 그룹 간 연결 점검
 
-**목적:** 그룹별 파일로 나눠 작성된 모듈이 서로 output으로 올바르게 연결됐는지 점검한다. 각 그룹이 자기 파일에서 연결하므로 이 티켓은 점검과 누락 보완만 한다.
+**목적:** 그룹별 파일로 나눠 작성된 모듈이 서로 output으로 올바르게 연결됐는지 점검함. 각 그룹이 자기 파일에서 연결하므로 이 티켓은 점검과 누락 보완만 함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | CMP-03, RDB-01, CDN-03, DEP-02 | 없음 | MS2b | 5.2 | 없음 |
+| 하루이틀 | CMP-03, RDB-01, CDN-03, DEP-02 | 없음 | Phase 2 마무리 | 5.2 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -129,11 +131,11 @@
 
 ## STA-09 최종 일치 확인 + P2
 
-**목적:** 모든 그룹의 plan이 "No changes"인지 확인하는 절차를 만든다. MS2b 완료 조건.
+**목적:** 모든 그룹의 plan이 "No changes"인지 확인하는 절차를 만듦. Phase 2 완료 조건
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | STA-08 | 없음 | MS2b | 6.9, 8.6 | 없음 |
+| 한 주 | STA-08 | 없음 | Phase 2 마무리 | 6.9, 8.6 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -142,11 +144,11 @@
 
 ## STA-10 배포 workflow 계약 검사 + P8
 
-**목적:** 기존 backend·frontend 배포 workflow가 쓰는 이름·ARN이 Terraform output과 같은지 검사한다.
+**목적:** 기존 backend·frontend 배포 workflow가 쓰는 이름·ARN이 Terraform output과 같은지 검사함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | STA-08, DEP-02 | 없음 | MS3 | 7.3, 8.5 | 없음 |
+| 하루이틀 | STA-08, DEP-02 | 없음 | Phase 3 | 7.3, 8.5 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -155,24 +157,25 @@
 
 ## STA-11 승인 후 apply
 
-**목적:** main 머지 뒤 승인자가 승인해야 apply가 실행되도록 한다.
+**목적:** main 머지 뒤 승인자가 승인해야 apply가 실행되도록 함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | STA-10 | apply 승인자 | MS3 | 7.5 | 없음 |
+| 한 주 | STA-10 | apply 승인자 | Phase 3 | 7.5 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | STA-11-01 | GitHub Environment 승인 전에는 apply 실행 안 함 | 승인 없이 머지하면 apply 작업이 대기 상태로 멈춤 |
 | STA-11-02 | plan용 읽기 롤과 apply용 쓰기 롤 분리 | 두 workflow가 서로 다른 롤을 사용(실제 ARN은 비공개 변수) |
+| STA-11-03 | 롤 신뢰 조건(OIDC `sub`)을 이 저장소의 `main` 브랜치·`prod` environment로 정확히 고정(와일드카드 금지). apply는 `main` push에서만 실행 | 다른 브랜치·PR에서 apply 롤을 요청하면 거부됨 |
 
 ## STA-12 drift 감지 CI + P9
 
-**목적:** 매일 plan을 읽기 전용으로 돌려 코드와 실제가 달라졌는지 알린다.
+**목적:** 매일 plan을 읽기 전용으로 돌려 코드와 실제가 달라졌는지 알림
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | STA-11 | 없음 | MS3 | 7.6, 8.9 | 없음 |
+| 하루이틀 | STA-11 | 없음 | Phase 3 | 7.6, 8.9 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -181,13 +184,13 @@
 
 ## STA-13 정적·통합 검증 구성
 
-**목적:** 형식·문법·잠금 파일·직접 입력된 ID 검사를 CI 한 곳에 모은다.
+**목적:** 형식·문법·잠금 파일·직접 입력된 ID 검사를 CI 한 곳에 모음
 
 > 진행: fmt·validate·tflint는 `ci.yml`에 있음. 남은 것은 잠금 파일 체크섬과 직접 입력 ID 검사.
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | SEA-02, SEA-03, STA-12 | 없음 | MS3 | 8.11 | 없음 |
+| 한 주 | SEA-02, SEA-03, STA-12 | 없음 | Phase 4 | 8.11 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

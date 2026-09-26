@@ -4,9 +4,9 @@
 
 ## 명세서 목적
 
-- CloudFront 배포 3개(api·www·admin), Route53 레코드, ACM 인증서를 import한다.
-- 각 CloudFront에 연결된 WAF가 끊어지지 않게 한다. `web_acl_id`를 적지 않으면 plan이 WAF 연결을 해제한다.
-- api origin이 항상 정확히 1개인지 검사한다.
+- CloudFront 배포 3개(api·www·admin), Route53 레코드, ACM 인증서를 import함
+- 각 CloudFront에 연결된 WAF가 끊어지지 않게 함. `web_acl_id`를 적지 않으면 plan이 WAF 연결을 해제함
+- api origin이 항상 정확히 1개인지 검사함
 
 **범위:** CloudFront 배포 3개, Route53 호스팅 영역·레코드, us-east-1 ACM 인증서, WAF 연결(참조만)
 **범위 밖:** WAF WebACL 자체 import와 규칙 변경(CDN-03에서 별도 진행)
@@ -15,11 +15,11 @@
 
 ## CDN-01 cdn 모듈 작성
 
-**목적:** CloudFront·Route53·ACM을 관리할 모듈을 작성한다.
+**목적:** CloudFront·Route53·ACM을 관리할 모듈을 작성함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | CMP-02 | 없음(admin 포함 여부 해소) | MS2b | 4.7 | 없음 |
+| 한 주 | CMP-02 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 4.7 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -29,14 +29,14 @@
 
 ## CDN-02 CloudFront·Route53·ACM import
 
-**목적:** 3개 배포와 DNS·인증서를 import하고 WAF 연결을 유지한다.
+**목적:** 3개 배포와 DNS·인증서를 import하고 WAF 연결을 유지함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/cdn/`, `envs/prod/cdn.tf`, `envs/prod/imports/cdn.tf`. EC2-A·ALB 주소는 compute 그룹 output을 참조
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 2~3주 | CDN-01, CMP-02 | WAF WebACL 관리 방식 | MS2b | 6.7 | #13(R9, R10 일부) |
+| 2~3주 | CDN-01, CMP-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 6.7 | #13(R9, R10 일부) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -47,11 +47,11 @@
 
 ## CDN-03 관리자 CloudFront 보안·SPA 설정
 
-**목적:** 12월 관리자 페이지 오픈에 필요한 CloudFront 쪽 보안·라우팅 설정을 코드로 추가한다. cdn 그룹 plan "No changes"(CDN-02) 확인 직후 별도 PR로 진행하고, 시즌 동결 시작 전에 apply까지 끝낸다. #13 R5·R9·R10.
+**목적:** 12월 관리자 페이지 오픈에 필요한 CloudFront 쪽 보안·라우팅 설정을 코드로 추가함. cdn 그룹 plan "No changes"(CDN-02) 확인 직후 별도 PR로 진행하고, 시즌 동결 시작 전에 apply까지 끝냄. #13 R5·R9·R10.
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | CDN-02 | WAF WebACL 관리 방식 | MS2b | 신규 | #13(R5, R9, R10) |
+| 한 주 | CDN-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 신규 | #13(R5, R9, R10) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

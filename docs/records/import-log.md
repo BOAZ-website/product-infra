@@ -1,8 +1,8 @@
 # Import 기록 (Import Log)
 
-자원을 Terraform으로 편입(import)할 때 각 자원마다 아래 레코드를 남긴다. 실제 import·apply 단계(후속 작업)에서 채운다. 현재는 양식과 대상 목록만 준비된 상태다.
+자원을 Terraform으로 편입(import)할 때 각 자원마다 아래 레코드를 남김. 실제 import·apply 단계(후속 작업)에서 채움. 현재는 양식과 대상 목록만 준비된 상태
 
-secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하지 않는다.
+secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하지 않음
 
 ## 레코드 필드 정의
 
@@ -42,7 +42,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 
 ## 그룹별 진행 상태
 
-그룹 import를 시작하는 사람이 상태를 `진행 중`으로 바꾸고 담당자·시작 시각을 적는다. `진행 중`인 그룹은 한 번에 1개만 둔다(apply 순서 규칙, `docs/guides/import-procedure.md` 2절). 실제 식별자는 `docs/records/inventory.md` 참조.
+그룹 import를 시작하는 사람이 상태를 `진행 중`으로 바꾸고 담당자·시작 시각을 적음. `진행 중`인 그룹은 한 번에 1개만 둠(apply 순서 규칙, `docs/guides/import-procedure.md` 2절). 실제 식별자는 `docs/records/inventory.md` 참조
 
 | 순서 | group | 주요 대상 | 담당자 | 시작 시각(KST) | 상태 |
 |---|---|---|---|---|---|

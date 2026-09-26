@@ -4,9 +4,9 @@
 
 ## 명세서 목적
 
-- VPC·서브넷·라우팅·보안 그룹을 다시 만들지 않고 import한다.
-- 보안 그룹 규칙은 규칙마다 개별 리소스로 관리한다.
-- 모듈 코드 작성, import, plan "No changes" 확인을 한 PR에서 끝낸다.
+- VPC·서브넷·라우팅·보안 그룹을 다시 만들지 않고 import함
+- 보안 그룹 규칙은 규칙마다 개별 리소스로 관리함
+- 모듈 코드 작성, import, plan "No changes" 확인을 한 PR에서 끝냄
 
 **범위:** VPC, 서브넷 4개, 라우트 테이블 3개, 인터넷 게이트웨이, Network ACL, 보안 그룹과 규칙
 **범위 밖:** 규칙 내용 변경(SSH 방식 변경 등은 별도 승인 후 별도 PR)
@@ -15,11 +15,11 @@
 
 ## NET-01 network 그룹 import
 
-**목적:** network 모듈을 작성하고 네트워크 자원을 import해 plan "No changes"를 확인한다.
+**목적:** network 모듈을 작성하고 네트워크 자원을 import해 plan "No changes"를 확인함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 2~3주 | STA-07 | Network ACL 관리 방식 | MS2a | 4.1, 6.1 | 없음 |
+| 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 4.1, 6.1 | 없음 |
 
 > 공통 절차 적용(착수 선언·직전 재조사·plan "No changes" 확인·import-log 기록) → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/network/`, `envs/prod/network.tf`, `envs/prod/imports/network.tf`

@@ -2,10 +2,10 @@
 
 BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의 **현재 AWS 인프라 구성**을 정리한 문서.
 
-- 성격: 현행 상태(as-is). "지금 무엇이 어떻게 구성되어 있는가"만 담는다.
+- 성격: 현행 상태(as-is). "지금 무엇이 어떻게 구성되어 있는가"만 담음
 - 기준: 2026-09-23 AWS 읽기 전용 조사(`docs/records/inventory.md`)
-- 자원 ID(VPC·서브넷·보안 그룹·인스턴스·CloudFront 배포 ID 등), 계정 ID, 개인 IP는 이 문서에 적지 않는다. 필요하면 `docs/records/inventory.md` 또는 AWS에서 직접 조회한다.
-- Terraform 이전 방법은 `docs/overview/migration-plan.md`와 `docs/wbs/` 참조. 이번 이전은 현행 구조를 그대로 코드로 옮기는 작업이라, 이 문서의 구성은 이전 전후가 같다.
+- 자원 ID(VPC·서브넷·보안 그룹·인스턴스·CloudFront 배포 ID 등), 계정 ID, 개인 IP는 이 문서에 적지 않음. 필요하면 `docs/records/inventory.md` 또는 AWS에서 직접 조회함
+- Terraform 이전 방법은 `docs/overview/migration-plan.md`와 `docs/wbs/` 참조. 이번 이전은 현행 구조를 그대로 코드로 옮기는 작업이라, 이 문서의 구성은 이전 전후가 같음
 
 ---
 
@@ -31,9 +31,9 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
   사용자 → Route53 → CloudFront(api) → ALB:80 → EC2-A/EC2-B:8080 → RDS(Multi-AZ)
 ```
 
-- api CloudFront origin은 평시에 EC2-A 퍼블릭 DNS(port 8080)에 직접 연결된다. EC2-A에 Elastic IP가 연결되어 있어 재시작해도 DNS는 바뀌지 않는다.
-- 시즌에는 origin이 ALB DNS(port 80)로 교체된다.
-- CloudFront 3개(api·www·admin) 모두 WAF WebACL이 연결되어 있다.
+- api CloudFront origin은 평시에 EC2-A 퍼블릭 DNS(port 8080)에 직접 연결됨. EC2-A에 Elastic IP가 연결되어 있어 재시작해도 DNS는 바뀌지 않음
+- 시즌에는 origin이 ALB DNS(port 80)로 교체됨
+- CloudFront 3개(api·www·admin) 모두 WAF WebACL이 연결되어 있음
 
 ---
 
@@ -59,9 +59,9 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
 | `prod-rds-sg` | TCP 3306 ← `prod-ec2-to-rds-sg` |
 | `prod-ssh-sg` | TCP 22 ← 운영진 개인 IP 2개(`/32`) |
 
-- CloudFront 관리형 prefix list는 모든 CloudFront 배포를 포함한다. 우리 배포에서 온 요청만 받는 오리진 보호는 아직 없다.
-- SSH는 IP 2개로만 제한되어 있다. EC2 롤에 Session Manager 권한이 있어 SSH 대신 Session Manager로 바꾸는 것을 검토 중이다(`docs/records/decisions.md`).
-- 평시에 ALB는 없지만 `boaz-alb-sg`, `prod-alb-to-ec2-sg`는 시즌에 다시 쓰기 위해 상시 유지한다.
+- CloudFront 관리형 prefix list는 모든 CloudFront 배포를 포함함. BOAZ 배포에서 온 요청만 받는 오리진 보호는 아직 없음
+- SSH는 IP 2개로만 제한되어 있음. EC2 롤에 Session Manager 권한이 있어 SSH 대신 Session Manager로 바꾸는 것을 검토 중(`docs/records/decisions.md`)
+- 평시에 ALB는 없지만 `boaz-alb-sg`, `prod-alb-to-ec2-sg`는 시즌에 다시 쓰기 위해 상시 유지함
 
 ---
 
@@ -121,7 +121,7 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
 | `boaz-archiving` | 아카이빙(공개 읽기) |
 | 기타 레거시 버킷 | 용도 확인 필요, 관리 대상 여부 미결정(`docs/records/decisions.md`) |
 
-- 모든 버킷의 버전 관리가 꺼져 있다. 버킷별 암호화·퍼블릭 차단·정책은 `docs/records/inventory.md` 참조.
+- 모든 버킷의 버전 관리가 꺼져 있음. 버킷별 암호화·퍼블릭 차단·정책은 `docs/records/inventory.md` 참조
 
 ---
 
@@ -133,8 +133,8 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
 | www | `www.bigdataboaz.com` | `boaz-prod-frontend` S3 | SPA 오류 응답(403·404 → `/index.html`), WAF 연결 |
 | admin | `admin.bigdataboaz.com` | `boaz-prod-frontend-admin` S3 | 오류 응답 설정 없음, WAF 연결 |
 
-- api 배포는 origin이 하나이며 평시 EC2-A ↔ 시즌 ALB로 교체된다.
-- 접근 로그는 꺼져 있다.
+- api 배포는 origin이 하나이며 평시 EC2-A ↔ 시즌 ALB로 교체됨
+- 접근 로그는 꺼져 있음
 
 ---
 
@@ -190,7 +190,7 @@ BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의
 | 인프라 식별자 `/boaz/infra/*` | 12개 | `EC2_B_ID`, `EC2_A_DOMAIN`, `EC2_A_PORT`, `CLOUDFRONT_DIST_ID`, `RDS_IDENTIFIER`, `S3_BUCKET`, `CODEDEPLOY_APP`, `CODEDEPLOY_GROUP`, `TARGET_GROUP_ARN`, `ALB_SG_ID`, `ALB_SUBNETS`, `ALB_PORT` |
 | 앱 시크릿(루트 경로) | 14개 | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `S3_*_BUCKET_NAME`, `KAKAO_*`, `GOOGLE_*`, `NAVER_*`, `SWAGGER_*` |
 
-- 앱 시크릿 값은 조회하지 않았다. 비밀값 6개는 SecureString, `DB_URL`·`DB_USERNAME`은 일반 문자열(전환 여부 결정 대기).
+- 앱 시크릿 값은 조회하지 않았음. 비밀값 6개는 SecureString, `DB_URL`·`DB_USERNAME`은 일반 문자열(전환 여부 결정 대기)
 
 ---
 
