@@ -162,7 +162,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | DOC-11 | workflow·CI 계약 문서 | DOC | 하루이틀 | STA-10 | 없음 | Phase 5 | 아니오 | 대기 |
 | DOC-12 | 결정 결과 문서화 | DOC | 하루이틀 | 관련 결정 전부 | 없음 | Phase 5 | 아니오 | 대기 |
 | STA-01 | 저장소 디렉터리 구조 | STA | 하루이틀 | 없음 | 없음 | Phase 1 | 예 | 완료(#23) |
-| STA-02 | 버전·provider 규칙 | STA | 하루이틀 | STA-01 | 없음 | Phase 1 | 예 | 대기 |
+| STA-02 | 버전·provider 규칙 | STA | 하루이틀 | STA-01 | 없음 | Phase 1 | 예 | 완료(#24) |
 | STA-03 | state 버킷 구현 | STA | 한 주 | STA-02 | state 버킷·키 | Phase 1 | 예 | 대기 |
 | STA-04 | envs/prod backend 초기화 | STA | 하루이틀 | STA-03 | state 버킷·키 | Phase 1 | 예 | 대기 |
 | STA-05 | PR CI(fmt·validate·plan) | STA | 한 주 | STA-02 | 없음 | Phase 2 준비 | 예 | 일부 완료(fmt·validate·tflint) |

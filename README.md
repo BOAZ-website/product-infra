@@ -17,7 +17,7 @@ Route53 → CloudFront ┬─ (www / admin)  → S3
 - 리전: `ap-northeast-2`
 - backend: EC2 + CodeDeploy (systemd `boaz.service`)
 - frontend/admin: S3 + CloudFront
-- 시즌 전환: `season_mode` (`off` / `on`)로 ALB·EC2-B·RDS Multi-AZ 상태를 관리
+- 시즌 전환: `season_capacity`(`off` / `on`: ALB·EC2-B·RDS Multi-AZ)와 `api_origin`(`ec2` / `alb`: api CloudFront origin) 두 변수로 관리
 
 ## 저장소 구조
 
@@ -25,7 +25,7 @@ Route53 → CloudFront ┬─ (www / admin)  → S3
 product-infra/
 ├── bootstrap/                # Terraform state 저장 기반 (S3 state bucket 등). 최초 1회.
 ├── envs/
-│   └── prod/                 # 운영 환경 root (backend/provider/변수)
+│   └── prod/                 # 운영 환경 root. 공통 파일(versions·providers·backend) + 그룹별 파일(<그룹>.tf, imports_<그룹>.tf)
 ├── modules/                  # 재사용 모듈 (network, compute, database, storage, cdn, deploy, iam, params)
 ├── docs/                     # import 근거, 시즌 전환 절차, 검증 증적
 ├── .github/                  # 워크플로우 및 협업 템플릿
@@ -37,6 +37,8 @@ product-infra/
 ## 사전 준비
 
 - Terraform (CI 기준 버전: `1.15.8`, 최소 1.11)
+- TFLint `0.64.0` 이상 (설정: `.tflint.hcl`, 처음 한 번 `tflint --init`)
+- provider를 바꾸면 잠금 파일을 여러 플랫폼용으로 다시 만듦: `terraform providers lock -platform=linux_amd64 -platform=darwin_arm64 -platform=darwin_amd64` (envs/prod, bootstrap 각각)
 - AWS CLI + 자격증명 프로파일 (조사/실행용, 예: `tf`)
 - 커밋 메시지 훅 활성화 (클론 후 1회)
 

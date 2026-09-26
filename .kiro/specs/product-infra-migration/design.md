@@ -19,7 +19,7 @@
 
 1. `requirements.md`를 source of truth로 사용하고, 이 문서의 예시 placeholder를 실제 AWS 식별자로 오인하지 않는다.
 2. 모든 AWS 사전 조사는 `--profile tf --region ap-northeast-2`를 사용한다. CloudFront 전역 API는 profile만 사용하고, CloudFront ACM은 `us-east-1` provider alias로 조회한다.
-3. Terraform은 `>= 1.11.0, < 2.0.0`으로 고정한다(S3 backend 자체 잠금 `use_lockfile`은 1.10에서 도입, 1.11에서 정식 지원). AWS provider 버전 범위는 `docs/records/decisions.md`의 "AWS provider 버전" 결정에 따른다(현재 기준 `>= 5.0.0, < 6.0.0`). `.terraform.lock.hcl`을 커밋한다.
+3. Terraform은 `>= 1.11.0, < 2.0.0`으로 고정한다(S3 backend 자체 잠금 `use_lockfile`은 1.10에서 도입, 1.11에서 정식 지원). AWS provider는 `>= 6.0.0, < 7.0.0`으로 고정한다(`docs/records/decisions.md` "AWS provider 버전"). `.terraform.lock.hcl`을 커밋한다.
 4. 운영 리소스의 `destroy`·`replace`, Secret_Parameter 값 노출, 미확정 식별자 사용, backend/lock 실패는 apply 전에 차단한다.
 5. 기존 배포 workflow가 기대하는 이름·버킷·배포 ID·role ARN을 output과 계약 검사로 보존한다.
 
@@ -90,13 +90,13 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.0.0, < 6.0.0"
+      version = ">= 6.0.0, < 7.0.0"
     }
   }
 }
 ```
 
-provider는 기본 `aws`를 `ap-northeast-2`에 두고, CloudFront ACM용 `aws.us_east_1` alias를 둔다. 두 provider 모두 `default_tags`에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`를 적용한다. 적용 불가 리소스는 `docs/import-log.md`에 리소스 종류와 사유를 목록화하며, 공통 태그 목록 자체는 apply 차단 조건으로 사용하지 않는다.
+provider는 기본 `aws`를 `ap-northeast-2`에 두고, CloudFront ACM·WAF(CLOUDFRONT 범위)용 `aws.us_east_1` alias를 둔다. 공통 태그 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`는 import 단계에서는 envs/prod에 적용하지 않는다(기존 자원에 태그 변경 diff가 생겨 No changes를 맞출 수 없음). 모든 그룹 import와 최종 일치 확인 뒤 태그 전용 PR로 `default_tags`를 추가하고, 새로 만드는 bootstrap에는 처음부터 적용한다. 적용 불가 리소스는 `docs/import-log.md`에 리소스 종류와 사유를 목록화하며, 공통 태그 목록 자체는 apply 차단 조건으로 사용하지 않는다. `.terraform.lock.hcl`은 root마다(`envs/prod/`, `bootstrap/`) 커밋하고 CI(linux)와 로컬(macOS) 플랫폼 체크섬을 모두 포함한다.
 
 ## Components and Interfaces
 
@@ -142,7 +142,6 @@ BOAZ-website/product-infra/
 │   ├── inventory.md
 │   ├── workflow-contract.md
 │   └── decisions.md
-├── .terraform.lock.hcl
 ├── README.md
 └── .gitignore
 ```
