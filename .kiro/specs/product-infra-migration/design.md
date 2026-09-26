@@ -117,10 +117,9 @@ BOAZ-website/product-infra/
 │       ├── versions.tf
 │       ├── providers.tf
 │       ├── variables.tf
-│       ├── locals.tf
-│       ├── main.tf
 │       ├── outputs.tf
-│       ├── imports.tf
+│       ├── <그룹>.tf        (network·iam·params·storage·compute·database·cdn·deploy, 그룹별 module 호출)
+│       ├── imports_<그룹>.tf (그룹별 import 블록, root 바로 아래 평면 파일)
 │       ├── checks.tf
 │       ├── terraform.tfvars.example
 │       └── backend.hcl.example
@@ -473,7 +472,7 @@ Infra CI는 output을 기존 workflow의 literal/secret reference와 비교한�
 7. CloudFront → Route53 → ACM
 8. CodeDeploy/deploy contract
 
-각 그룹에서 `imports.tf`에 Terraform 1.5+ import block을 추가하고, `terraform plan -out=plan.bin`으로 import와 resource configuration diff를 함께 검토한다. import ID가 조사 log의 ID와 문자 단위로 일치하지 않으면 apply하지 않는다.
+각 그룹에서 `imports_<그룹>.tf`에 import block을 추가하고, `terraform plan -out=plan.bin`으로 import와 resource configuration diff를 함께 검토한다. import ID가 조사 log의 ID와 문자 단위로 일치하지 않으면 apply하지 않는다.
 
 ### No changes와 위험 action gate
 
@@ -679,7 +678,7 @@ For every completed on/off rehearsal, the recorded evidence SHALL include ALB st
 | 속성 | 검증 전략 | 리허설/DoD 매핑 |
 |---|---|---|
 | P1 보호 리소스 무교체 불변식 | plan JSON의 RDS/EC2/CloudFront/Route53/S3 action에 delete/replace가 없는지 검사하고 `prevent_destroy` 및 순수 action gate를 검증 | DoD 1, 2, 9; 모든 import group plan |
-| P2 Import 수렴 | `imports.tf` ID와 inventory 조사값 대조, group plan의 residual diff를 log에 기록, 최종 exact No changes 확인 | DoD 1, 2; import rehearsal |
+| P2 Import 수렴 | `imports_<그룹>.tf` ID와 inventory 조사값 대조, group plan의 residual diff를 log에 기록, 최종 exact No changes 확인 | DoD 1, 2; import rehearsal |
 | P3 시즌 상태 매핑 | `season_capacity`·`api_origin` 유효 조합 3개의 순수 canonical model property test와 plan JSON 비교, 잘못된 값·조합 validation | DoD 3, 8; on/off 리허설 |
 | P4 시즌 시작 dependency | 재배포 성공 → `season_capacity=on` → TG health → `api_origin=alb` 순서의 preflight event timestamp 검사, 재배포 실패·900초 timeout 실패 fixture 검증 | DoD 3, 4, 7; on 리허설 |
 | P5 시즌 종료 안전 순서 | origin-only 1단계 apply와 `Deployed` 증적 없이는 2단계 plan/apply가 실패하는지 검사 | DoD 3, 8, 9; off 리허설 |

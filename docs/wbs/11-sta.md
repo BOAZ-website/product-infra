@@ -17,17 +17,17 @@
 
 **목적:** 설계 문서에 정한 폴더 구조를 만듦
 
-> 진행: STA-01-01은 PR #9로 완료(머지). STA-01-03(그룹별 파일)이 남음.
+> 진행: 완료. STA-01-01은 #7(PR #9), STA-01-02는 #16(PR #17)의 민감 정보 검사로 충족, STA-01-03은 #23.
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | 없음 | 없음 | Phase 1 | 2.1 | #7, PR #9 |
+| 하루이틀 | 없음 | 없음 | Phase 1 | 2.1 | #7, #23 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | STA-01-01 | `bootstrap/`, `envs/prod/`, `modules/` 하위 8개, `docs/`, `.github/workflows/`, `scripts/`, `tests/` 생성 | `find` 결과에 폴더 모두 존재 |
 | STA-01-02 | 계정 ID·리전·자원 ID를 코드에 직접 쓰지 않았는지 검사 | 저장소 전체 검색 결과에 계정 ID 패턴 없음 |
-| STA-01-03 | `envs/prod`를 그룹별 파일(`network.tf`, `iam.tf` … `deploy.tf`)과 `imports/` 폴더로 나누고 빈 파일을 미리 만들어 둠. 공통 파일(`versions.tf`, `providers.tf`, `backend.tf`)은 STA 담당만 수정 | `envs/prod`에 그룹 파일 8개와 `imports/` 존재 |
+| STA-01-03 | `envs/prod`를 그룹별 파일(`network.tf`, `iam.tf` … `deploy.tf`)과 그룹별 import 파일(`imports_network.tf` … `imports_deploy.tf`)로 나누고 빈 파일을 미리 만들어 둠. import 블록은 root 모듈 바로 아래 파일에만 둘 수 있어 하위 폴더를 쓰지 않음. 공통 파일(`versions.tf`, `providers.tf`, `backend.tf`)은 STA 담당만 수정 | `envs/prod`에 그룹 파일 8개와 `imports_<그룹>.tf` 8개 존재 |
 
 ## STA-02 버전·provider 규칙
 

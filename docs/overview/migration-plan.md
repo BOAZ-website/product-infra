@@ -54,7 +54,7 @@ product-infra/
 ├── envs/prod/                운영 환경. 그룹별 파일로 분리
 │   ├── versions.tf providers.tf backend.tf variables.tf outputs.tf   (공통, 리드만 수정)
 │   ├── network.tf iam.tf params.tf storage.tf compute.tf database.tf cdn.tf deploy.tf
-│   └── imports/<그룹>.tf     그룹별 import 블록
+│   └── imports_<그룹>.tf     그룹별 import 블록(root 바로 아래 평면 파일)
 ├── modules/                  network compute database storage cdn deploy iam params
 ├── tests/                    property·통합·정적 검사
 ├── docs/                     문서 (docs/README.md 참조)

@@ -32,7 +32,7 @@
 **목적:** 3개 배포와 DNS·인증서를 import하고 WAF 연결을 유지함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/cdn/`, `envs/prod/cdn.tf`, `envs/prod/imports/cdn.tf`. EC2-A·ALB 주소는 compute 그룹 output을 참조
+> 수정 파일: `modules/cdn/`, `envs/prod/cdn.tf`, `envs/prod/imports_cdn.tf`. EC2-A·ALB 주소는 compute 그룹 output을 참조
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
