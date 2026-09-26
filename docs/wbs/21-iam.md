@@ -17,9 +17,9 @@
 
 **목적:** 관리자 콘솔 프론트 배포에 필요한 권한을 먼저 콘솔·CLI로 적용하고 IAM 자원만 다시 조사함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | STA-07 | 없음(재조사가 IAM-02 시작 조건) | MS2a | 신규 | #13(R2) |
+| 한 주 | STA-07 | 없음(재조사가 IAM-02 시작 조건) | Phase 2 1차 | 신규 | #13(R2) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -35,9 +35,9 @@
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조. 직전 재조사는 IAM-01-04로 대신함
 > 수정 파일: `modules/iam/`, `envs/prod/iam.tf`, `envs/prod/imports/iam.tf`
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | IAM-01 | 없음 | MS2a | 4.2, 6.2(IAM 부분) | 없음 |
+| 한 주 | IAM-01 | 없음 | Phase 2 1차 | 4.2, 6.2(IAM 부분) | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -54,9 +54,9 @@
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/params/`, `envs/prod/params.tf`, `envs/prod/imports/params.tf`
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | IAM-01 | 앱 시크릿 SecureString 범위 | MS2a | 4.3, 6.2(SSM 부분), 8.4 | 없음 |
+| 한 주 | IAM-01 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 4.3, 6.2(SSM 부분), 8.4 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -69,9 +69,9 @@
 
 **목적:** 아직 일반 문자열로 저장된 앱 시크릿 2개의 암호화 저장(SecureString) 전환 여부를 정함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | IAM-03 | 앱 시크릿 SecureString 범위 | MS2a | 신규 | 없음 |
+| 하루이틀 | IAM-03 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 신규 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

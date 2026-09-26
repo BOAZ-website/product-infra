@@ -17,9 +17,9 @@
 
 **목적:** storage 모듈을 작성하고 서비스 버킷을 import해 plan "No changes"를 확인함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | STA-07 | 관리 대상 버킷·레코드 | MS2a | 4.4, 6.3 | 없음 |
+| 한 주 | STA-07 | 관리 대상 버킷·레코드 | Phase 2 1차 | 4.4, 6.3 | 없음 |
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/storage/`, `envs/prod/storage.tf`, `envs/prod/imports/storage.tf`
@@ -35,9 +35,9 @@
 
 **목적:** 레거시·용도 불명 버킷을 관리 대상과 제외로 나누고 사유를 남김
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | STO-01 | 관리 대상 버킷·레코드 | MS2a | 신규 | 없음 |
+| 하루이틀 | STO-01 | 관리 대상 버킷·레코드 | Phase 2 1차 | 신규 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

@@ -17,9 +17,9 @@
 
 **목적:** CloudFront·Route53·ACM을 관리할 모듈을 작성함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | CMP-02 | 없음(admin 포함 여부 해소) | MS2b | 4.7 | 없음 |
+| 한 주 | CMP-02 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 4.7 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -34,9 +34,9 @@
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/cdn/`, `envs/prod/cdn.tf`, `envs/prod/imports/cdn.tf`. EC2-A·ALB 주소는 compute 그룹 output을 참조
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 2~3주 | CDN-01, CMP-02 | WAF WebACL 관리 방식 | MS2b | 6.7 | #13(R9, R10 일부) |
+| 2~3주 | CDN-01, CMP-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 6.7 | #13(R9, R10 일부) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -49,9 +49,9 @@
 
 **목적:** 12월 관리자 페이지 오픈에 필요한 CloudFront 쪽 보안·라우팅 설정을 코드로 추가함. cdn 그룹 plan "No changes"(CDN-02) 확인 직후 별도 PR로 진행하고, 시즌 동결 시작 전에 apply까지 끝냄. #13 R5·R9·R10.
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | CDN-02 | WAF WebACL 관리 방식 | MS2b | 신규 | #13(R5, R9, R10) |
+| 한 주 | CDN-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 신규 | #13(R5, R9, R10) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

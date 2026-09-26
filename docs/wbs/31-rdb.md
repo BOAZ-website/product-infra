@@ -20,9 +20,9 @@
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/database/`, `envs/prod/database.tf`, `envs/prod/imports/database.tf`. 서브넷·보안 그룹 ID는 network 그룹 output을 참조
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | SEA-01, NET-01 | 없음 | MS2b | 4.6, 6.5 | 없음 |
+| 한 주 | SEA-01, NET-01 | 없음 | Phase 2 2차 | 4.6, 6.5 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

@@ -16,9 +16,9 @@
 
 **목적:** CodeDeploy를 관리할 모듈을 작성함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | IAM-02, STO-01 | CodeDeploy 태그 방식(거의 해소) | MS2b | 4.8 | 없음 |
+| 하루이틀 | IAM-02, STO-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 4.8 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -32,9 +32,9 @@
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/deploy/`, `envs/prod/deploy.tf`, `envs/prod/imports/deploy.tf`. 서비스 롤은 iam, 번들 버킷은 storage 그룹 output을 참조
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | MS2b | 6.8 | #13(R3 조율, R11 보류) |
+| 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 6.8 | #13(R3 조율, R11 보류) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

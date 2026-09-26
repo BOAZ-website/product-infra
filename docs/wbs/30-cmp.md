@@ -20,9 +20,9 @@
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/compute/`, `envs/prod/compute.tf`, `envs/prod/imports/compute.tf`. 인스턴스 프로파일은 iam 그룹 output을 참조
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 2~3주 | SEA-01, IAM-02 | EC2-A EIP 처리, EC2-B 제어 방식 | MS2b | 4.5, 6.4 | #13(R18) |
+| 2~3주 | SEA-01, IAM-02 | EC2-A EIP 처리, EC2-B 제어 방식 | Phase 2 2차 | 4.5, 6.4 | #13(R18) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -39,9 +39,9 @@
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: compute 그룹 파일(`modules/compute/`, `envs/prod/compute.tf`)에 함께 둠. CMP-01과 같은 담당이 진행
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | CMP-01 | 없음 | MS2b | 6.6 | 없음 |
+| 한 주 | CMP-01 | 없음 | Phase 2 2차 | 6.6 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -53,9 +53,9 @@
 
 **목적:** 시즌 시작 때 "EC2-B 기동 → 최신 번들 재배포 성공 → Target Group 등록" 순서를 지키게 함
 
-| 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | CMP-02, DEP-02 | 없음 | MS2b | 신규 | 없음 |
+| 하루이틀 | CMP-02, DEP-02 | 없음 | Phase 2 2차 | 신규 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
