@@ -28,7 +28,7 @@
 
 | 현행 참조값 | 출처 | 상태 |
 |---|---|---|
-| EC2-B `i-05405847d3897364` | `backend/infra/scripts/register-ssm-params.sh` | AWS CLI 미검증 |
+| EC2-B `i-05405847d3897364a` | `backend/infra/scripts/register-ssm-params.sh` | AWS CLI 미검증 |
 | API CloudFront `E2SER81QYNPRO9` | 동일 스크립트 | AWS CLI 미검증 |
 | RDS `boaz-prod-db` | 동일 스크립트 | AWS CLI 미검증 |
 | CodeDeploy `boaz-backend` / `codedeploy-prod` | `backend/.github/workflows/cd.yml`, 스크립트 | AWS CLI 미검증 |
