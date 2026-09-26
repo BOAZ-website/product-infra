@@ -18,8 +18,6 @@ else
   files=$(git ls-files)
 fi
 
-# 검사 제외: 이 스크립트 자체, 바이너리성 파일
-files=$(printf '%s\n' "$files" | grep -vE '^(scripts/check-sensitive\.sh)$|\.(png|jpg|jpeg|gif|ico|pdf|zip)$' || true)
 [ -z "$files" ] && exit 0
 
 read_file() {
@@ -35,6 +33,13 @@ private_ip='^(10\.|127\.|0\.0\.0\.0|169\.254\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[
 
 while IFS= read -r f; do
   [ -f "$f" ] || [ "$MODE" = "--staged" ] || continue
+
+  # 내용을 검사할 수 없는 바이너리(이미지·PDF·압축·오피스 문서)는 올리지 않는다
+  case "$f" in
+    *.png|*.jpg|*.jpeg|*.gif|*.ico|*.webp|*.pdf|*.zip|*.tar|*.gz|*.7z|*.docx|*.xlsx|*.pptx)
+      report "$f" 0 "내용을 검사할 수 없는 바이너리 파일. 이 저장소에는 올리지 않는다(필요하면 노션에 첨부)"
+      continue ;;
+  esac
   content=$(read_file "$f") || continue
 
   # 1) 공인 IP (사설 대역·0.0.0.0 제외)
@@ -52,10 +57,23 @@ while IFS= read -r f; do
   printf '%s\n' "$content" | grep -nE 'AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}' | while IFS=: read -r line _; do echo "  $f:$line: AWS 액세스 키 형식"; done | grep . && fail=1
   printf '%s\n' "$content" | grep -nE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' | while IFS=: read -r line _; do echo "  $f:$line: 개인 키"; done | grep . && fail=1
 
+  # 일반 자격 증명: 키=값 형태의 비밀번호·토큰·시크릿
+  #   변수 참조·자리표시자는 제외: ${...}, <...>, var., env., secrets., example, xxx, ***
+  #   값(8자 이상, 공백 없음)에 숫자가 섞인 경우만 잡는다(설명 문장 오탐 방지)
+  printf '%s\n' "$content" \
+    | grep -noiE "(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key)[\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_.@!#%^&*-]{8,}" \
+    | grep -viE '\$\{|<[^>]+>|var\.|env\.|secrets\.|example|xxx|\*\*\*|sensitive|placeholder' \
+    | grep -E '[:=][[:space:]]*["'"'"']?[^[:space:]]*[0-9]' \
+    | while IFS=: read -r line _; do echo "  $f:$line: 비밀번호·토큰·시크릿 값으로 보이는 키=값"; done | grep . && fail=1
+  # 서비스 토큰 형식: GitHub, Slack, OpenAI 형식, Context7
+  printf '%s\n' "$content" \
+    | grep -nE '\bgh[pousr]_[A-Za-z0-9]{36,}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}\b|\bsk-[A-Za-z0-9]{20,}\b|\bctx7sk-[A-Za-z0-9-]{20,}\b' \
+    | while IFS=: read -r line _; do echo "  $f:$line: 서비스 토큰 형식"; done | grep . && fail=1
+
   # 3) docs/records/ 밖: 계정 ID·ARN·자원 ID
   case "$f" in docs/records/*) continue ;; esac
-  printf '%s\n' "$content" | grep -nE 'arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:|\baccount[^0-9]{0,20}[0-9]{12}\b|계정[^0-9]{0,20}[0-9]{12}\b' \
-    | while IFS=: read -r line _; do echo "  $f:$line: AWS 계정 ID 또는 계정 ID가 들어간 ARN"; done | grep . && fail=1
+  printf '%s\n' "$content" | grep -nE 'arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:|(^|[^0-9])[0-9]{12}([^0-9]|$)' \
+    | while IFS=: read -r line _; do echo "  $f:$line: AWS 계정 ID(12자리 숫자) 또는 계정 ID가 들어간 ARN"; done | grep . && fail=1
   printf '%s\n' "$content" | grep -noE '\b(vpc|subnet|sg|igw|rtb|acl|eipalloc|eipassoc|pl|i)-[0-9a-f]{8,17}\b' \
     | while IFS=: read -r line id; do echo "  $f:$line: AWS 자원 ID: $id"; done | grep . && fail=1
   # CloudFront 배포 ID(E…), Route53 호스팅 영역 ID(Z…): 대문자·숫자 혼합만
