@@ -4,8 +4,8 @@
 
 ## 명세서 목적
 
-- CodeDeploy 애플리케이션·배포 그룹·서비스 롤을 import한다.
-- 기존 backend 배포 workflow가 쓰는 앱 이름·그룹 이름·태그·버킷을 바꾸지 않는다.
+- CodeDeploy 애플리케이션·배포 그룹·서비스 롤을 import함
+- 기존 backend 배포 workflow가 쓰는 앱 이름·그룹 이름·태그·버킷을 바꾸지 않음
 
 **범위:** CodeDeploy 애플리케이션, 배포 그룹, 배포 설정, 대상 태그
 **범위 밖:** backend `cd.yml` 배포 방식 변경(#13 R3, backend 저장소 작업), CodeDeploy·ALB 트래픽 연동(#13 R11, 보류)
@@ -14,7 +14,7 @@
 
 ## DEP-01 deploy 모듈 작성
 
-**목적:** CodeDeploy를 관리할 모듈을 작성한다.
+**목적:** CodeDeploy를 관리할 모듈을 작성함
 
 | 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -27,7 +27,7 @@
 
 ## DEP-02 CodeDeploy import
 
-**목적:** 배포 그룹을 import하고 현재 설정을 그대로 유지한다.
+**목적:** 배포 그룹을 import하고 현재 설정을 그대로 유지함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/deploy/`, `envs/prod/deploy.tf`, `envs/prod/imports/deploy.tf`. 서비스 롤은 iam, 번들 버킷은 storage 그룹 output을 참조

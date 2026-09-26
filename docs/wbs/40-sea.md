@@ -4,10 +4,10 @@
 
 ## 명세서 목적
 
-- 모집 시즌(on)과 평시(off)에 따라 ALB·EC2-B·Target Group·CloudFront origin·RDS Multi-AZ를 코드로 바꾼다.
-- 시즌 시작은 "EC2-B 기동·최신 번들 재배포(런북) → ALB 생성·Target Group 등록(`season_capacity = on`) → 대상 정상 확인 → origin 교체(`api_origin = alb`)", 종료는 "origin 복귀 → CloudFront 반영 완료 확인 → ALB 삭제" 순서를 지킨다.
+- 모집 시즌(on)과 평시(off)에 따라 ALB·EC2-B·Target Group·CloudFront origin·RDS Multi-AZ를 코드로 바꿈
+- 시즌 시작은 "EC2-B 기동·최신 번들 재배포(런북) → ALB 생성·Target Group 등록(`season_capacity = on`) → 대상 정상 확인 → origin 교체(`api_origin = alb`)", 종료는 "origin 복귀 → CloudFront 반영 완료 확인 → ALB 삭제" 순서를 지킴
 - 한 번의 apply로는 이 순서를 보장할 수 없어서 변수 2개로 나눈다: `season_capacity`(ALB·EC2-B·Multi-AZ), `api_origin`(ec2·alb). RDS Multi-AZ 변경은 오래 걸리므로 별도 단계.
-- 12월 시즌은 기존 스크립트로 전환한다. 이 명세서의 전환 기능(SEA-02·03)은 2027년에 완성한다.
+- 12월 시즌은 기존 스크립트로 전환함. 이 명세서의 전환 기능(SEA-02·03)은 2027년에 완성함
 
 **범위:** 시즌 변수 모델, 시즌 시작·종료 순서 제어, 관련 테스트
 **범위 밖:** 12월 시즌 실제 전환(→ OPS-01, 기존 스크립트)
@@ -16,7 +16,7 @@
 
 ## SEA-01 시즌 변수 모델 최소 구현
 
-**목적:** 보호 자원 그룹 import에 필요한 만큼만 시즌 변수와 상태 모델을 먼저 만든다.
+**목적:** 보호 자원 그룹 import에 필요한 만큼만 시즌 변수와 상태 모델을 먼저 만듦
 
 | 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -30,7 +30,7 @@
 
 ## SEA-02 시즌 시작(on) 순서 제어 + P4
 
-**목적:** 시즌 시작 시 ALB가 준비되고 대상이 정상이 된 뒤에만 origin을 바꾼다.
+**목적:** 시즌 시작 시 ALB가 준비되고 대상이 정상이 된 뒤에만 origin을 바꿈
 
 | 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -44,7 +44,7 @@
 
 ## SEA-03 시즌 종료(off) 2단계 apply + P5
 
-**목적:** origin을 먼저 되돌리고 CloudFront 반영이 끝난 뒤에만 ALB를 지운다. 반영 전에 ALB를 지우면 502 오류.
+**목적:** origin을 먼저 되돌리고 CloudFront 반영이 끝난 뒤에만 ALB를 지움. 반영 전에 ALB를 지우면 502 오류
 
 | 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -58,7 +58,7 @@
 
 ## SEA-04 시즌 상태 매핑 테스트 P3
 
-**목적:** 입력값별로 기대 상태가 맞게 나오는지 테스트한다.
+**목적:** 입력값별로 기대 상태가 맞게 나오는지 테스트함
 
 | 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

@@ -4,9 +4,9 @@
 
 ## 명세서 목적
 
-- RDS 인스턴스를 데이터 손실 없이 import한다.
-- 비밀번호는 코드·plan·로그 어디에도 남기지 않는다.
-- import 전·시즌 전환 전·DDL 적용 전에 반드시 수동 스냅샷을 만든다.
+- RDS 인스턴스를 데이터 손실 없이 import함
+- 비밀번호는 코드·plan·로그 어디에도 남기지 않음
+- import 전·시즌 전환 전·DDL 적용 전에 반드시 수동 스냅샷을 만듦
 
 **범위:** RDS 인스턴스, DB 서브넷 그룹, 파라미터 그룹, RDS 보안 그룹
 **범위 밖:** DB 클래스 변경(여유 메모리 경보 결과에 따라 별도 승인), Multi-AZ 전환 자동화(→ SEA 명세서)
@@ -15,7 +15,7 @@
 
 ## RDB-01 RDS 그룹 import
 
-**목적:** database 모듈을 작성하고 RDS 관련 자원을 import해 plan "No changes"를 확인한다.
+**목적:** database 모듈을 작성하고 RDS 관련 자원을 import해 plan "No changes"를 확인함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/database/`, `envs/prod/database.tf`, `envs/prod/imports/database.tf`. 서브넷·보안 그룹 ID는 network 그룹 output을 참조

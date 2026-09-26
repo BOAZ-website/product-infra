@@ -2,7 +2,7 @@
 
 운영 중인 BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의 AWS 인프라를 서비스 중단 없이 Terraform 코드로 옮기는 작업의 목표, 원칙, 시즌 전환 모델을 정리한 문서.
 
-> 작업 순서·티켓·완료 조건은 WBS(`docs/wbs/00-wbs.md`)를 따른다. 그룹별 import 방법은 `docs/guides/import-procedure.md`를 따른다. 이 문서는 "왜, 어떤 원칙으로"만 다룬다.
+> 작업 순서·티켓·완료 조건은 WBS(`docs/wbs/00-wbs.md`)를 따름. 그룹별 import 방법은 `docs/guides/import-procedure.md`를 따름. 이 문서는 "왜, 어떤 원칙으로"만 다룸
 
 ---
 
@@ -10,17 +10,17 @@
 
 ### 목표
 
-1. 운영(prod) 환경의 AWS 자원을 **다시 만들지 않고 Terraform state로 import**한다. 서비스 중단 0.
-2. 시즌 전환(ALB 생성·삭제, EC2-B 기동·중지, RDS Multi-AZ 전환, CloudFront origin 교체)을 코드로 제어하고 기존 셸 스크립트를 폐기한다.
-3. 인프라 변경을 **PR → plan 리뷰 → 머지 → 승인 후 apply** 흐름으로 옮긴다.
-4. 인프라 코드를 애플리케이션 저장소와 분리해 `product-infra`에서 관리한다.
+1. 운영(prod) 환경의 AWS 자원을 **다시 만들지 않고 Terraform state로 import**함. 서비스 중단 0.
+2. 시즌 전환(ALB 생성·삭제, EC2-B 기동·중지, RDS Multi-AZ 전환, CloudFront origin 교체)을 코드로 제어하고 기존 셸 스크립트를 폐기함
+3. 인프라 변경을 **PR → plan 리뷰 → 머지 → 승인 후 apply** 흐름으로 옮김
+4. 인프라 코드를 애플리케이션 저장소와 분리해 `product-infra`에서 관리함
 
 ### 비목표
 
 - 관리자 콘솔 신규 환경 구성. 단, **이미 있는 admin S3·CloudFront·Route53 자원의 import는 범위 안**
 - 백엔드 dev 환경 신설
 - 구조 변경(ECS·EKS·ASG, Blue-Green 등). 이번 작업은 현행 구조를 그대로 코드로 옮기는 데 한정
-- 애플리케이션 코드, CodeDeploy 훅, Spring 설정, 기존 배포 workflow 변경. infra 저장소가 앱 workflow를 바꾸지 않는다
+- 애플리케이션 코드, CodeDeploy 훅, Spring 설정, 기존 배포 workflow 변경. infra 저장소가 앱 workflow를 바꾸지 않음
 
 ---
 
@@ -39,10 +39,10 @@
 - 리전 `ap-northeast-2`. CloudFront 인증서만 `us-east-1`
 - backend: EC2 + CodeDeploy(systemd `boaz.service`)
 - frontend·admin: S3 + CloudFront, 각 CloudFront(api 포함)에 WAF 연결
-- 직접 접근 제한: ALB 보안 그룹은 TCP 80을 CloudFront 관리형 prefix list(`com.amazonaws.global.cloudfront.origin-facing`)에서만 허용. EC2 보안 그룹은 TCP 8080을 ALB 보안 그룹과 CloudFront prefix list에서만 허용. prefix list는 모든 CloudFront 배포를 포함하므로 우리 배포에서 온 요청만 받도록 하는 오리진 보호는 별도 보완 항목(관리자 CloudFront 보안 설정)에서 다룬다
+- 직접 접근 제한: ALB 보안 그룹은 TCP 80을 CloudFront 관리형 prefix list(`com.amazonaws.global.cloudfront.origin-facing`)에서만 허용. EC2 보안 그룹은 TCP 8080을 ALB 보안 그룹과 CloudFront prefix list에서만 허용. prefix list는 모든 CloudFront 배포를 포함하므로 BOAZ 배포에서 온 요청만 받도록 하는 오리진 보호는 별도 보완 항목(관리자 CloudFront 보안 설정)에서 다룸
 - EC2-A에는 Elastic IP가 연결되어 있음
 - 현재 IaC 없음. 시즌 전환은 `backend/infra/scripts/`의 셸·파이썬 스크립트로 수행
-- 자원별 실제 식별자는 `docs/records/inventory.md`(조사 기록)에만 적는다. 다른 문서에는 역할명(EC2-A, api CloudFront 등)으로 쓴다
+- 자원별 실제 식별자는 `docs/records/inventory.md`(조사 기록)에만 적음. 다른 문서에는 역할명(EC2-A, api CloudFront 등)으로 씀
 
 ---
 
@@ -70,20 +70,20 @@ product-infra/
 
 ## 4. 시즌 전환 모델
 
-한 번의 apply로는 "ALB가 준비된 뒤에 origin 교체", "CloudFront 반영이 끝난 뒤에 ALB 삭제" 순서를 보장할 수 없어서 변수 2개로 나눈다.
+한 번의 apply로는 "ALB가 준비된 뒤에 origin 교체", "CloudFront 반영이 끝난 뒤에 ALB 삭제" 순서를 보장할 수 없어서 변수 2개로 나눔
 
 | 변수 | 값 | 제어 대상 |
 | --- | --- | --- |
 | `season_capacity` | `off` / `on` | ALB·listener, EC2-B 기동과 기능 태그, Target Group 등록 대상, RDS Multi-AZ |
 | `api_origin` | `ec2` / `alb` | api CloudFront origin (EC2-A:8080 / ALB:80) |
 
-- `api_origin = alb`이면 `season_capacity = on`이어야 한다(사전 조건으로 강제).
-- 시즌 시작: EC2-B 기동(런북 단계, CLI) → **최신 번들 재배포 성공** → `season_capacity = on` apply(ALB 생성, EC2-B Target Group 등록, Multi-AZ) → Target Group 대상 정상 확인 → `api_origin = alb` apply. 현행 `season-up.sh`와 같은 순서로, 재배포가 끝나기 전에는 EC2-B를 Target Group에 등록하지 않는다
+- `api_origin = alb`이면 `season_capacity = on`이어야 함(사전 조건으로 강제)
+- 시즌 시작: EC2-B 기동(런북 단계, CLI) → **최신 번들 재배포 성공** → `season_capacity = on` apply(ALB 생성, EC2-B Target Group 등록, Multi-AZ) → Target Group 대상 정상 확인 → `api_origin = alb` apply. 현행 `season-up.sh`와 같은 순서로, 재배포가 끝나기 전에는 EC2-B를 Target Group에 등록하지 않음
 - 시즌 종료: `api_origin = ec2` apply → CloudFront `Deployed` 확인 → `season_capacity = off` apply. 반영 전에 ALB를 지우면 502
 - RDS Multi-AZ 전환은 수십 분 걸리므로 별도 단계로 분리
 - EC2-B 켜기·끄기는 `aws_ec2_instance_state` 사용
 
-2026년 12월 시즌은 기존 스크립트로 전환하고 그 기간 Terraform apply는 금지한다. Terraform 전환은 2027년 비시즌 리허설 2회 성공 뒤부터.
+2026년 12월 시즌은 기존 스크립트로 전환하고 그 기간 Terraform apply는 금지함. Terraform 전환은 2027년 비시즌 리허설 2회 성공 뒤부터
 
 ---
 
@@ -95,7 +95,7 @@ product-infra/
 - 시크릿·비밀번호는 코드·tfvars·plan·로그에 두지 않음(`ignore_changes`, `sensitive`)
 - 기존 배포 workflow가 참조하는 이름·버킷·배포 ID·롤 ARN 유지(Terraform output으로 계약 검사)
 - 콘솔 수동 변경 금지. 장애 대응 중 변경했다면 즉시 기록하고 3일 안에 코드 반영(시즌 동결 중이면 동결 종료 후 3일 안에)
-- "state 등록만 하는 apply(import)"와 "자원을 바꾸는 apply"를 구분해 리뷰한다
+- "state 등록만 하는 apply(import)"와 "자원을 바꾸는 apply"를 구분해 리뷰함
 
 ---
 

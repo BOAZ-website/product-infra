@@ -4,9 +4,9 @@
 
 ## 명세서 목적
 
-- EC2-A(상시)·EC2-B(시즌용)와 Elastic IP를 다시 만들지 않고 import한다.
-- Target Group과 ALB를 시즌 상태에 따라 있고 없도록 구성한다.
-- 시즌 시작 때 EC2-B가 옛 버전 앱으로 서비스되지 않도록 재배포 순서를 강제한다.
+- EC2-A(상시)·EC2-B(시즌용)와 Elastic IP를 다시 만들지 않고 import함
+- Target Group과 ALB를 시즌 상태에 따라 있고 없도록 구성함
+- 시즌 시작 때 EC2-B가 옛 버전 앱으로 서비스되지 않도록 재배포 순서를 강제함
 
 **범위:** EC2-A/B, Elastic IP와 연결, Target Group, ALB·listener
 **범위 밖:** 인스턴스 타입 변경(수동 승인 절차 → DOC-12), ASG 전환
@@ -15,7 +15,7 @@
 
 ## CMP-01 EC2·EIP 그룹 import
 
-**목적:** compute 모듈을 작성하고 EC2-A/B와 Elastic IP를 import한다.
+**목적:** compute 모듈을 작성하고 EC2-A/B와 Elastic IP를 import함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/compute/`, `envs/prod/compute.tf`, `envs/prod/imports/compute.tf`. 인스턴스 프로파일은 iam 그룹 output을 참조
@@ -34,7 +34,7 @@
 
 ## CMP-02 Target Group·ALB 그룹 import
 
-**목적:** Target Group을 import하고 ALB를 시즌 상태에 따라 만들고 지우도록 구성한다. 계획서의 "로드밸런싱(Target Group)" 그룹이 이 티켓이다.
+**목적:** Target Group을 import하고 ALB를 시즌 상태에 따라 만들고 지우도록 구성함. 계획서의 "로드밸런싱(Target Group)" 그룹이 이 티켓
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: compute 그룹 파일(`modules/compute/`, `envs/prod/compute.tf`)에 함께 둠. CMP-01과 같은 담당이 진행
@@ -51,7 +51,7 @@
 
 ## CMP-03 EC2-B 재배포 순서 게이트
 
-**목적:** 시즌 시작 때 "EC2-B 기동 → 최신 번들 재배포 성공 → Target Group 등록" 순서를 지키게 한다.
+**목적:** 시즌 시작 때 "EC2-B 기동 → 최신 번들 재배포 성공 → Target Group 등록" 순서를 지키게 함
 
 | 규모 | 선행 | 차단 결정 | 마일스톤 | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

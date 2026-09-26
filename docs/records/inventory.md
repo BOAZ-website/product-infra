@@ -8,7 +8,7 @@
 
 ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) / `excluded`(관리 제외) / `unconfirmed`(추가 확인 필요)
 
-공개 저장소이므로 개인 IP·개인 계정명은 기재하지 않는다. 필요하면 AWS에서 직접 조회한다.
+공개 저장소이므로 개인 IP·개인 계정명은 기재하지 않음. 필요하면 AWS에서 직접 조회함
 
 ## 1. 계정
 
@@ -36,7 +36,7 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 
 ## 3. 보안그룹
 
-모든 규칙은 SG 인라인 규칙이다. 코드 편입 시 인라인 규칙과 별도 rule 리소스를 섞지 않는다.
+모든 규칙은 SG 인라인 규칙. 코드 편입 시 인라인 규칙과 별도 rule 리소스를 섞지 않음
 
 | 자원 | 식별자 | ingress | egress | ownership |
 |---|---|---|---|---|
@@ -49,8 +49,8 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | default SG | `sg-07142d09e8f0ba4f1` | VPC default, self-ref | all → `0.0.0.0/0` | excluded (기본 SG) |
 | CloudFront prefix list | `pl-22a6434b` | AWS 관리형 `com.amazonaws.global.cloudfront.origin-facing` | - | data_source |
 
-- 기본 egress(`all → 0.0.0.0/0`)도 코드에 명시해야 한다. 명시하지 않으면 plan이 egress 삭제를 제안할 수 있다.
-- SSH ingress는 `/32` 2개로 제한되어 있다. EC2 role에 `AmazonSSMManagedInstanceCore`가 있으므로 Session Manager 대체 여부를 decisions에 기록했다.
+- 기본 egress(`all → 0.0.0.0/0`)도 코드에 명시해야 함. 명시하지 않으면 plan이 egress 삭제를 제안할 수 있음
+- SSH ingress는 `/32` 2개로 제한되어 있음. EC2 role에 `AmazonSSMManagedInstanceCore`가 있으므로 Session Manager 대체 여부를 decisions에 기록함
 
 ## 4. 컴퓨팅 (EC2)
 
@@ -63,8 +63,8 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | Launch Template / ASG | 없음 | 조회 결과 0개 | - |
 
 - EC2-A/B는 4개 SG를 공유한다: `prod-ec2-to-rds-sg`, `prod-ssh-sg`, `prod-cf-to-ec2-sg`, `prod-alb-to-ec2-sg`.
-- EC2-A에는 EIP가 연결되어 있다. api CloudFront origin(EC2 퍼블릭 DNS)은 EIP에서 파생된 주소이므로 stop/start 후에도 바뀌지 않는다.
-- EC2-A/B의 AMI가 서로 다르다. drift 여부는 compute 코드 편입 시 확인한다.
+- EC2-A에는 EIP가 연결되어 있음. api CloudFront origin(EC2 퍼블릭 DNS)은 EIP에서 파생된 주소이므로 stop/start 후에도 바뀌지 않음
+- EC2-A/B의 AMI가 서로 다름. drift 여부는 compute 코드 편입 시 확인함
 
 ## 5. 데이터베이스 (RDS)
 
@@ -79,8 +79,8 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | Option Group | `default:mysql-8-4` | AWS 기본 | data_source |
 | RDS SG | `sg-031dfbcef8f27664b` | (보안그룹 참조) | managed |
 
-- `storage_encrypted`와 `kms_key_id`는 코드 값이 다르면 replace를 유발한다. 위 값을 그대로 코드에 적는다.
-- password는 조회하지 않았으며, Terraform에서 값을 관리하지 않는다.
+- `storage_encrypted`와 `kms_key_id`는 코드 값이 다르면 replace를 유발함. 위 값을 그대로 코드에 적음
+- password는 조회하지 않았으며, Terraform에서 값을 관리하지 않음
 
 ## 6. 로드밸런싱
 
@@ -103,8 +103,8 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | 레거시 OAI | `E26A1E75IVQXNC`, `E94HALX0MGFFC`, `E17AB8M3IVDOMU`, `E1LMKYP1IJ04II` | 현재 배포 3개 중 사용하는 곳 없음 | unconfirmed (정리 대상) |
 
 - 세 배포 공통: viewer cert `arn:aws:acm:us-east-1:156312218841:certificate/1f7185b8-b897-4fb2-b7f9-eccc7b23a80b`, `TLSv1.2_2021`, `PriceClass_All`, 로깅 꺼짐.
-- 배포 코드에 `web_acl_id`를 적지 않으면 plan이 WAF 연결을 해제한다. 보안 설정이 약해지므로 반드시 WebACL ARN을 명시한다.
-- 세 번째 배포가 admin인 것은 계획서(현 `docs/overview/migration-plan.md`, `docs/overview/current-infra.md`)와 일치한다. `dev` 배포는 티켓 문구에만 있었다.
+- 배포 코드에 `web_acl_id`를 적지 않으면 plan이 WAF 연결을 해제함. 보안 설정이 약해지므로 반드시 WebACL ARN을 명시함
+- 세 번째 배포가 admin인 것은 계획서(현 `docs/overview/migration-plan.md`, `docs/overview/current-infra.md`)와 일치함. `dev` 배포는 티켓 문구에만 있었음
 
 ## 8. DNS (Route53)
 
@@ -126,7 +126,7 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 |---|---|---|---|
 | ACM certificate | `arn:aws:acm:us-east-1:156312218841:certificate/1f7185b8-b897-4fb2-b7f9-eccc7b23a80b` | `*.bigdataboaz.com` wildcard, ISSUED, AMAZON_ISSUED, CloudFront 3개 사용 중, region `us-east-1` | managed |
 
-ap-northeast-2에는 인증서가 없다.
+ap-northeast-2에는 인증서가 없음
 
 ## 10. 배포 (CodeDeploy)
 
@@ -136,8 +136,8 @@ ap-northeast-2에는 인증서가 없다.
 | Deployment Group | `codedeploy-prod` | config `CodeDeployDefault.AllAtOnce`, IN_PLACE, WITHOUT_TRAFFIC_CONTROL, service role `role-prod-codedeploy`, 대상 `ec2TagSet` = `app=boaz-api` (KEY_AND_VALUE), auto rollback enabled (DEPLOYMENT_FAILURE) | managed |
 | Service Role | `arn:aws:iam::156312218841:role/role-prod-codedeploy` | - | managed |
 
-- 대상 지정은 `ec2TagFilters`(null)가 아니라 `ec2TagSet`에 설정되어 있으며, 계획서의 `app=boaz-api` 태그 타겟과 일치한다.
-- deploy 모듈은 `ec2_tag_filter`가 아니라 `ec2_tag_set` 블록으로 작성해야 plan diff가 생기지 않는다.
+- 대상 지정은 `ec2TagFilters`(null)가 아니라 `ec2TagSet`에 설정되어 있으며, 계획서의 `app=boaz-api` 태그 타겟과 일치함
+- deploy 모듈은 `ec2_tag_filter`가 아니라 `ec2_tag_set` 블록으로 작성해야 plan diff가 생기지 않음
 
 ## 11. IAM
 
@@ -149,12 +149,12 @@ ap-northeast-2에는 인증서가 없다.
 | Role EC2 | `arn:aws:iam::156312218841:role/role-prod-ec2` | instance profile 연결. 관리형 정책 5개(`AmazonS3ReadOnlyAccess`, `AmazonSSMManagedInstanceCore`, `CloudWatchAgentServerPolicy`, `boaz-ec2-s3-archiving-policy`, `boaz-ec2-s3-recruitment-policy`), 인라인 정책 3개(`boaz-codedeploy-read`, `boaz-ssm-read`, `cloudwatch-list-metric`) | managed |
 | GitHub OIDC provider | `arn:aws:iam::156312218841:oidc-provider/token.actions.githubusercontent.com` | - | managed |
 
-- role만 import하면 정책 연결은 관리되지 않는다. policy attachment와 인라인 정책도 import 대상에 포함한다.
-- `AmazonS3ReadOnlyAccess`는 전체 버킷 읽기 권한이다. 버킷별 정책이 이미 있으므로 과권한 여부를 검토한다.
+- role만 import하면 정책 연결은 관리되지 않음. policy attachment와 인라인 정책도 import 대상에 포함함
+- `AmazonS3ReadOnlyAccess`는 전체 버킷 읽기 권한. 버킷별 정책이 이미 있으므로 과권한 여부를 검토함
 
 ## 12. 파라미터 (SSM)
 
-`/boaz/infra/*`는 12개다 (값 미조회, 이름·type·KMS만). `describe-parameters`의 결과가 페이지로 나뉘어 반환되므로(10개 + 2개) 개수는 전체 페이지를 합산해 확인했다.
+`/boaz/infra/*`는 12개 (값 미조회, 이름·type·KMS만). `describe-parameters`의 결과가 페이지로 나뉘어 반환되므로(10개 + 2개) 개수는 전체 페이지를 합산해 확인함
 
 | 이름 | Type | KMS |
 |---|---|---|
@@ -171,7 +171,7 @@ ap-northeast-2에는 인증서가 없다.
 | `/boaz/infra/TARGET_GROUP_ARN` | String | 없음 |
 | `/boaz/infra/S3_BUCKET` | String | 없음 |
 
-앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있다. Terraform에서 값을 관리하지 않는다.
+앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있음. Terraform에서 값을 관리하지 않음
 
 | Type | 이름 | KMS |
 |---|---|---|
@@ -194,10 +194,10 @@ ap-northeast-2에는 인증서가 없다.
 | `survey-da.bigdataboaz.com` | None | AES256 | 전체 True | - | - | unconfirmed (대상 여부) |
 | `survey-dv.bigdataboaz.com` | None | AES256 | 전체 True | - | - | unconfirmed (대상 여부) |
 
-- 모든 버킷은 `ap-northeast-2`에 있다.
-- `boaz-recruitment`의 lifecycle을 코드에 적지 않으면 삭제되어 데이터 보존 동작이 바뀐다.
-- `boaz-prod-frontend`는 실제로 공개되어 있지 않지만 PAB가 꺼져 있어 방어 계층이 하나 빠져 있다. admin 버킷과 같이 PAB를 켜는 것을 권고한다(변경이므로 승인 필요).
-- 기존 Terraform state 후보 버킷은 11개 버킷 중에 없다.
+- 모든 버킷은 `ap-northeast-2`에 있음
+- `boaz-recruitment`의 lifecycle을 코드에 적지 않으면 삭제되어 데이터 보존 동작이 바뀜
+- `boaz-prod-frontend`는 실제로 공개되어 있지 않지만 PAB가 꺼져 있어 방어 계층이 하나 빠져 있음. admin 버킷과 같이 PAB를 켜는 것을 권고함(변경이므로 승인 필요)
+- 기존 Terraform state 후보 버킷은 11개 버킷 중에 없음
 
 ## 계획서와의 차이 (요약)
 

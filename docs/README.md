@@ -1,6 +1,6 @@
 # product-infra 문서 안내
 
-운영 AWS 인프라를 Terraform으로 옮기는 작업의 문서 모음. 같은 내용을 노션에도 올린다.
+운영 AWS 인프라를 Terraform으로 옮기는 작업의 문서 모음. 같은 내용을 노션에도 올림
 
 ## 역할별 읽기 순서
 
@@ -28,8 +28,10 @@
 
 ## 문서 규칙
 
-- 작업 순서·티켓·완료 조건의 기준은 노션 WBS·명세서. 노션을 고치면 같은 주 안에 `docs/wbs/`에 PR로 반영한다.
-- `guides/`·`records/`는 저장소가 원본. 노션에는 링크로 둔다.
-- `.kiro/specs/product-infra-migration/`(requirements·design·tasks)은 초기 설계 참고용. 명세서의 P1~P10 검증 속성 정의가 `design.md`에 있다. 내용이 WBS와 다르면 WBS를 따른다.
-- 공인 IP·시크릿·키는 어떤 문서에도 적지 않는다. 계정 ID·자원 ID는 `records/`에만 적고, 다른 문서에는 역할명으로 쓴다. 전체 규칙은 저장소 README의 "보안 정보 공개 금지"와 `CLAUDE.md`. `scripts/check-sensitive.sh`가 CI·커밋 전 훅에서 자동 검사한다.
+- 작업 순서·티켓·완료 조건의 기준은 노션 WBS·명세서. 노션을 고치면 같은 주 안에 `docs/wbs/`에 PR로 반영함
+- `guides/`·`records/`는 저장소가 원본. 노션에는 링크로 둠
+- `.kiro/specs/product-infra-migration/`(requirements·design·tasks)은 초기 설계 참고용. 명세서의 P1~P10 검증 속성 정의가 `design.md`에 있음. 내용이 WBS와 다르면 WBS를 따름
+- 공인 IP·시크릿·키는 어떤 문서에도 적지 않음. 계정 ID·자원 ID는 `records/`에만 적고, 다른 문서에는 역할명으로 씀. 전체 규칙은 저장소 README의 "보안 정보 공개 금지"와 `CLAUDE.md`. `scripts/check-sensitive.sh`가 CI·커밋 전 훅에서 자동 검사함
+- 문체는 개조식 명사형 종결(`~함`, `~됨`, `~있음`). 인칭 표현(우리 등)은 쓰지 않음
+- 추정값은 `[추정]`, 확인되지 않은 사실은 `[확인 필요]`로 표기함. 일정이 정해지지 않은 기한은 티켓·마일스톤 기준(예: "STO-01 전")으로 적고, 일정 확정 후 날짜로 바꿈
 
