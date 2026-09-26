@@ -7,20 +7,21 @@
 **Phase 2부터 그룹을 맡은 팀원**
 
 1. `wbs/00-wbs.md` — 읽는 법, 담당 구분, **import 그룹 배정표**(내 그룹·티켓·수정 파일 확인)
+   - `wbs/01-schedule.md` — Phase 일정(내 Phase의 기간·완료 기준·티켓 순서)
 2. `guides/import-procedure.md` — 모든 그룹이 따르는 공통 절차(파일 규칙, apply 순서, 작업 9단계, PR 체크리스트)
 3. 내 그룹 명세서(`wbs/21-*.md` ~ `wbs/27-*.md`) — 그룹 고유 기능과 완료 확인 방법
 4. 필요할 때: `overview/migration-plan.md`(배경·원칙), `records/inventory.md`(조사 기록)
 
 **인프라 리드(Phase 0~1)**
 
-1. `overview/migration-plan.md` → `wbs/00-wbs.md` → `wbs/1x-*.md`(Phase 1 명세서)
+1. `overview/migration-plan.md` → `wbs/00-wbs.md` → `wbs/01-schedule.md` → `wbs/1x-*.md`(Phase 1 명세서)
 
 ## 디렉터리
 
 | 경로 | 내용 | 원본 |
 | --- | --- | --- |
 | `overview/` | 배경·목표·원칙·시즌 전환 모델(`migration-plan.md`), 현행 인프라(`current-infra.md`) | 저장소 |
-| `wbs/` | WBS와 명세서 12개. 티켓 키 `NET-01`, 기능 ID `NET-01-01` | 노션(이 폴더는 노션 페이지 원본 마크다운) |
+| `wbs/` | WBS, Phase 일정, 명세서 12개. 티켓 키 `NET-01`, 기능 ID `NET-01-01` | 노션(이 폴더는 노션 페이지 원본 마크다운) |
 | `guides/` | 팀원 공통 작업 절차 | 저장소 |
 | `records/` | 조사 기록(inventory), 결정·확인 필요 레지스터(decisions), import 기록(import-log) | 저장소 |
 
