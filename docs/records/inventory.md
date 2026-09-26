@@ -104,7 +104,7 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 
 - 세 배포 공통: viewer cert `arn:aws:acm:us-east-1:156312218841:certificate/1f7185b8-b897-4fb2-b7f9-eccc7b23a80b`, `TLSv1.2_2021`, `PriceClass_All`, 로깅 꺼짐.
 - 배포 코드에 `web_acl_id`를 적지 않으면 plan이 WAF 연결을 해제한다. 보안 설정이 약해지므로 반드시 WebACL ARN을 명시한다.
-- 세 번째 배포가 admin인 것은 계획서(`terraform-migration-plan.md`, `infra-spec.md`)와 일치한다. `dev` 배포는 티켓 문구에만 있었다.
+- 세 번째 배포가 admin인 것은 계획서(현 `docs/overview/migration-plan.md`, `docs/overview/current-infra.md`)와 일치한다. `dev` 배포는 티켓 문구에만 있었다.
 
 ## 8. DNS (Route53)
 
@@ -203,7 +203,7 @@ ap-northeast-2에는 인증서가 없다.
 
 | 항목 | 계획서 | 실측 | 처리 |
 |---|---|---|---|
-| EC2-A EIP | `infra-spec.md` §14: "EIP 미적용" | EIP `eipalloc-0d58d66169c7560bb` 연결됨 | `infra-spec.md` 수정, EIP import 대상 추가 |
+| EC2-A EIP | 구 `infra-spec.md` §14: "EIP 미적용" | EIP `eipalloc-0d58d66169c7560bb` 연결됨 | `docs/overview/current-infra.md`에 반영 완료(#14), EIP import 대상 추가 |
 | EC2-B ID | 계획서는 `i-05405847d3897364a`로 일치 | `i-05405847d3897364a` | `design.md` 사전 인벤토리 표의 잘린 값만 오타 → 수정 |
 | 3번째 CloudFront | 계획서는 admin `E2GM63NBDWPND0`로 일치 | admin | 차이 없음 (티켓 문구의 `dev`만 다름) |
 | CodeDeploy 태그 타겟 | `app=boaz-api` | `ec2TagSet` = `app=boaz-api` | 차이 없음 |

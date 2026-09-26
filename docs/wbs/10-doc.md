@@ -23,7 +23,7 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| DOC-01-01 | PR #10 머지 후 조사 문서 3종을 `docs/records/`로 옮기고 `infra-spec.md` 정리를 PR #12에 추가 | PR #12 변경 파일에 `docs/records/` 존재 |
+| DOC-01-01 | 조사 문서 3종을 `docs/records/`로 옮기고 `infra-spec.md` 정리. PR #12가 먼저 머지되어 후속 이슈 #14로 분리 | #14 PR 머지 후 `docs/records/` 존재 |
 | DOC-01-02 | 리뷰 승인 후 PR #12 머지, 이슈 #11 자동 종료 확인 | `gh pr view 12`에서 MERGED, `gh issue view 11`에서 CLOSED |
 
 ## DOC-02 결정 레지스터 통합
@@ -72,8 +72,8 @@
 | DOC-04-05 | 시즌 시작 시 "EC2-B 기동 → 재배포 성공 → Target Group 등록" 순서를 설계 문서에 명시 | 해당 절에 순서와 실패 시 중지 기준 기재 |
 | DOC-04-06 | requirements의 "API/www/dev" 표기를 실제 대상인 "admin"으로 정정(tasks.md는 참고용이라 제외) | 변경 내용 확인 |
 | DOC-04-07 | 보안 그룹 규칙을 규칙별 개별 리소스로 관리하기로 확정하고 inventory.md 표기 통일 | design.md와 inventory.md 표기 일치 |
-| DOC-04-08 | infra-spec.md의 SSH 허용 개인 IP 기재 삭제, Session Manager 전환 우선순위 기록 | IP 주소 패턴 검색 결과 없음 |
-| DOC-04-09 | infra-spec.md 최신화(#13): EC2-A Elastic IP "미적용" → 연결됨, www·api·admin CloudFront의 WAF 연결 추가 | 문서가 inventory 조사 결과와 일치 |
+| DOC-04-08 | infra-spec.md의 SSH 허용 개인 IP 기재 삭제, Session Manager 전환 우선순위 기록(#14에서 `docs/overview/current-infra.md`로 반영) | IP 주소 패턴 검색 결과 없음 |
+| DOC-04-09 | infra-spec.md 최신화(#13): EC2-A Elastic IP "미적용" → 연결됨, www·api·admin CloudFront의 WAF 연결 추가(#14에서 반영) | 문서가 inventory 조사 결과와 일치 |
 
 ## DOC-05 PR #9·#10 리뷰·머지
 

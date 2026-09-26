@@ -8,7 +8,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 
 | 필드 | 설명 |
 |---|---|
-| group | network / iam-params / storage / compute / database / alb-target / cdn-route53-acm / deploy |
+| group | network / iam / params / storage / compute / database / cdn / deploy (`docs/guides/import-procedure.md` 1절과 같음) |
 | terraform_address | Terraform 리소스 주소 (예: `module.network.aws_vpc.main`) |
 | aws_identifier | 실제 AWS 식별자 (import ID) |
 | identifier_source | 확인에 사용한 AWS CLI 명령 + 출력 필드 |
@@ -40,28 +40,28 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
   operator:
 ```
 
-## Import 대상 목록 (조사 기준, 미착수)
+## 그룹별 진행 상태
 
-표준 import 순서. 실제 식별자는 `docs/inventory.md` 참조.
+그룹 import를 시작하는 사람이 상태를 `진행 중`으로 바꾸고 담당자·시작 시각을 적는다. `진행 중`인 그룹은 한 번에 1개만 둔다(apply 순서 규칙, `docs/guides/import-procedure.md` 2절). 실제 식별자는 `docs/records/inventory.md` 참조.
 
-| 순서 | group | 주요 대상 | 상태 |
-|---|---|---|---|
-| 1 | network | VPC, Subnet 4개, Route Table 3개(+association), IGW, SG 6개(인라인 ingress·egress 포함), prefix list(data_source) | 미착수 |
-| 2 | iam-params | OIDC provider, role 4개, role별 policy attachment·인라인 정책, `/boaz/infra/*` 12개 | 미착수 |
-| 3 | storage | S3 버킷 (codedeploy/prod-frontend/frontend-admin/recruitment/archiving) + 버킷별 policy·PAB·암호화·lifecycle(`boaz-recruitment`) | 미착수 |
-| 4 | compute | EC2-A `i-08bb34407c19504cf`, EC2-B `i-05405847d3897364a`, EIP `eipalloc-0d58d66169c7560bb`·association `eipassoc-0549083bd71126507`, instance profile | 미착수 |
-| 5 | database | RDS `boaz-prod-db`(암호화 KMS 키 포함), subnet group, parameter group | 미착수 |
-| 6 | alb-target | Target Group `boaz-api-tg`, target attachment(EC2-A:8080) (ALB는 season_mode=on 조건부) | 미착수 |
-| 7 | cdn-route53-acm | CloudFront api/www/admin(`web_acl_id`·OAC·custom error 포함), OAC 2개, Route53 zone/record, ACM(us-east-1) | 미착수 |
-| 8 | deploy | CodeDeploy app `boaz-backend`, group `codedeploy-prod`(`ec2_tag_set` `app=boaz-api`, auto rollback) | 미착수 |
+| 순서 | group | 주요 대상 | 담당자 | 시작 시각(KST) | 상태 |
+|---|---|---|---|---|---|
+| 1 | network | VPC, Subnet 4개, Route Table 3개(+association), IGW, SG 6개와 규칙, prefix list(data_source) | | | 대기 |
+| 2 | iam | OIDC provider, role 4개, role별 정책 연결·인라인 정책, EC2 instance profile | | | 대기 |
+| 3 | params | `/boaz/infra/*` 12개, 앱 시크릿 존재·타입 확인(값 제외) | | | 대기 |
+| 4 | storage | S3 버킷(codedeploy·prod-frontend·frontend-admin·recruitment·archiving) + 버킷별 정책·퍼블릭 차단·암호화·lifecycle | | | 대기 |
+| 5 | compute | EC2-A, EC2-B, EIP와 연결, Target Group과 EC2-A 등록(ALB는 `season_capacity = on`일 때만) | | | 대기 |
+| 6 | database | RDS(암호화 키 포함), subnet group, parameter group | | | 대기 |
+| 7 | cdn | CloudFront api·www·admin(`web_acl_id`·OAC·오류 응답 포함), OAC 2개, Route53 zone·record, ACM(us-east-1) | | | 대기 |
+| 8 | deploy | CodeDeploy app, deployment group(`ec2_tag_set` `app=boaz-api`, 자동 롤백) | | | 대기 |
 
 ## 관리 제외 / 미확정 (조사 기준)
 
 | 대상 | 분류 | 사유 |
 |---|---|---|
-| default SG `sg-07142d09e8f0ba4f1` | excluded | VPC 기본 SG |
+| default SG | excluded | VPC 기본 SG |
 | NAT Gateway | data_source | 존재하지 않음 (private subnet 외부 경로 없음) |
-| CloudFront prefix list `pl-22a6434b` | data_source | AWS 관리형 |
+| CloudFront 관리형 prefix list | data_source | AWS 관리형 |
 | RDS option group `default:mysql-8-4` | data_source | AWS 기본 |
 | Route53 NS/SOA/TXT/ACM 검증 CNAME | data_source | 도메인 검증·인증서 발급용 |
 | S3 `boaz-website`, `boaz-website-dev`, `boazweb`, `survey-da/dv.bigdataboaz.com` | unconfirmed | 관리 대상 여부 미결정 (decisions 참조) |
@@ -69,10 +69,10 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 | S3 `boaz-dev-frontend` | unconfirmed | 서비스 중인 배포 없음, 삭제된 배포 참조 policy (decisions 참조) |
 | WAF WebACL 3개 | unconfirmed | 관리 방식 미결정 (decisions 참조) |
 | 레거시 OAI 4개, ACM 검증 CNAME `back`/`cdn`/`server` | unconfirmed | 미사용·고아 추정, 정리 여부 미결정 |
-| default Network ACL `acl-07ffd275e736d47f0` | unconfirmed | 관리 여부 미결정 |
+| default Network ACL | unconfirmed | 관리 여부 미결정 |
 
 ## 참고
 
-- 조사 근거: `docs/inventory.md` (조사 시점 2026-09-23, read-only)
-- 결정 필요 항목: `docs/decisions.md`
-- import 블록은 후속 작업에서 `envs/prod/imports.tf`에 추가.
+- 조사 근거: `docs/records/inventory.md` (조사 시점 2026-09-23, read-only)
+- 결정 필요 항목: `docs/records/decisions.md`
+- import 블록은 그룹별로 `envs/prod/imports/<group>.tf`에 추가(`docs/guides/import-procedure.md` 1절).
