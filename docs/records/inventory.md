@@ -79,7 +79,7 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | Option Group | `default:mysql-8-4` | AWS 기본 | data_source |
 | RDS SG | `sg-031dfbcef8f27664b` | (보안그룹 참조) | managed |
 
-- `storage_encrypted`와 `kms_key_id`는 코드 값이 다르면 replace를 유발함. 위 값을 그대로 코드에 적음
+- `storage_encrypted`와 `kms_key_id`는 코드 값이 다르면 replace를 유발함. 코드에는 위 ARN을 복사하지 않고, 작업 직전 직접 조회한 값을 data source 참조나 저장소에 올리지 않는 변수 파일(`*.tfvars`)로 전달함
 - password는 조회하지 않았으며, Terraform에서 값을 관리하지 않음
 
 ## 6. 로드밸런싱

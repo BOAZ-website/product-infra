@@ -28,7 +28,7 @@
 | --- | --- | --- |
 | RDB-01-01 | RDS 인스턴스·DB 서브넷 그룹·파라미터 그룹·보안 그룹을 조사로 확정한 식별자로 import | `terraform state list`에 4개 모두 존재 |
 | RDB-01-02 | 삭제 방지 켜기, 삭제 시 최종 스냅샷 생성, 비밀번호는 변경 무시 목록에 넣음 | 코드에 세 설정 존재, plan에 비밀번호 차이 없음 |
-| RDB-01-03 | 암호화 여부·암호화 키는 실제 값 그대로 적음(다르면 교체가 일어남) | plan에 교체(replace) 없음 |
+| RDB-01-03 | 암호화 여부·암호화 키를 실제 값과 같게 맞춤(다르면 교체가 일어남). 키 ARN은 코드에 적지 않고 data source 참조나 저장소에 올리지 않는 변수 파일로 전달 | plan에 교체(replace) 없음 |
 | RDB-01-04 | import 전 수동 스냅샷 생성 | `aws rds describe-db-snapshots`에 import 시점 스냅샷 존재 |
 | RDB-01-05 | Multi-AZ는 `season_capacity` 변수와 연결하되 이번 import에서는 현재 값(꺼짐) 그대로 | plan에 Multi-AZ 변경 없음 |
 
