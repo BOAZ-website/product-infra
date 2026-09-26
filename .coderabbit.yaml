@@ -17,6 +17,11 @@ reviews:
   related_prs: false # 연관된 다른 PR을 찾아서 링크할지 여부
   poem: false # 불필요한 감성적 요소(시 등) 제거
 
+  # 머지 전 점검: 함수 docstring 비율 점검은 끔(Terraform·짧은 셸 스크립트 위주라 의미 없음). 나머지 점검은 기본값 유지
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+
   # 자동 리뷰 트리거 설정
   auto_review:
     # PR이 생성됐을 때 자동으로 리뷰 시작
@@ -53,7 +58,11 @@ reviews:
        생성/삭제 순서(전파 안전성)가 깨지지 않는지 확인하세요.
     6. **계약 보존**: 기존 배포 workflow가 참조하는 버킷명·CloudFront ID·role ARN·CodeDeploy 앱/그룹명이
        바뀌지 않는지 확인하세요.
-    7. 사소한 스타일 이슈는 개별 코멘트 대신 모아서 요약하고, Critical한 이슈(보안·삭제 위험) 위주로
+    7. **공개 저장소 보안 정보**: 이 저장소는 공개 저장소입니다. 코드·문서 어디에든 공인 IP 주소(개인·서버,
+       EC2 퍼블릭 DNS 포함), SSH 허용 IP, 시크릿·토큰·액세스 키·개인 키, 개인 계정명이 있으면 Critical로
+       지적하세요. AWS 계정 ID·계정 ID가 든 ARN·자원 ID(vpc-, subnet-, sg-, i-, eipalloc-, CloudFront·Route53 ID 등)는
+       `docs/records/` 밖에 있으면 지적하고 역할명으로 바꾸도록 제안하세요. 규칙: README.md "보안 정보 공개 금지".
+    8. 사소한 스타일 이슈는 개별 코멘트 대신 모아서 요약하고, Critical한 이슈(보안·삭제 위험) 위주로
        라인 코멘트를 남겨주세요. 리뷰는 해당 라인 범위의 코멘트에 작성해주세요.
 
 # 도구별 설정 (Chat 및 자동 수정 기능)

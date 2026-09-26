@@ -377,7 +377,7 @@ required_checks = {alb, target_health, cloudfront_origin, rds_multi_az, api_heal
 2. EC2-A 인스턴스 ID, SG, IAM instance profile, AMI·user_data·현재 상태.
 3. 모든 SG 규칙과 CloudFront managed prefix list의 실제 prefix list ID.
 4. RDS `boaz-prod-db`의 instance class·storage·engine minor version·parameter group·subnet group·SG·deletion protection·Multi-AZ 현재값.
-5. API CloudFront `E2SER81QYNPRO9`의 origin·cache policy·behavior·viewer certificate·aliases·현재 단일 origin 여부.
+5. API CloudFront api CloudFront 배포 ID의 origin·cache policy·behavior·viewer certificate·aliases·현재 단일 origin 여부.
 6. www/dev CloudFront 배포 ID와 각 origin·cache/error response 정책.
 7. 모든 S3 버킷 이름, region, versioning·encryption·public access block·policy·lifecycle.
 8. Route53 hosted zone ID와 `www`, `dev`, `api` 레코드, ACM 인증서 ARN과 인증서 리전.
