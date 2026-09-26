@@ -40,10 +40,10 @@
 | --- | --- |
 | 노션 WBS·명세서(이 문서) | 기준 문서(확정). 티켓 단위 완료 조건과 GitHub 이슈 연결 |
 | `tasks.md` | 구현 순서·의존성·요구사항 추적용 보조 문서. 노션과 다르면 노션 기준으로 맞춤 |
-| `import-log.md` | 그룹별 import 대상·plan 결과 기록. 기능 ID로 연결 |
+| `import-log.md` | 그룹별 import 대상·plan 결과 기록 |
 | `decisions.md` | 결정 기록 |
 
-- 기능 ID는 tasks.md 번호, import-log 기록, PR 커밋 메시지를 서로 찾아가는 연결 키로 쓴다. 커밋·PR 본문에 기능 ID를 적는다.
+- PR은 GitHub 이슈(티켓 단위)와 연결한다. 기능 ID는 명세서 안에서 완료 여부를 확인하는 단위로 쓴다.
 - 12월 전에는 import 대상 명세서(NET·IAM·STO·CMP·RDB·CDN·DEP)와 `import-log.md`를 우선 정확하게 관리하고, 나머지 명세서는 해당 마일스톤에 가까워지면 보강한다.
 - 남는 시간은 시즌 전환·롤백·장애 대응 런북에 먼저 쓴다.
 

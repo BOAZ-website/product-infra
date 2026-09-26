@@ -30,7 +30,6 @@
 
 - 작업 순서·티켓·완료 조건의 기준은 노션 WBS·명세서. 노션을 고치면 같은 주 안에 `docs/wbs/`에 PR로 반영한다.
 - `guides/`·`records/`는 저장소가 원본. 노션에는 링크로 둔다.
-- 커밋·PR 본문에 기능 ID를 적는다(PR 템플릿의 "기능 ID" 칸).
 - `.kiro/specs/product-infra-migration/`(requirements·design·tasks)은 초기 설계 참고용. 명세서의 P1~P10 검증 속성 정의가 `design.md`에 있다. 내용이 WBS와 다르면 WBS를 따른다.
 - 계정 ID, 개인 IP는 어떤 문서에도 적지 않는다. 자원 식별자는 `records/inventory.md`에만 적는다.
 
