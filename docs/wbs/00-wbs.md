@@ -56,7 +56,7 @@
 | --- | --- | --- | --- | --- |
 | (일정) | Phase 일정 | Phase별 기간·담당·목표·완료 기준, Phase별 티켓 순서 | 전체 | 01-schedule.md |
 | (공통) | 그룹 import 공통 절차 | 파일 규칙, apply 순서, 작업 9단계, 멈춤 조건, PR 리뷰 체크리스트 | Phase 2 | guides/import-procedure.md |
-| DOC | 문서·스펙 정리 | 문서 상태 오기 정정, 결정 레지스터 통합, 스펙 결함 정정, README·런북·계약 문서 | Phase 1, 5 | 10-doc.md |
+| DOC | Migration Planning & 문서화 | 이전 계획·WBS·일정 수립, 문서 상태 오기 정정, 결정 레지스터 통합, 스펙 결함 정정, README·런북·계약 문서 | Phase 1, 5 | 10-doc.md |
 | STA | state·CI 기반 | 저장소 구조, state 저장소, 안전 게이트, PR·apply·drift CI, 자동 검증 | Phase 1, 2, 3, 4 | 11-sta.md |
 | OBS | 모니터링·경보 | CloudWatch Agent, SNS 경보, 접근 로그·대시보드 | Phase 2, 3 | 20-obs.md |
 | NET | 네트워크 | VPC, 서브넷, 라우팅, 보안 그룹 | Phase 2 1차 | 21-net.md |
