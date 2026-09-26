@@ -55,8 +55,8 @@
 | --- | --- | --- | --- | --- |
 | (공통) | 그룹 import 공통 절차 | 파일 규칙, apply 순서, 작업 9단계, 멈춤 조건, PR 리뷰 체크리스트 | Phase 2 | guides/import-procedure.md |
 | DOC | 문서·스펙 정리 | 문서 상태 오기 정정, 결정 레지스터 통합, 스펙 결함 정정, README·런북·계약 문서 | Phase 1, 5 | 10-doc.md |
-| STA | state·CI 기반 | 저장소 구조, state 저장소, 안전 게이트, PR·apply·drift CI, 자동 검증 | Phase 1, 2, 4 | 11-sta.md |
-| OBS | 모니터링·경보 | CloudWatch Agent, SNS 경보, 접근 로그·대시보드 | Phase 2, 4 | 12-obs.md |
+| STA | state·CI 기반 | 저장소 구조, state 저장소, 안전 게이트, PR·apply·drift CI, 자동 검증 | Phase 1, 2, 3, 4 | 11-sta.md |
+| OBS | 모니터링·경보 | CloudWatch Agent, SNS 경보, 접근 로그·대시보드 | Phase 2, 3 | 12-obs.md |
 | NET | 네트워크 | VPC, 서브넷, 라우팅, 보안 그룹 | Phase 2 1차 | 20-net.md |
 | IAM | 권한·파라미터 | IAM 롤·정책·OIDC, SSM 인프라 파라미터, 앱 시크릿 | Phase 2 1차 | 21-iam.md |
 | STO | 스토리지 | S3 버킷 | Phase 2 1차 | 22-sto.md |
@@ -64,7 +64,7 @@
 | RDB | 데이터베이스 | RDS 인스턴스, 서브넷 그룹, 파라미터 그룹 | Phase 2 2차 | 31-rdb.md |
 | CDN | CloudFront·Route53·ACM·WAF | CloudFront 배포 3개(api·www·admin), DNS, 인증서, WAF 연결 | Phase 2 2차 | 32-cdn.md |
 | DEP | CodeDeploy | 배포 앱·배포 그룹·서비스 롤, 기존 배포 설정 보존 | Phase 2 2차 | 33-dep.md |
-| SEA | 시즌 전환 | 시즌 on/off 변수 모델, 시즌 시작·종료 순서 제어 | Phase 2 2차, 3 | 40-sea.md |
+| SEA | 시즌 전환 | 시즌 on/off 변수 모델, 시즌 시작·종료 순서 제어 | Phase 2 2차, 4 | 40-sea.md |
 | OPS | 운영 절차 | 12월 동결, 시즌 직후 검증, 2027-01 동결, 리허설, 최종 인수, 구 스크립트 정리 | 운영, Phase 5 | 41-ops.md |
 
 ### 용어
@@ -134,8 +134,8 @@
 
 ## Phase별 일정
 
-> 팀원에게는 Phase 단위로 일을 나눔. Phase 번호는 이전 계획서(Phase 0~5)와 같음
-> 이전 계획서 Phase 4(인프라 CI/CD) 중 PR 검사·안전 게이트는 팀원 PR을 받기 전에 필요해 Phase 2 준비로 앞당김. 나머지(승인 후 apply·drift 감지)는 Phase 4에 남김
+> 팀원에게는 Phase 단위로 일을 나눔. Phase 번호는 이전 계획서(Phase 0~5)를 따르되 3·4 순서만 바꿈
+> 이전 계획서와 달라진 점: ① PR 검사·안전 게이트는 팀원 PR을 받기 전에 필요해 Phase 2 준비로 앞당김 ② Phase 3·4 순서를 바꿈. 시즌 전환을 운영 환경에 apply하려면 승인 후 apply가 먼저 있어야 하므로 Phase 3 = 인프라 CI/CD, Phase 4 = 시즌 전환 코드화 ③ 시즌 변수 최소 구현(SEA-01)은 Phase 2 2차로, 구 스크립트 정리(OPS-08)는 Phase 5로 옮김
 
 | Phase | 기간 | 담당 | 목표 | 티켓 | 완료 기준 |
 | --- | --- | --- | --- | --- | --- |
@@ -146,8 +146,8 @@
 | Phase 2 2차 (보호 자원 그룹) | season-up 7일 전 [확인 필요: 모집 시작일] | 팀원(그룹별) | 시즌 변수 최소 구현, 서버·DB·CDN·배포 import, 관리자 CloudFront 설정 | SEA-01, CMP-01~03, RDB-01, CDN-01~03, DEP-01~02 | 그룹별 plan "No changes", EC2-B 재배포 순서 확인, RDS 사전 스냅샷, 관리자 페이지 접속 확인 |
 | Phase 2 마무리 | Phase 2 2차와 같음 | 노션에서 배정 | 그룹 간 연결 점검, 전체 일치 확인 | STA-08, STA-09 | 전체 plan "No changes" |
 | 운영 구간 | 12월 시즌 ~ 2027-01 | 인프라 리드 | 12월 동결, 시즌 직후 검증, 2027-01 앱 릴리스 월 | OPS-01, OPS-02, OPS-03 | 동결 기간 apply 0건, 시즌 후 plan "No changes" 재확인, 2027-01 import·설정 변경 0건 |
-| Phase 3 시즌 전환 코드화 | ~2027-02 중순 [추정] | 노션에서 배정 | 시즌 on/off를 Terraform으로 전환 | SEA-02~04 | 테스트 통과, 비시즌 새벽 on→off 리허설 성공 |
-| Phase 4 인프라 CI/CD | ~2027-02 중순 [추정], Phase 3과 동시 | 노션에서 배정 | 배포 계약 검사, 승인 후 apply, drift 감지, 검증 구성 | STA-10~13, OBS-02 | 승인 없이 apply 불가, 일일 drift 감지 동작 |
+| Phase 3 인프라 CI/CD | ~2027-02 중순 [추정] | 노션에서 배정 | 배포 계약 검사, 승인 후 apply, drift 감지 | STA-10~12, OBS-02 | 승인 없이 apply 불가, 일일 drift 감지 동작, 배포 계약 불일치 0건 |
+| Phase 4 시즌 전환 코드화 | ~2027-03 말 [추정] | 노션에서 배정 | 시즌 on/off를 Terraform으로 전환(승인 후 apply 사용), 정적·통합 검증 구성 | SEA-02~04, STA-13 | 테스트 통과, 비시즌 새벽 on→off 리허설 성공 |
 | Phase 5 리허설·이관 완료 | 차기 시즌 4주 전 [추정, 예: 2027-04-30] | 노션에서 배정 | 리허설 증적, 문서 완비, 구 스크립트 deprecated | DOC-08~12, OPS-04~10 | 완료 기준 8항목(→ `docs/overview/migration-plan.md` 7절) 증적, 리허설 2회 성공 |
 
 - 12월 전 목표는 Phase 2 완료. 인원이 1명 이하로 확정되면 Phase 2 2차·마무리를 동결 뒤로 미루고 12월 전 목표를 Phase 2 1차까지로 줄임
@@ -212,19 +212,19 @@
 2. OPS-02 시즌 종료 후 plan 재확인
 3. OPS-03 2027-01 앱 릴리스 월 동결 절차
 
-### Phase 3 시즌 전환 코드화
-
-1. SEA-02 시즌 시작(on) 순서 제어 + P4
-2. SEA-03 시즌 종료(off) 2단계 apply + P5 (SEA-02 이후)
-3. SEA-04 시즌 상태 매핑 테스트 P3
-
-### Phase 4 인프라 CI/CD (Phase 3과 동시)
+### Phase 3 인프라 CI/CD
 
 1. STA-10 배포 workflow 계약 검사 + P8
 2. STA-11 승인 후 apply (STA-10 이후, 결정 "apply 승인자" 필요)
 3. STA-12 drift 감지 CI + P9 (STA-11 이후)
-4. OBS-02 접근 로그·대시보드 (권장)
-5. STA-13 정적·통합 검증 구성 (SEA-02·SEA-03·STA-12 완료 후)
+4. OBS-02 접근 로그·대시보드 (권장, 동시 진행 가능)
+
+### Phase 4 시즌 전환 코드화 (Phase 3 이후)
+
+1. SEA-02 시즌 시작(on) 순서 제어 + P4 (STA-11 이후)
+2. SEA-03 시즌 종료(off) 2단계 apply + P5 (SEA-02 이후)
+3. SEA-04 시즌 상태 매핑 테스트 P3
+4. STA-13 정적·통합 검증 구성 (SEA-02·SEA-03·STA-12 완료 후)
 
 ### Phase 5 리허설·이관 완료
 
@@ -270,12 +270,12 @@
 | STA-07 | 안전 게이트 + P1·P6 | STA | 2~3주 | STA-04, STA-06 | 없음 | Phase 2 준비 | 예 | 대기 |
 | STA-08 | 그룹 간 연결 점검 | STA | 하루이틀 | CMP-03, RDB-01, CDN-03, DEP-02 | 없음 | Phase 2 마무리 | 예 | 대기 |
 | STA-09 | 최종 일치 확인 + P2 | STA | 한 주 | STA-08 | 없음 | Phase 2 마무리 | 예 | 대기 |
-| STA-10 | 배포 workflow 계약 검사 + P8 | STA | 하루이틀 | STA-08, DEP-02 | 없음 | Phase 4 | 아니오 | 대기 |
-| STA-11 | 승인 후 apply | STA | 한 주 | STA-10 | apply 승인자 | Phase 4 | 아니오 | 대기 |
-| STA-12 | drift 감지 CI + P9 | STA | 하루이틀 | STA-11 | 없음 | Phase 4 | 아니오 | 대기 |
+| STA-10 | 배포 workflow 계약 검사 + P8 | STA | 하루이틀 | STA-08, DEP-02 | 없음 | Phase 3 | 아니오 | 대기 |
+| STA-11 | 승인 후 apply | STA | 한 주 | STA-10 | apply 승인자 | Phase 3 | 아니오 | 대기 |
+| STA-12 | drift 감지 CI + P9 | STA | 하루이틀 | STA-11 | 없음 | Phase 3 | 아니오 | 대기 |
 | STA-13 | 정적·통합 검증 구성 | STA | 한 주 | SEA-02, SEA-03, STA-12 | 없음 | Phase 4 | 아니오 | 일부 완료(fmt·validate·tflint) |
 | OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 준비 | 예 | 대기 |
-| OBS-02 | 접근 로그·대시보드 | OBS | 하루이틀 | OBS-01, CDN-02 | 없음 | Phase 4 | 아니오 | 대기 |
+| OBS-02 | 접근 로그·대시보드 | OBS | 하루이틀 | OBS-01, CDN-02 | 없음 | Phase 3 | 아니오 | 대기 |
 | NET-01 | network 그룹 import | NET | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 예 | 대기 |
 | IAM-01 | 배포 Role 권한 콘솔 적용 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 대기 |
 | IAM-02 | IAM 롤·정책 그룹 import | IAM | 한 주 | IAM-01 | 없음 | Phase 2 1차 | 예 | 대기 |
@@ -293,9 +293,9 @@
 | DEP-01 | deploy 모듈 작성 | DEP | 하루이틀 | IAM-02, STO-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
 | DEP-02 | CodeDeploy import | DEP | 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
 | SEA-01 | 시즌 변수 모델 최소 구현 | SEA | 한 주 | STA-07, Phase 2 1차 | 없음 | Phase 2 2차 | 예 | 대기 |
-| SEA-02 | 시즌 시작(on) 순서 제어 + P4 | SEA | 한 주 | CMP-02, CDN-02, STA-09 | 없음 | Phase 3 | 아니오 | 대기 |
-| SEA-03 | 시즌 종료(off) 2단계 apply + P5 | SEA | 한 주 | SEA-02 | 없음 | Phase 3 | 아니오 | 대기 |
-| SEA-04 | 시즌 상태 매핑 테스트 P3 | SEA | 하루이틀 | SEA-01 | 없음 | Phase 3 | 아니오 | 대기 |
+| SEA-02 | 시즌 시작(on) 순서 제어 + P4 | SEA | 한 주 | CMP-02, CDN-02, STA-09, STA-11 | 없음 | Phase 4 | 아니오 | 대기 |
+| SEA-03 | 시즌 종료(off) 2단계 apply + P5 | SEA | 한 주 | SEA-02 | 없음 | Phase 4 | 아니오 | 대기 |
+| SEA-04 | 시즌 상태 매핑 테스트 P3 | SEA | 하루이틀 | SEA-01 | 없음 | Phase 4 | 아니오 | 대기 |
 | OPS-01 | 12월 시즌 동결 시행 | OPS | 하루이틀 | STA-09 | 없음 | 운영(12월 동결) | 아니오 | 대기 |
 | OPS-02 | 시즌 종료 후 plan 재확인 | OPS | 하루이틀 | OPS-01 | 없음 | 운영(시즌 직후 검증) | 아니오 | 대기 |
 | OPS-03 | 2027-01 앱 릴리스 월 동결 절차 | OPS | 한 주 | OPS-02 | 없음 | 운영(2027-01) | 아니오 | 대기 |
