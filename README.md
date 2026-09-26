@@ -60,7 +60,7 @@ CI는 자격증명 없이 `fmt -check` / `validate`(`-backend=false`) / `tflint`
 - 보호 리소스(RDS, S3, CloudFront 등)는 `prevent_destroy`로 관리하며, plan에 `delete`/`replace`가 있으면 승인 없이 apply하지 않습니다.
 - AWS 식별자·현재 설정이 확정되지 않은 상태에서 추정값으로 import/apply하지 않습니다.
 - secret/password 값은 코드·tfvars·plan·로그에 두지 않습니다.
-- 조사 실패·미확정·승인 대기 상태는 `docs/import-log.md`, `docs/decisions.md`에 기록합니다.
+- 조사 실패·미확정·승인 대기 상태는 `docs/records/import-log.md`, `docs/records/decisions.md`에 기록합니다.
 
 ## 협업 규약
 

@@ -90,10 +90,11 @@
 | 저장소 자동화 | 이슈·PR 템플릿, 커밋 훅, PR 제목·base 검사, 자동 라벨·배정, CI(fmt·validate·tflint) | #1, PR #3 | 완료(머지) |
 | 초기 설계 문서 | `.kiro` 스펙(requirements·design·tasks), 이전 계획서, 현행 인프라 스펙 | #2, PR #4 | 완료(머지) |
 | 자동 코드 리뷰 | CodeRabbit 설정 | #5, PR #6 | 완료(머지) |
-| 저장소 폴더 구조 | `bootstrap/`, `envs/prod/`, `modules/*`, `tests/*`, `.gitignore` | #7, PR #9 | 작업 완료, 리뷰 대기 → DOC-05 |
-| AWS 운영 자원 조사 | inventory·decisions·import-log 문서 3종(tasks.md 1.1~1.3) | #8, PR #10 | 작업 완료, 리뷰 대기 → DOC-05 |
-| WBS·문서 개편 | 구 `docs/wbs.md`를 `docs/wbs/`로 대체, 문서 구조 개편 | #11, PR #12 | 작업 중, PR #10 머지 후 records 이동 추가하고 머지 → DOC-01 |
-| 관리자 콘솔 인프라 요구사항 | 요구사항 정리(R1~R18) | #13 | 인프라 항목은 이 WBS에 반영(2026-09-26 반영 현황 코멘트). 다른 저장소 이슈 3건 생성과 PR #12 머지 후 종료 |
+| 저장소 폴더 구조 | `bootstrap/`, `envs/prod/`, `modules/*`, `tests/*`, `.gitignore` | #7, PR #9 | 완료(머지) |
+| AWS 운영 자원 조사 | inventory·decisions·import-log 문서 3종(tasks.md 1.1~1.3) | #8, PR #10 | 완료(머지). `docs/records/`로 이동(#14) |
+| WBS·문서 개편 | 구 `docs/wbs.md`를 `docs/wbs/`로 대체, 문서 구조 개편 | #11, PR #12 | 완료(머지) |
+| 조사 기록 이동·현행 인프라 문서 정리 | `docs/records/` 이동, `docs/overview/current-infra.md` 정리(개인 IP 삭제, EIP·WAF 반영) | #14 | 진행 중 |
+| 관리자 콘솔 인프라 요구사항 | 요구사항 정리(R1~R18) | #13 | 인프라 항목은 이 WBS에 반영(2026-09-26 반영 현황 코멘트). 다른 저장소 이슈 3건 생성 후 종료 |
 
 - 이 표의 "완료" 항목은 티켓으로 만들지 않았다. 부분 완료 티켓(STA-01, STA-05, STA-13, DOC-03)은 각 명세서에 진행 내용을 적었다.
 
@@ -238,11 +239,11 @@
 
 | 티켓 키 | 티켓 이름 | 명세서 | 규모 | 선행 | 차단 결정 | 마일스톤 | 12월 전 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| DOC-01 | 새 WBS PR #12 머지 | DOC | 하루이틀 | DOC-05 | 없음 | MS0 | 예 | 작업 중(PR #12) |
+| DOC-01 | 새 WBS PR #12 머지 | DOC | 하루이틀 | DOC-05 | 없음 | MS0 | 예 | 완료(머지) |
 | DOC-02 | 결정 레지스터 통합 | DOC | 하루이틀 | 없음 | 없음 | MS0 | 예 | 대기 |
 | DOC-03 | 이슈 #13 범위 경계 정리 | DOC | 하루이틀 | DOC-02 | 없음 | MS0 | 예 | 완료(코멘트 등록, 계획서 문구 반영) |
 | DOC-04 | 스펙 결함 일괄 정정 | DOC | 한 주 | DOC-02 | 없음 | MS0 | 예 | 대기 |
-| DOC-05 | PR #9·#10 리뷰·머지 | DOC | 하루이틀 | 없음 | 없음 | MS0 | 예 | 리뷰 대기(PR #9·#10) |
+| DOC-05 | PR #9·#10 리뷰·머지 | DOC | 하루이틀 | 없음 | 없음 | MS0 | 예 | 완료(머지) |
 | DOC-06 | GitHub Milestone·이슈 생성 | DOC | 하루이틀 | DOC-05 | 없음 | MS0 | 예 | 대기 |
 | DOC-07 | tasks.md 기준 문서 안내 | DOC | 하루이틀 | 없음 | 없음 | MS0 | 예 | 대기 |
 | DOC-08 | README 작성 | DOC | 한 주 | STA-04, STA-09, STA-12 | 없음 | MS4 | 아니오 | 대기 |
@@ -250,7 +251,7 @@
 | DOC-10 | 최종 Import_Log 갱신 | DOC | 하루이틀 | STA-09, 모든 import 그룹 | 없음 | MS4 | 아니오 | 대기 |
 | DOC-11 | workflow·CI 계약 문서 | DOC | 하루이틀 | STA-10 | 없음 | MS4 | 아니오 | 대기 |
 | DOC-12 | 결정 결과 문서화 | DOC | 하루이틀 | 관련 결정 전부 | 없음 | MS4 | 아니오 | 대기 |
-| STA-01 | 저장소 디렉터리 구조 | STA | 하루이틀 | 없음 | 없음 | MS1 | 예 | 일부 완료(PR #9 리뷰 대기) |
+| STA-01 | 저장소 디렉터리 구조 | STA | 하루이틀 | 없음 | 없음 | MS1 | 예 | 일부 완료(PR #9 머지, 그룹별 파일 남음) |
 | STA-02 | 버전·provider 규칙 | STA | 하루이틀 | STA-01 | 없음 | MS1 | 예 | 대기 |
 | STA-03 | state 버킷 구현 | STA | 한 주 | STA-02 | state 버킷·키 | MS1 | 예 | 대기 |
 | STA-04 | envs/prod backend 초기화 | STA | 하루이틀 | STA-03 | state 버킷·키 | MS1 | 예 | 대기 |
@@ -373,7 +374,7 @@
 | R15 접근 로그·대시보드 | OBS-02 | |
 | R18 스펙 변경 수동 승인 | DOC-12 | RDS 메모리 경보 초과 시 DB 클래스 상향도 이 절차 |
 | 기존 admin 자원 import | CDN-01·02, `overview/migration-plan.md` 비목표 문구 | |
-| infra-spec.md 최신화(EIP·WAF) | DOC-04-09 | |
+| infra-spec.md 최신화(EIP·WAF) | DOC-04-09 | `docs/overview/current-infra.md`로 반영 완료(#14) |
 | 시즌 변수에 `ignore_changes` 금지 | CMP-01-03 | 기능 태그·인스턴스 상태는 무시 목록에 넣지 않음 |
 | 보류 항목(API Gateway, 서브넷 분리, 스펙 상향, IP 허용 목록, 2FA, Flyway 등) | 제외 | #13에서 보류로 결정 |
 
