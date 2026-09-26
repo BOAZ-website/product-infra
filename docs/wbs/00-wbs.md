@@ -154,7 +154,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | DOC-03 | 이슈 #13 범위 경계 정리 | DOC | 하루이틀 | DOC-02 | 없음 | Phase 1 | 예 | 완료(코멘트 등록, 계획서 문구 반영) |
 | DOC-04 | 스펙 결함 일괄 정정 | DOC | 한 주 | DOC-02 | 없음 | Phase 1 | 예 | 완료(#2) |
 | DOC-05 | PR #9·#10 리뷰·머지 | DOC | 하루이틀 | 없음 | 없음 | Phase 1 | 예 | 완료(머지) |
-| DOC-06 | GitHub Milestone·이슈 생성 | DOC | 하루이틀 | DOC-05 | 없음 | Phase 1 | 예 | 대기 |
+| DOC-06 | GitHub Milestone·이슈 생성 규칙 | DOC | 하루이틀 | DOC-05 | 없음 | Phase 1 | 예 | 완료(#11) |
 | DOC-07 | tasks.md 기준 문서 안내 | DOC | 하루이틀 | 없음 | 없음 | Phase 1 | 예 | 완료(#2) |
 | DOC-08 | README 작성 | DOC | 한 주 | STA-04, STA-09, STA-12 | 없음 | Phase 5 | 아니오 | 대기 |
 | DOC-09 | 시즌 전환 런북 작성 | DOC | 한 주 | SEA-02, SEA-03 | 없음 | Phase 5 | 아니오 | 대기 |
