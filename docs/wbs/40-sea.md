@@ -5,7 +5,7 @@
 ## 명세서 목적
 
 - 모집 시즌(on)과 평시(off)에 따라 ALB·EC2-B·Target Group·CloudFront origin·RDS Multi-AZ를 코드로 바꾼다.
-- 시즌 시작은 "ALB 생성 → 대상 정상 확인 → origin 교체", 종료는 "origin 복귀 → CloudFront 반영 완료 확인 → ALB 삭제" 순서를 지킨다.
+- 시즌 시작은 "EC2-B 기동·최신 번들 재배포(런북) → ALB 생성·Target Group 등록(`season_capacity = on`) → 대상 정상 확인 → origin 교체(`api_origin = alb`)", 종료는 "origin 복귀 → CloudFront 반영 완료 확인 → ALB 삭제" 순서를 지킨다.
 - 한 번의 apply로는 이 순서를 보장할 수 없어서 변수 2개로 나눈다: `season_capacity`(ALB·EC2-B·Multi-AZ), `api_origin`(ec2·alb). RDS Multi-AZ 변경은 오래 걸리므로 별도 단계.
 - 12월 시즌은 기존 스크립트로 전환한다. 이 명세서의 전환 기능(SEA-02·03)은 2027년에 완성한다.
 
@@ -38,8 +38,8 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| SEA-02-01 | ALB 생성 → listener 준비 → 모든 대상 정상 → origin 교체 순서를 의존 관계와 사전 조건으로 표현 | `terraform graph`에서 순서 확인 |
-| SEA-02-02 | 대상이 비정상이거나 900초가 지나면 origin 교체 중단. 대기는 `aws elbv2 wait target-in-service` 사용 | 비정상 상태를 만들면 origin이 바뀌지 않음 |
+| SEA-02-01 | EC2-B 기동·재배포 → `season_capacity = on` apply(ALB·listener·Target Group 등록) → 대상 정상 확인 → `api_origin = alb` apply 순서를 런북과 사전 조건으로 표현 | 런북 순서와 사전 조건(`api_origin = alb`는 `season_capacity = on`에서만) 확인 |
+| SEA-02-02 | `describe-target-health`를 15초마다 확인해 최대 900초(60회) 대기. 모든 대상이 healthy가 되지 않으면 origin 교체 중단(`aws elbv2 wait target-in-service` 기본값은 약 600초라 그대로 쓰지 않음) | 비정상 상태를 만들면 900초 뒤 중단되고 origin이 바뀌지 않음 |
 | SEA-02-03 | P4 테스트: 시즌 시작 순서와 대기 조건 | `pytest tests/integration/test_season_on_gate.py` 통과 |
 
 ## SEA-03 시즌 종료(off) 2단계 apply + P5
