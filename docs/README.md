@@ -22,7 +22,7 @@
 | `overview/` | 배경·목표·원칙·시즌 전환 모델(`migration-plan.md`), 현행 인프라(`current-infra.md`) | 저장소 |
 | `wbs/` | WBS와 명세서 12개. 티켓 키 `NET-01`, 기능 ID `NET-01-01` | 노션(이 폴더는 노션 페이지 원본 마크다운) |
 | `guides/` | 팀원 공통 작업 절차 | 저장소 |
-| `records/` | 조사 기록(inventory), 결정 기록(decisions), import 기록(import-log) | 저장소 |
+| `records/` | 조사 기록(inventory), 결정·확인 필요 레지스터(decisions), import 기록(import-log) | 저장소 |
 
 `wbs/` 파일 번호: 0x 모두가 먼저 읽는 페이지 · 1x 사전 준비 · 2x MS2a 그룹 · 3x MS2b 그룹 · 4x 2027년 이후
 

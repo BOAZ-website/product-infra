@@ -1,39 +1,49 @@
-# 결정 필요 항목 및 승인 게이트
+# 결정·확인 필요 레지스터
 
-미결정 항목과 그 결정 전까지 진행 불가한 작업을 기록. 각 항목은 결정되기 전까지 연관 자원의 코드 편입(import)·apply를 차단.
+Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 필요한 것**을 한 곳에 모은 표. WBS(`docs/wbs/00-wbs.md`)는 진행 관리만 담고, 결정·확인 사항은 이 문서가 기준이다.
 
-상태 표기: `결정 대기` / `결정 완료`
+- 분류: `결정`(선택지 중 하나를 정해야 함) / `확인`(사실이나 일정을 알아봐야 함)
+- 상태: `대기` / `조사 중` / `완료`
+- 결정 항목은 기한이 지나면 기본안을 채택한다. 결정 주체는 별도 표기가 없으면 [추정].
+- 상태가 `대기`인 결정이 막는 티켓은 추정값으로 import·apply하지 않는다.
+- 노션에는 이 표를 데이터베이스로 옮겨 상태·기한으로 걸러 본다.
 
-## 미결정 항목
+## 레지스터
 
-| 항목 | 상태 | 결정 필요 주체 | 필요 시점 | 차단되는 작업 |
-|---|---|---|---|---|
-| Terraform state 저장소 버킷·키 | 결정 대기 | [확인 필요] | 상태 저장소 구성 착수 전 | bootstrap, envs/prod backend 초기화 |
-| EC2-A 기존 EIP·연결(association)을 managed로 import할지 | 결정 대기 | [확인 필요] | 서버 코드 편입 전 | compute 모듈, CloudFront api origin |
-| EC2-B 시작·중지 제어 방식 (`aws_ec2_instance_state` vs ASG). 현재 launch template·ASG 없음 | 결정 대기 | [확인 필요] | 서버 코드 편입 전 | compute 모듈, season_mode 전환 |
-| 앱 파라미터 보강 범위: secret 6개는 이미 SecureString(`alias/aws/ssm`). 남은 String `DB_URL`·`DB_USERNAME` 전환 여부, CMK 전환 여부 | 결정 대기 | [확인 필요] | 파라미터 코드 편입 전 | params 모듈 |
-| 코드 반영(apply) 승인자 지정 (GitHub Environment reviewer) | 결정 대기 | [확인 필요] | apply workflow 활성화 전 | terraform-apply workflow |
-| 인프라 저장소 브랜치 전략(조직 표준 dev → main 적용 여부) | 결정 완료: dev → main(README 협업 규약, base 검사 workflow). apply 실행 브랜치는 STA-11에서 확정 | 인프라 담당 | 2026-09-26 | 없음 |
-
-## 조사에서 확인된 결정 필요 사항
-
-| 항목 | 조사 결과 | 결정 필요 내용 | 상태 |
-|---|---|---|---|
-| CloudFront WAF WebACL | 3개 배포 모두 `CreatedByCloudFront-*` WebACL 연결 (us-east-1) | WebACL을 import해 관리할지, `web_acl_id`로 ARN만 참조할지. CloudFront 요금제 연동 여부 확인 | 결정 대기 |
-| 공개 읽기 S3 버킷 | `boaz-archiving`(managed 대상), `boazweb`이 `Principal:*` 공개 읽기 | 의도된 공개인지 확인, 아니면 차단 방식 결정 | 결정 대기 |
-| `boaz-prod-frontend` PAB | 실제 공개는 아니나 PAB 전체 False | 코드 편입 시 PAB 활성화 여부 (변경이므로 승인 필요) | 결정 대기 |
-| `boaz-recruitment` lifecycle | `expire-after-30days` (30일 만료) | 보존 기준 유지 확인 후 코드에 동일하게 반영 | 결정 대기 |
-| `boaz-dev-frontend` | 서비스 중인 배포 없음, policy가 이미 삭제된 CloudFront 배포를 참조 | 관리 대상 유지/제외/정리 | 결정 대기 |
-| 관리 대상 외 S3 버킷 | `boaz-website`, `boaz-website-dev`, `boazweb`, `survey-da/dv.bigdataboaz.com` 존재 | 각 버킷을 관리 대상/제외로 분류 | 결정 대기 |
-| 레거시 OAI·고아 레코드 | 미사용 OAI 4개, 대응 자원 없는 ACM 검증 CNAME(`back`, `cdn`, `server`) | 정리 여부 | 결정 대기 |
-| Route53 `dev`/`dev-back` A 레코드 | CloudFront가 아닌 외부 IP 직결 | 관리 대상 포함 여부 | 결정 대기 |
-| SSH 접근 방식 | `prod-ssh-sg`가 개인 IP `/32` 2개에 22번 허용. EC2 role에 `AmazonSSMManagedInstanceCore` 있음 | Session Manager로 대체하고 `prod-ssh-sg` 제거할지 | 결정 대기 |
-| Network ACL | default NACL 1개만 존재 | `aws_default_network_acl`로 관리할지, 제외할지 | 결정 대기 |
-| CloudTrail | 조사하지 않음 | 존재 여부 확인. 없으면 콘솔 변경 추적(관리 이벤트) 활성화 여부 결정 | 조사 필요 |
+| 항목 | 분류 | 상태 | 기본안·확인할 내용 | 결정·확인 주체 | 기한 | 막는 티켓 | 조사 결과·비고 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| state 버킷·키 | 결정 | 대기 | 전용 신규 버킷, 키 `envs/prod/terraform.tfstate` | 인프라 담당 | 2026-10-02 | STA-03, STA-04 | 잠금은 S3 자체 잠금(`use_lockfile`)으로 확정. 기존 버킷 중 state 후보 없음 |
+| EC2-B 제어 방식 | 결정 | 대기 | `aws_ec2_instance_state` 사용, ASG 전환 안 함 | 인프라 담당 + 백엔드 리드 | 2026-10-02 | CMP-01 | 현재 launch template·ASG 없음 |
+| 관리 대상 버킷·레코드 | 결정 | 대기 | 서비스 버킷만 관리, 나머지는 제외 사유 기록 | 운영진 + 인프라 담당 | 2026-10-09 | STO-01, STO-02 | 관리 대상 외 버킷(레거시 웹사이트·dev 웹사이트·구 홈페이지·설문 버킷), dev 프론트 버킷(연결된 배포 없음), Route53 `dev`·`dev-back` A 레코드(외부 IP 직결), 미사용 OAI 4개·고아 인증서 검증 CNAME 포함 |
+| Network ACL 관리 방식 | 결정 | 대기 | 현행 그대로 import(`aws_default_network_acl`) 또는 제외 | 인프라 담당 | 2026-10-09 | NET-01 | 기본 NACL 1개만 존재 |
+| WAF WebACL 관리 방식 | 결정 | 대기 | CloudFront에서 기존 WebACL을 참조만 함, WebACL 자체 import는 보류 | 인프라 담당 | 2026-10-16 | CDN-02, CDN-03 | 3개 배포 모두 CloudFront 자동 생성 WebACL 연결(us-east-1). 요금제 묶음 여부 확인 필요 |
+| 앱 시크릿 SecureString 범위 | 결정 | 대기 | 잔여 2개(`DB_URL`, `DB_USERNAME`)는 현행 유지, 후속 이슈로 분리 | 백엔드 리드 | 2026-10-16 | IAM-03, IAM-04 | 비밀값 6개는 이미 SecureString. 전환 시 백엔드 `load-ssm-env.sh` 영향 확인 필요 |
+| 공개 읽기 S3 버킷 | 결정 | 대기 | 아카이빙 버킷 공개 읽기는 현행 유지로 import, 변경은 별도 PR | 운영진 | STO-01 전 | STO-01 | 아카이빙 버킷과 구 홈페이지 버킷이 공개 읽기 정책 |
+| 프론트 버킷 퍼블릭 차단 | 결정 | 대기 | 이번 import에서는 적용하지 않고 별도 승인 | 인프라 담당 | STO-01 전 | STO-01 | 실제 공개는 아니나 퍼블릭 액세스 차단이 모두 꺼져 있음 |
+| 지원서 버킷 수명 주기 | 결정 | 대기 | 30일 만료 그대로 코드에 반영 | 운영진 | STO-01 전 | STO-01 | 현재 30일 후 자동 삭제 |
+| SSH 접근 방식 | 결정 | 대기 | Session Manager로 대체하고 SSH 보안 그룹 제거 | 인프라 담당 + 운영진 | NET-01 전 | NET-01 | SSH가 운영진 개인 IP 2개로만 허용됨. EC2 롤에 Session Manager 권한 있음. 개인 IP는 git 이력에서 삭제함 |
+| CodeDeploy 태그 방식 | 결정 | 대기 | 현행 태그 방식(`ec2_tag_set`) 유지 | 백엔드 리드 | 2026-11-06 | DEP-01, DEP-02 | 실측과 일치, 거의 해소. #13 R3가 배포 그룹 설정을 바꾸는지만 확인 |
+| apply 승인자 | 결정 | 대기 | 2명 이상(GitHub Environment reviewer) | 운영진 | 2027-01-31 | STA-11 | |
+| property 테스트 범위 | 결정 | 대기 | 설계대로 유지 vs plan 검사 스크립트와 고정 입력 테스트로 축소 | 인프라 담당 + PM | 2026-10-09 | STA-06, STA-07 | |
+| 최종 인수 판정 방식 | 결정 | 대기 | 자동 스크립트 vs 체크리스트와 명령 출력 캡처 | 인프라 담당 + PM | MS4 전 | OPS-07 | |
+| AWS provider 버전 | 결정 | 대기 | 신규 저장소라 6.x로 시작 검토 [추정] | 인프라 담당 | MS1 전 | STA-02 | |
+| CDN-03 지연 시 대응 | 결정 | 대기 | 관리자 페이지 오픈 연기 vs 콘솔로 먼저 적용 후 코드 반영 | PM + 운영진 | MS2b 중 | CDN-03 | 관리자 페이지 12월 오픈 목표 |
+| CloudTrail 존재 여부 | 확인 | 대기 | 존재 여부 확인. 없으면 콘솔 변경 추적 활성화 여부 결정 | 인프라 담당 | 2026-10-09 | 없음 | 조사하지 않음 |
+| 12월 모집 시즌 시작·종료일 | 확인 | 대기 | season-up·season-down 날짜 | 운영진 | 2026-09-30 | MS2b 마감, OPS-01 | |
+| 동결 종료 시점 | 확인 | 대기 | season-down 후 3일 또는 7일 | 운영진 | 2026-10-02 | OPS-01 | |
+| 2027-01 출결 기능 배포 주 | 확인 | 대기 | 배포 주, RDS 유지보수 시간(목요일 20:00 UTC)과 겹치는지 | 운영진 + 백엔드 리드 | 2026-09-30 | OPS-03 | |
+| 참여 인원·주당 투입 시간 | 확인 | 대기 | Phase 2 참여 인원과 시간 | 인프라 담당 + 운영진 | 2026-09-30 | MS2b 범위 | 1명 이하면 MS2b를 동결 뒤로 |
+| Terraform 실행 자격 증명 | 확인 | 대기 | 장기 액세스 키인지 여부 | 인프라 담당 | 2026-10-09 | STA-05 | |
+| dev 프론트 배포 워크플로 | 확인 | 대기 | 최근 실행 성공 여부 | 인프라 담당 | 2026-10-09 | OPS-06 | 연결된 CloudFront 배포가 삭제된 상태 |
+| 경보 수신 이메일·임계값 | 확인 | 대기 | SNS 수신 주소, RDS 여유 메모리 기준값 | 운영진 | MS1 전 | OBS-01 | |
+| 레거시 버킷 소유자·사용 여부 | 확인 | 대기 | 소유자, 계속 쓰는지, 아카이빙 버킷 버전 관리 필요 여부 | 운영진 | STO-02 전 | STO-02 | |
+| RDS 암호화 키·파라미터 값 | 확인 | 대기 | 암호화 키 종류(AWS 관리형/직접 생성), 파라미터 그룹 실제 값 | 인프라 담당 | RDB-01 전 | RDB-01 | |
+| EC2-B 사전 점검 | 확인 | 대기 | 12월 시즌 전 기동·패치·에이전트 점검 날짜, 공인 IPv4 과금 비용표 반영 | 인프라 담당 | MS2b 중 | CMP-03 | |
+| EC2-A EIP 처리 | 결정 | 완료 | 기존 EIP와 연결을 import, `prevent_destroy` | 인프라 담당 | 2026-10-02 | CMP-01 | 조사로 이미 연결 확인 |
+| admin CloudFront import 포함 | 결정 | 완료 | 기존 자원 import에 포함 | 인프라 담당 | 즉시 | CDN-01 | 계획서 비목표(신규 환경 구성)와 별개 |
+| 브랜치 전략 | 결정 | 완료 | dev → main | 인프라 담당 | 2026-09-26 | 없음 | README 협업 규약·base 검사 workflow. apply 실행 브랜치는 STA-11에서 확정 |
 
 ## 참고
 
-- 미결정 항목이 있는 자원은 추정값으로 import/apply하지 않음.
-- state 저장소 방식(S3 native lock vs DynamoDB)은 설계상 S3 native lock(`use_lockfile=true`)으로 확정. 버킷·키 이름만 미결정. 기존 버킷 11개 중 state 후보 버킷은 없음.
-- 기존 admin CloudFront 배포는 계획서 인벤토리에 포함된 import 대상이다. 계획서 비목표인 "admin 신규 환경 구성"과는 별개다.
-- 조사 근거: `docs/records/inventory.md`, 조사 시점 2026-09-23.
+- 조사 근거: `docs/records/inventory.md`(조사 시점 2026-09-23)
+- 각 명세서(`docs/wbs/*.md`)의 "확인 필요 사항"은 해당 티켓 작업 중 확인할 세부 사항이다. 일정·범위에 영향을 주는 항목은 이 레지스터로 올린다.
