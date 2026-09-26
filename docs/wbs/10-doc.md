@@ -23,7 +23,7 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| DOC-01-01 | 조사 문서 3종을 `docs/records/`로 옮기고 `infra-spec.md` 정리. PR #12가 먼저 머지되어 후속 이슈 #14로 분리 | #14 PR 머지 후 `docs/records/` 존재 |
+| DOC-01-01 | 조사 문서 3종을 `docs/records/`로 옮기고 `infra-spec.md` 정리. PR #12가 먼저 머지되어 후속 이슈 #14로 분리 | PR #15 머지 후 `docs/records/` 존재 |
 | DOC-01-02 | 리뷰 승인 후 PR #12 머지, 이슈 #11 자동 종료 확인 | `gh pr view 12`에서 MERGED, `gh issue view 11`에서 CLOSED |
 
 ## DOC-02 결정 레지스터 통합
