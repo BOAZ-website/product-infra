@@ -2,9 +2,9 @@
 
 ## Introduction
 
-BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인프라를 신규 `BOAZ-website/infra` Terraform 저장소로 코드화하는 기능이다. 현재 운영은 `backend/infra/scripts/`의 AWS CLI·Python 스크립트와 콘솔 수작업에 의존하며, 시즌 전환·리소스 식별자·SSM 파라미터가 애플리케이션 저장소에 분산되어 있다.
+BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인프라를 신규 `BOAZ-website/product-infra` Terraform 저장소로 코드화하는 기능이다. 현재 운영은 `backend/infra/scripts/`의 AWS CLI·Python 스크립트와 콘솔 수작업에 의존하며, 시즌 전환·리소스 식별자·SSM 파라미터가 애플리케이션 저장소에 분산되어 있다.
 
-이 기능은 현행 아키텍처를 유지하는 lift-and-codify 범위다. 운영 리소스를 삭제 후 재생성하지 않고 선언적 import로 state에 편입하며, `season_mode` 하나로 시즌 전환 상태를 표현하고, PR 기반 plan/apply·state 보호·런북·검증 체계를 제공한다.
+이 기능은 현행 아키텍처를 유지하는 lift-and-codify 범위다. 운영 리소스를 삭제 후 재생성하지 않고 선언적 import로 state에 편입하며, `season_capacity`와 `api_origin` 두 변수로 시즌 전환 상태를 표현하고, PR 기반 plan/apply·state 보호·런북·검증 체계를 제공한다.
 
 ### 확인된 현재 상태
 
@@ -24,12 +24,12 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 
 ## Glossary
 
-- **Infra_Repository**: `BOAZ-website/infra` 신규 저장소.
-- **Terraform_Configuration**: Terraform ≥ 1.9와 AWS Provider ≥ 5.x로 작성된 `bootstrap/`, `modules/`, `envs/prod/` 구성.
+- **Infra_Repository**: `BOAZ-website/product-infra` 신규 저장소.
+- **Terraform_Configuration**: Terraform ≥ 1.11과 AWS Provider(버전 범위는 `docs/records/decisions.md` "AWS provider 버전" 결정)로 작성된 `bootstrap/`, `modules/`, `envs/prod/` 구성.
 - **Import_Procedure**: 운영 리소스의 실제 식별자와 설정을 조사하고 Terraform `import` 블록으로 state에 편입한 뒤 plan을 수렴시키는 절차.
 - **Protected_Resource**: EC2, RDS, CloudFront, Route53, S3 등 운영 중 삭제·교체 시 중단 또는 데이터 손실을 일으킬 수 있어 삭제와 교체를 차단해야 하는 리소스.
-- **Season_Controller**: `season_mode` 변수와 조건식·리소스 의존성으로 평시와 모집 시즌 상태를 제어하는 Terraform 구성.
-- **Season_Mode**: `off` 또는 `on` 중 하나의 값. `off`는 평시, `on`은 모집 시즌 상태다.
+- **Season_Controller**: `season_capacity`·`api_origin` 변수와 조건식·리소스 의존성으로 평시와 모집 시즌 상태를 제어하는 Terraform 구성.
+- **Season_Mode**: `season_capacity`(`off`/`on`: ALB·EC2-B·Target Group 등록·RDS Multi-AZ)와 `api_origin`(`ec2`/`alb`: API CloudFront origin)의 조합. 평시는 `off`+`ec2`, 모집 시즌은 `on`+`alb`이며, `off`+`alb` 조합은 허용하지 않는다.
 - **State_Backend**: S3 state 버킷과 S3 native lock(`use_lockfile = true`)으로 Terraform state 동시성을 보호하는 구성.
 - **Drift_Risk_Confirmed**: AWS CLI 사전 조사로 AMI·`user_data`·AWS 관리 태그 변경이 EC2 인스턴스 교체를 일으킬 위험이 확인되었음을 나타내는 boolean 판단값.
 - **Bootstrap_Configuration**: State_Backend 자체를 최초 생성하는 별도 Terraform 구성.
@@ -48,12 +48,12 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 
 #### Acceptance Criteria
 
-1. **[Ubiquitous]** THE Infra_Repository SHALL 인프라 코드와 Terraform 구성의 기준 저장소를 `BOAZ-website/infra`로 두고, 저장소에 해당 구성이 존재함을 검증 가능하게 한다.
+1. **[Ubiquitous]** THE Infra_Repository SHALL 인프라 코드와 Terraform 구성의 기준 저장소를 `BOAZ-website/product-infra`로 두고, 저장소에 해당 구성이 존재함을 검증 가능하게 한다.
 2. **[Ubiquitous]** THE Terraform_Configuration SHALL 재사용 가능한 모듈을 `modules/network`, `modules/compute`, `modules/database`, `modules/storage`, `modules/cdn`, `modules/deploy`, `modules/iam`, `modules/params` 경로로 분리한다.
 3. **[Ubiquitous]** THE Terraform_Configuration SHALL 환경별 진입점을 `envs/prod/`에 두고, 동일 규칙의 `envs/<env>/` 추가로 환경 확장이 가능한 구조를 제공한다.
 4. **[Ubiquitous]** THE Terraform_Configuration SHALL 계정 ID·리전·리소스 ID를 모듈 코드에 하드코딩하지 않고 변수·provider 설정·관리 리소스 attribute 참조로만 공급한다.
 5. **[Unwanted-event]** IF 모듈 코드에 계정 ID·리전·리소스 ID의 리터럴이 존재하거나 필수 구조 검증에 실패하면, THEN THE Terraform_Configuration SHALL plan·apply를 허용하지 않고 실패 원인과 조치 결과를 CI 결과 또는 Import_Log에 기록한다.
-6. **[Ubiquitous]** THE Terraform_Configuration SHALL `required_version`으로 Terraform 버전을 `>= 1.9.0, < 2.0.0`으로 제한하고 AWS Provider 버전을 `>= 5.0.0, < 6.0.0`으로 제한한다.
+6. **[Ubiquitous]** THE Terraform_Configuration SHALL `required_version`으로 Terraform 버전을 `>= 1.11.0, < 2.0.0`으로 제한하고 AWS Provider 버전을 `docs/records/decisions.md`의 "AWS provider 버전" 결정 범위(현재 기준 `>= 5.0.0, < 6.0.0`)로 제한한다.
 7. **[Ubiquitous]** THE Infra_Repository SHALL `.terraform.lock.hcl`을 버전 관리 대상으로 커밋하고 provider 무결성 검증에 사용한다.
 
 ### Requirement 2: State 저장·동시성·부트스트랩 보호
@@ -137,7 +137,7 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 1. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확정한 배포 번들·프론트엔드·지원서 업로드·아카이빙 S3 버킷을 import하거나 각 버킷의 관리 제외 사유를 기록한다.
 2. **[Ubiquitous]** THE Terraform_Configuration SHALL 각 S3 버킷의 versioning·암호화·퍼블릭 액세스 차단·lifecycle·bucket policy를 `aws_s3_bucket_versioning`, `aws_s3_bucket_server_side_encryption_configuration`, `aws_s3_bucket_public_access_block`, `aws_s3_bucket_lifecycle_configuration`, `aws_s3_bucket_policy` 등 별도 리소스로 정의한다.
 3. **[Optional]** WHERE 운영 승인으로 보존 기간이 정해지면, THE Terraform_Configuration SHALL 배포 번들 버킷의 `deploy-bundle-<sha>.zip` 누적을 줄이는 lifecycle 규칙을 제안하고 적용 전 보존 기준과 삭제 승인자를 문서화한다.
-4. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확정한 API·www·dev CloudFront 배포, Route53 레코드, ACM 인증서를 import하거나 관리 제외 사유를 기록하며 미확인 ID·ARN·리전은 import ID로 사용하지 않는다. 검증되지 않은 ID·ARN·리전이 하나라도 import ID로 사용되면 전체 import 작업을 차단한다.
+4. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확정한 API·www·admin CloudFront 배포, Route53 레코드, ACM 인증서를 import하거나 관리 제외 사유를 기록하며 미확인 ID·ARN·리전은 import ID로 사용하지 않는다. 검증되지 않은 ID·ARN·리전이 하나라도 import ID로 사용되면 전체 import 작업을 차단한다.
 5. **[Unwanted-event]** IF API CloudFront의 origin 수가 정확히 1개가 아니거나 현재 설정을 확인할 수 없으면, THEN THE Terraform_Configuration SHALL 검증 오류를 발생시켜 plan·apply를 차단한다.
 6. **[Event-driven]** WHEN Season_Mode가 `on`이고 ALB DNS·리스너 포트가 사전 조사 및 plan에서 유효하면, THE Season_Controller SHALL API CloudFront origin을 Terraform ALB resource attribute의 DNS와 포트 80으로 계획한다.
 7. **[Event-driven]** WHEN Season_Mode가 `off`이고 EC2-A origin이 사전 조사로 확정되면, THE Season_Controller SHALL API CloudFront origin을 EC2-A resource attribute의 origin과 포트 8080으로 계획한다.
@@ -197,7 +197,7 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 
 #### Acceptance Criteria
 
-1. **[Ubiquitous]** THE Terraform_Configuration SHALL provider `default_tags`로 태그를 지원하는 운영 리소스에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/infra`를 적용하고 적용 불가 리소스와 사유를 목록화한다. 해당 목록은 문서화만 하며 최신성 검증이나 apply 차단 조건으로 사용하지 않는다.
+1. **[Ubiquitous]** THE Terraform_Configuration SHALL provider `default_tags`로 태그를 지원하는 운영 리소스에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`를 적용하고 적용 불가 리소스와 사유를 목록화한다. 해당 목록은 문서화만 하며 최신성 검증이나 apply 차단 조건으로 사용하지 않는다.
 2. **[Ubiquitous]** THE Terraform_Configuration SHALL `app=boaz-api` 같은 기능적 태그를 `default_tags`의 공통 태그와 별도 resource/module 입력으로 관리한다.
 3. **[Ubiquitous]** THE Terraform_Configuration SHALL AWS CLI 사전 조사로 확인한 기존 리소스 이름을 변경하지 않고 이름 변경·교체가 plan에 포함되면 apply를 차단한다.
 4. **[Unwanted-event]** IF 공통 태그 또는 기능 태그 적용이 기존 CodeDeploy 대상·workflow 계약·리소스 식별자를 변경하거나 교체를 유발하면, THEN THE Terraform_Configuration SHALL 해당 plan을 차단하고 예외와 승인 여부를 기록한다.
@@ -229,8 +229,8 @@ BOAZ 공식 홈페이지(`www.bigdataboaz.com`)와 API 서버의 운영 AWS 인�
 4. **[Ubiquitous]** THE Infra_Repository SHALL 한국어 `docs/import-log.md`에 모든 import·관리 제외 대상, AWS CLI로 확정한 식별자 또는 미확정 사유, 조사 시점·근거, plan 결과, 잔여 diff, 승인·복구 조치를 기록한다.
 5. **[Ubiquitous]** THE Infra_Repository SHALL 기존 `backend/infra/scripts/README.md`에 신규 저장소 이관 안내와 구 스크립트 폐기 표시를 남긴다.
 6. **[Event-driven]** WHEN `envs/prod`의 최종 plan을 실행하면, THE Import_Procedure SHALL 정확히 `No changes. Your infrastructure matches the configuration.`을 확인하고 plan 파일·실행 시점·검증자를 기록한다.
-7. **[Event-driven]** WHEN `season_mode = "on"` 리허설을 실행하면, THE Season_Runbook SHALL ALB 생성, EC2-A/B healthy, CloudFront origin, RDS Multi-AZ, API health HTTP 200을 확인하고 전환 전·중·후 5xx가 0건임을 증적으로 기록한다.
-8. **[Event-driven]** WHEN `season_mode = "off"` 리허설을 실행하면, THE Season_Runbook SHALL CloudFront origin 복귀와 `Deployed` 상태를 확인한 뒤 ALB 제거, EC2-B stopped, EC2-A 단독 Target Group, RDS Multi-AZ 복귀, API health HTTP 200을 확인한다.
+7. **[Event-driven]** WHEN 시즌 시작 리허설(EC2-B 기동·재배포 성공 → `season_capacity = "on"` → `api_origin = "alb"`)을 실행하면, THE Season_Runbook SHALL 재배포 성공, ALB 생성, EC2-A/B healthy, CloudFront origin, RDS Multi-AZ, API health HTTP 200을 확인하고 전환 전·중·후 5xx가 0건임을 증적으로 기록한다.
+8. **[Event-driven]** WHEN 시즌 종료 리허설(`api_origin = "ec2"` → `season_capacity = "off"`)을 실행하면, THE Season_Runbook SHALL CloudFront origin 복귀와 `Deployed` 상태를 확인한 뒤 ALB 제거, EC2-B stopped, EC2-A 단독 Target Group, RDS Multi-AZ 복귀, API health HTTP 200을 확인한다.
 9. **[Event-driven]** WHEN backend CD workflow를 `workflow_dispatch`로 실행하면, THE Season_Runbook SHALL CodeDeploy 배포가 성공하고 기존 앱·배포 그룹·S3 계약과 일치함을 기록한다.
 10. **[Event-driven]** WHEN frontend dev와 main 배포를 실행하면, THE Season_Runbook SHALL 각 S3 sync와 CloudFront invalidation이 성공하고 대상 버킷·배포 ID가 사전 조사 확정 계약과 일치함을 기록한다.
 11. **[Ubiquitous]** THE Season_Runbook SHALL 운영 서비스 `www.bigdataboaz.com`과 `api.bigdataboaz.com`의 무중단 제약, 5xx 관측 또는 health 실패 시 apply 중지 기준, origin 복귀·재검증 절차를 명시한다.
@@ -279,7 +279,7 @@ model("on") = {
 }
 ```
 
-검증 예: 유효한 두 입력값에 대해 Terraform plan JSON을 표준 모델과 비교한다. `season_mode`가 `off` 또는 `on` 이외이면 variable validation 실패를 기대한다.
+검증 예: 유효한 세 조합(`off`+`ec2`, `on`+`ec2`, `on`+`alb`)에 대해 Terraform plan JSON을 표준 모델과 비교한다. 허용 값 이외이거나 `off`+`alb` 조합이면 plan 전 실패를 기대한다.
 
 ### P4. 시즌 시작 의존성 속성
 
@@ -378,7 +378,7 @@ required_checks = {alb, target_health, cloudfront_origin, rds_multi_az, api_heal
 3. 모든 SG 규칙과 CloudFront managed prefix list의 실제 prefix list ID.
 4. RDS `boaz-prod-db`의 instance class·storage·engine minor version·parameter group·subnet group·SG·deletion protection·Multi-AZ 현재값.
 5. API CloudFront api CloudFront 배포 ID의 origin·cache policy·behavior·viewer certificate·aliases·현재 단일 origin 여부.
-6. www/dev CloudFront 배포 ID와 각 origin·cache/error response 정책.
+6. www/admin CloudFront 배포 ID와 각 origin·cache/error response 정책.
 7. 모든 S3 버킷 이름, region, versioning·encryption·public access block·policy·lifecycle.
 8. Route53 hosted zone ID와 `www`, `dev`, `api` 레코드, ACM 인증서 ARN과 인증서 리전.
 9. CodeDeploy 서비스 롤·deployment group 세부 설정·실제 배포 config.
@@ -395,13 +395,13 @@ required_checks = {alb, target_health, cloudfront_origin, rds_multi_az, api_heal
 5. Infra_Repository 브랜치 전략을 `dev → main`으로 할지 `main` 단일로 할지.
 6. apply용 GitHub Environment 보호 규칙과 승인자.
 7. 배포 번들 S3 lifecycle의 보존 기간과 삭제 승인 기준.
-8. [확정] 모든 `season_mode = "off"` 전환은 CloudFront origin 복귀 apply → `Deployed` 확인 → ALB 제거 apply의 2단계 절차를 운영 표준으로 적용한다.
+8. [확정] 모든 시즌 종료는 `api_origin = "ec2"` apply(origin 복귀) → `Deployed` 확인 → `season_capacity = "off"` apply(ALB 제거)의 2단계 절차를 운영 표준으로 적용한다. 시즌 시작은 EC2-B 재배포 성공 뒤에만 `season_capacity = "on"`을 적용한다.
 
 ## 인수 조건(Definition of Done)
 
 1. `envs/prod`의 최종 plan이 `No changes. Your infrastructure matches the configuration.`을 출력한다.
 2. 인벤토리의 모든 미확인 항목이 AWS 조사 결과로 확정되거나 관리 제외 사유와 함께 Import_Log에 기록된다.
-3. `season_mode = "on"` → 검증 → `season_mode = "off"` 리허설이 성공하고 ALB, target health, CloudFront origin, RDS Multi-AZ, API health를 확인한다.
+3. 시즌 시작(`season_capacity = "on"` → `api_origin = "alb"`) → 검증 → 시즌 종료(`api_origin = "ec2"` → `season_capacity = "off"`) 리허설이 성공하고 ALB, target health, CloudFront origin, RDS Multi-AZ, API health를 확인한다.
 4. 리허설 전환 전·중·후 API health가 정상이고 5xx가 관측되지 않는다.
 5. backend `workflow_dispatch` CodeDeploy 배포가 성공한다.
 6. frontend `dev`·`main` 배포가 성공한다.
