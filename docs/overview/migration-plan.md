@@ -2,7 +2,7 @@
 
 운영 중인 BOAZ 홈페이지(`www.bigdataboaz.com`)와 API 서버(`api.bigdataboaz.com`)의 AWS 인프라를 서비스 중단 없이 Terraform 코드로 옮기는 작업의 목표, 원칙, 시즌 전환 모델을 정리한 문서.
 
-> 작업 순서·티켓·완료 조건은 WBS(`docs/wbs/00-wbs.md`)를 따름. 그룹별 import 방법은 `docs/guides/import-procedure.md`를 따름. 이 문서는 "왜, 어떤 원칙으로"만 다룸
+> 일정 세부(기간·담당·완료 기준·티켓 순서)는 Phase 일정(`docs/wbs/01-schedule.md`), 티켓은 WBS(`docs/wbs/00-wbs.md`), 그룹별 import 방법은 `docs/guides/import-procedure.md`를 따름. 이 문서는 "왜, 어떤 원칙으로"와 Phase 요약만 다룸
 
 ---
 
@@ -87,7 +87,26 @@ product-infra/
 
 ---
 
-## 5. 안전 원칙
+## 5. Phase 일정 요약
+
+Phase 단위로 일정을 관리하고 팀원에게 일을 나눔. 기간은 팀 확인 전까지 기준선이며, 세부와 변경은 `docs/wbs/01-schedule.md`가 기준
+
+| Phase | 기간 | 담당 | 목표 |
+| --- | --- | --- | --- |
+| Phase 0 사전 조사 | 완료(2026-09-26) | 인프라 리드 | 운영 자원 조사, 결정 항목 정리 |
+| Phase 1 저장소·state 기반 | ~2026-10-18 [추정] | 인프라 리드 | 문서 정리, 저장소 구조, state 저장소 |
+| Phase 2 그룹별 import | 준비 ~2026-10-25, 1차 ~2026-11-08, 2차·마무리 ~시즌 동결 전 [추정] | 팀원(그룹별 분담) | PR 검사·안전 게이트를 갖춘 뒤 평시 상태의 모든 자원을 import하고 plan "No changes" 확인. 관리자 페이지 12월 오픈에 필요한 CloudFront 설정 포함 |
+| 운영 구간 | 12월 모집 시즌 ~ 2027-01 | 인프라 리드 | 시즌은 기존 스크립트로 전환하고 Terraform apply 동결, 시즌 후 plan 재확인, 2027-01 앱 릴리스 월 |
+| Phase 3 인프라 CI/CD | ~2027-02 중순 [추정] | 노션에서 배정 | 배포 계약 검사, 승인 후 apply, drift 감지 |
+| Phase 4 시즌 전환 코드화 | ~2027-03 말 [추정] | 노션에서 배정 | 시즌 on/off를 Terraform으로 전환(승인 후 apply 사용) |
+| Phase 5 리허설·이관 완료 | 차기 시즌 4주 전 [추정, 예: 2027-04-30] | 노션에서 배정 | 리허설 2회, 문서 완비, 구 스크립트 deprecated |
+
+- 12월 모집 시즌 전 목표는 Phase 2 완료. 인원이 1명 이하로 확정되면 Phase 2 1차까지로 줄임
+- 이전 계획과 달라진 점: PR 검사·안전 게이트를 Phase 2 준비로 앞당김, Phase 3(CI/CD)·Phase 4(시즌 전환) 순서를 바꿈. 시즌 전환을 운영 환경에 apply하려면 승인 후 apply가 먼저 필요하기 때문
+
+---
+
+## 6. 안전 원칙
 
 - 서비스 중단 불가. RDS·EC2·EIP·CloudFront·Route53·S3는 교체(replace) 금지 → `prevent_destroy`
 - plan에 삭제·교체가 있으면 승인 없이 apply 금지
@@ -99,7 +118,7 @@ product-infra/
 
 ---
 
-## 6. 주요 위험과 대응
+## 7. 주요 위험과 대응
 
 | 위험 | 영향 | 대응 |
 | --- | --- | --- |
@@ -112,7 +131,7 @@ product-infra/
 
 ---
 
-## 7. 완료 기준
+## 8. 완료 기준
 
 1. `envs/prod`에서 `terraform plan` → "No changes. Your infrastructure matches the configuration."
 2. 조사 목록의 모든 항목이 import됐거나 "관리 제외" 사유와 함께 기록됨
@@ -125,7 +144,7 @@ product-infra/
 
 ---
 
-## 8. 후속 작업(범위 밖)
+## 9. 후속 작업(범위 밖)
 
 1. 관리자 콘솔 신규 환경 구성(개발 완료 후)
 2. 백엔드 dev 환경 코드화
