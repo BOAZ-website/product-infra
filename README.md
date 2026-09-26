@@ -62,6 +62,21 @@ CI는 자격증명 없이 `fmt -check` / `validate`(`-backend=false`) / `tflint`
 - secret/password 값은 코드·tfvars·plan·로그에 두지 않습니다.
 - 조사 실패·미확정·승인 대기 상태는 `docs/records/import-log.md`, `docs/records/decisions.md`에 기록합니다.
 
+## 보안 정보 공개 금지
+
+이 저장소는 **공개 저장소**다. 코드·문서·커밋 메시지·PR·이슈·코멘트 어디에도 아래 정보를 적지 않는다.
+
+| 구분 | 금지 대상 | 허용 위치 |
+| --- | --- | --- |
+| 절대 금지 | 공인 IP 주소(개인·사무실·서버 모두, EC2 퍼블릭 DNS 포함), SSH 허용 IP, 비밀번호·토큰·시크릿 값, AWS 액세스 키, 개인 키, 개인 계정명(IAM 사용자명 등) | 없음 |
+| 제한 | AWS 계정 ID, 계정 ID가 들어간 ARN, 자원 ID(VPC·서브넷·보안 그룹·인스턴스·EIP·CloudFront 배포·Route53 영역 등) | `docs/records/`(조사·import 기록)에만 |
+| 허용 | 자원 이름(버킷명·롤 이름·Target Group 이름 등), 사설 IP 대역(`10.0.0.0/16` 등), 리전 | 어디든 |
+
+- 다른 문서에는 역할명으로 쓴다. 예: "EC2-A", "api CloudFront 배포", "운영진 개인 IP 2개"
+- 조사할 때 알게 된 값도 위 규칙을 따른다. 필요하면 AWS에서 직접 조회한다.
+- 자동 검사: `scripts/check-sensitive.sh`가 CI와 커밋 전 훅(`.githooks/pre-commit`)에서 돌아간다. 걸리면 값을 지우거나 역할명으로 바꾼다. 훅을 건너뛰지 않는다.
+- 실수로 올렸다면 즉시 인프라 리드에게 알린다. 파일에서 지워도 git 이력에는 남으므로 이력 정리가 필요하다.
+
 ## 협업 규약
 
 BOAZ 공통 규약을 따릅니다.

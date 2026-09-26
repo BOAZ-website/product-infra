@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# 커밋 전 공개 저장소 민감 정보 검사
+# 활성화(각자 1회): git config core.hooksPath .githooks
+# 규칙: README.md "보안 정보 공개 금지"
+
+root=$(git rev-parse --show-toplevel)
+exec "$root/scripts/check-sensitive.sh" --staged

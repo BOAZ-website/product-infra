@@ -28,13 +28,13 @@
 
 | 현행 참조값 | 출처 | 상태 |
 |---|---|---|
-| EC2-B `i-05405847d3897364a` | `backend/infra/scripts/register-ssm-params.sh` | AWS CLI 미검증 |
-| API CloudFront `E2SER81QYNPRO9` | 동일 스크립트 | AWS CLI 미검증 |
+| EC2-B 인스턴스 ID | `backend/infra/scripts/register-ssm-params.sh` | AWS CLI 미검증 |
+| API CloudFront 배포 ID | 동일 스크립트 | AWS CLI 미검증 |
 | RDS `boaz-prod-db` | 동일 스크립트 | AWS CLI 미검증 |
 | CodeDeploy `boaz-backend` / `codedeploy-prod` | `backend/.github/workflows/cd.yml`, 스크립트 | AWS CLI 미검증 |
 | S3 `boaz-codedeploy-bucket` | `backend/.github/workflows/cd.yml`, 스크립트 | AWS CLI 미검증 |
 | Target Group ARN, ALB SG, ALB subnet IDs | `register-ssm-params.sh` | AWS CLI 미검증 |
-| backend OIDC role `arn:aws:iam::156312218841:role/role-prod-github-actions` | `backend/.github/workflows/cd.yml` | AWS CLI 미검증 |
+| backend OIDC role `role-prod-github-actions` ARN | `backend/.github/workflows/cd.yml` | AWS CLI 미검증 |
 | frontend 운영/개발 bucket·CloudFront ID·`AWS_ROLE_ARN` | GitHub Secrets 이름만 workflow에서 확인 | 값 미확인 |
 
 공식 문서 조사 결과 S3 backend는 `use_lockfile = true`로 S3 native lock을 사용할 수 있고 lockfile에 별도 `GetObject`·`PutObject`·`DeleteObject` 권한이 필요하다. Terraform import block은 plan 단계에서 import와 구성 정합화를 검토하는 방식이며, input validation·precondition은 plan/apply를 차단하는 검증에 사용한다. 설계 근거는 [Terraform S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3), [Terraform import](https://developer.hashicorp.com/terraform/language/import), [Terraform custom conditions](https://developer.hashicorp.com/terraform/language/expressions/custom-conditions), [AWS ACM regional certificates](https://docs.aws.amazon.com/acm/latest/userguide/acm-regions.html)를 따른다.
@@ -755,7 +755,7 @@ OIDC provider, role ARN, environment reviewer가 AWS CLI/결정으로 확정되�
 3. EC2-A/B instance ID, SG, profile, AMI/user_data drift, 상태, DNS/EIP 여부.
 4. 모든 SG ingress/egress와 CloudFront prefix list 실제 ID.
 5. RDS instance class/storage/engine minor version/parameter/subnet group/SG/current Multi-AZ/deletion protection.
-6. API CloudFront `E2SER81QYNPRO9`의 실제 origin 수·domain·port·cache/behavior·certificate·alias.
+6. API CloudFront api CloudFront 배포 ID의 실제 origin 수·domain·port·cache/behavior·certificate·alias.
 7. www/dev CloudFront distribution ID와 origin/error/cache policy.
 8. 모든 S3 bucket 이름/region/versioning/encryption/public block/policy/lifecycle.
 9. Route53 hosted zone 및 `www`, `dev`, `api` records.

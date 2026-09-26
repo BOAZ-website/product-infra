@@ -58,12 +58,12 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 |---|---|---|---|
 | EC2-A | `i-08bb34407c19504cf` | `boaz-api-prod-A`, running, t3.small, 2a, subnet `...224a25`, private 10.0.1.44, AMI `ami-0fc2b553b2bbfaee0`, 태그 `app=boaz-api` 있음, key pair `boaz_codedeploy`, IMDSv2 required, root volume `vol-011d957b0eda19d75` | managed |
 | EC2-B | `i-05405847d3897364a` | `boaz-api-prod-B`, stopped, t3.small, 2c, subnet `...42563b`, private 10.0.2.35, AMI `ami-071edff9d93c43c82`, 태그 `app` 없음, key pair `boaz_codedeploy`, IMDSv2 required, root volume `vol-0ac810fb890bf0c4d` | managed |
-| Elastic IP (EC2-A) | `eipalloc-0d58d66169c7560bb` | `[서버 공인 IP 삭제]`, association `eipassoc-0549083bd71126507` → EC2-A | managed |
+| Elastic IP (EC2-A) | `eipalloc-0d58d66169c7560bb` | 공인 IP 1개(주소는 공개 저장소라 기재하지 않음, AWS에서 조회), association `eipassoc-0549083bd71126507` → EC2-A | managed |
 | Instance Profile | `arn:aws:iam::156312218841:instance-profile/role-prod-ec2` | EC2-A/B 공통 | managed |
 | Launch Template / ASG | 없음 | 조회 결과 0개 | - |
 
 - EC2-A/B는 4개 SG를 공유한다: `prod-ec2-to-rds-sg`, `prod-ssh-sg`, `prod-cf-to-ec2-sg`, `prod-alb-to-ec2-sg`.
-- EC2-A에는 EIP가 연결되어 있다. api CloudFront origin `ec2-[서버 공인 IP 삭제]...compute.amazonaws.com`은 EIP에서 파생된 DNS이므로 stop/start 후에도 바뀌지 않는다.
+- EC2-A에는 EIP가 연결되어 있다. api CloudFront origin(EC2 퍼블릭 DNS)은 EIP에서 파생된 주소이므로 stop/start 후에도 바뀌지 않는다.
 - EC2-A/B의 AMI가 서로 다르다. drift 여부는 compute 코드 편입 시 확인한다.
 
 ## 5. 데이터베이스 (RDS)

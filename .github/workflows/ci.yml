@@ -18,6 +18,16 @@ env:
   TF_VERSION: "1.9.8"
 
 jobs:
+  sensitive:
+    name: Sensitive Info Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 공개 저장소 민감 정보 검사
+        run: bash scripts/check-sensitive.sh
+
   fmt:
     name: Terraform Format
     runs-on: ubuntu-latest

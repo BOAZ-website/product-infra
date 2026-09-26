@@ -31,5 +31,5 @@
 - 작업 순서·티켓·완료 조건의 기준은 노션 WBS·명세서. 노션을 고치면 같은 주 안에 `docs/wbs/`에 PR로 반영한다.
 - `guides/`·`records/`는 저장소가 원본. 노션에는 링크로 둔다.
 - `.kiro/specs/product-infra-migration/`(requirements·design·tasks)은 초기 설계 참고용. 명세서의 P1~P10 검증 속성 정의가 `design.md`에 있다. 내용이 WBS와 다르면 WBS를 따른다.
-- 개인 IP는 어떤 문서에도 적지 않는다. 계정 ID·자원 ID는 `records/`(조사·import 기록)에만 적고, 다른 문서에는 역할명(EC2-A, api CloudFront 등)으로 쓴다.
+- 공인 IP·시크릿·키는 어떤 문서에도 적지 않는다. 계정 ID·자원 ID는 `records/`에만 적고, 다른 문서에는 역할명으로 쓴다. 전체 규칙은 저장소 README의 "보안 정보 공개 금지"와 `CLAUDE.md`. `scripts/check-sensitive.sh`가 CI·커밋 전 훅에서 자동 검사한다.
 
