@@ -8,12 +8,12 @@
 
 1. `wbs/00-wbs.md` — 읽는 법, 담당 구분, **import 그룹 배정표**(내 그룹·티켓·수정 파일 확인)
 2. `guides/import-procedure.md` — 모든 그룹이 따르는 공통 절차(파일 규칙, apply 순서, 작업 9단계, PR 체크리스트)
-3. 내 그룹 명세서(`wbs/2x-*.md` 또는 `wbs/3x-*.md`) — 그룹 고유 기능과 완료 확인 방법
+3. 내 그룹 명세서(`wbs/21-*.md` ~ `wbs/27-*.md`) — 그룹 고유 기능과 완료 확인 방법
 4. 필요할 때: `overview/migration-plan.md`(배경·원칙), `records/inventory.md`(조사 기록)
 
 **인프라 리드(Phase 0~1)**
 
-1. `overview/migration-plan.md` → `wbs/00-wbs.md` → `wbs/1x-*.md`(사전 준비 명세서)
+1. `overview/migration-plan.md` → `wbs/00-wbs.md` → `wbs/1x-*.md`(Phase 1 명세서)
 
 ## 디렉터리
 
@@ -24,7 +24,7 @@
 | `guides/` | 팀원 공통 작업 절차 | 저장소 |
 | `records/` | 조사 기록(inventory), 결정·확인 필요 레지스터(decisions), import 기록(import-log) | 저장소 |
 
-`wbs/` 파일 번호: 0x 모두가 먼저 읽는 페이지 · 1x 사전 준비 · 2x Phase 2 1차 그룹 · 3x Phase 2 2차 그룹 · 4x 2027년 이후
+`wbs/` 파일 번호 앞자리 = 명세서의 주된 Phase: 0x 모두가 먼저 읽는 페이지 · 1x Phase 1(인프라 리드) · 2x Phase 2(준비 20, 1차 21~23, 2차 24~27) · 4x Phase 4 · 5x 운영 구간·Phase 5. Phase 3 티켓은 STA·OBS 명세서 안에 있음
 
 ## 문서 규칙
 

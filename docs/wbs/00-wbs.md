@@ -49,23 +49,23 @@
 
 ### 명세서 목록
 
-페이지 번호 묶음: 0x 모두가 먼저 읽는 페이지 · 1x 사전 준비(인프라 리드) · 2x Phase 2 1차 그룹 · 3x Phase 2 2차 그룹 · 4x 2027년 이후
+파일 번호 앞자리 = 명세서의 주된 Phase: 0x 모두가 먼저 읽는 페이지 · 1x Phase 1(인프라 리드) · 2x Phase 2(준비 20, 1차 21~23, 2차 24~27) · 4x Phase 4 · 5x 운영 구간·Phase 5. Phase 3 티켓은 STA·OBS 명세서 안에 있음
 
 | 접두사 | 명세서 | 범위 | Phase | 페이지 |
 | --- | --- | --- | --- | --- |
 | (공통) | 그룹 import 공통 절차 | 파일 규칙, apply 순서, 작업 9단계, 멈춤 조건, PR 리뷰 체크리스트 | Phase 2 | guides/import-procedure.md |
 | DOC | 문서·스펙 정리 | 문서 상태 오기 정정, 결정 레지스터 통합, 스펙 결함 정정, README·런북·계약 문서 | Phase 1, 5 | 10-doc.md |
 | STA | state·CI 기반 | 저장소 구조, state 저장소, 안전 게이트, PR·apply·drift CI, 자동 검증 | Phase 1, 2, 3, 4 | 11-sta.md |
-| OBS | 모니터링·경보 | CloudWatch Agent, SNS 경보, 접근 로그·대시보드 | Phase 2, 3 | 12-obs.md |
-| NET | 네트워크 | VPC, 서브넷, 라우팅, 보안 그룹 | Phase 2 1차 | 20-net.md |
-| IAM | 권한·파라미터 | IAM 롤·정책·OIDC, SSM 인프라 파라미터, 앱 시크릿 | Phase 2 1차 | 21-iam.md |
-| STO | 스토리지 | S3 버킷 | Phase 2 1차 | 22-sto.md |
-| CMP | 서버 | EC2-A/B, Elastic IP, Target Group, ALB | Phase 2 2차 | 30-cmp.md |
-| RDB | 데이터베이스 | RDS 인스턴스, 서브넷 그룹, 파라미터 그룹 | Phase 2 2차 | 31-rdb.md |
-| CDN | CloudFront·Route53·ACM·WAF | CloudFront 배포 3개(api·www·admin), DNS, 인증서, WAF 연결 | Phase 2 2차 | 32-cdn.md |
-| DEP | CodeDeploy | 배포 앱·배포 그룹·서비스 롤, 기존 배포 설정 보존 | Phase 2 2차 | 33-dep.md |
+| OBS | 모니터링·경보 | CloudWatch Agent, SNS 경보, 접근 로그·대시보드 | Phase 2, 3 | 20-obs.md |
+| NET | 네트워크 | VPC, 서브넷, 라우팅, 보안 그룹 | Phase 2 1차 | 21-net.md |
+| IAM | 권한·파라미터 | IAM 롤·정책·OIDC, SSM 인프라 파라미터, 앱 시크릿 | Phase 2 1차 | 22-iam.md |
+| STO | 스토리지 | S3 버킷 | Phase 2 1차 | 23-sto.md |
+| CMP | 서버 | EC2-A/B, Elastic IP, Target Group, ALB | Phase 2 2차 | 24-cmp.md |
+| RDB | 데이터베이스 | RDS 인스턴스, 서브넷 그룹, 파라미터 그룹 | Phase 2 2차 | 25-rdb.md |
+| CDN | CloudFront·Route53·ACM·WAF | CloudFront 배포 3개(api·www·admin), DNS, 인증서, WAF 연결 | Phase 2 2차 | 26-cdn.md |
+| DEP | CodeDeploy | 배포 앱·배포 그룹·서비스 롤, 기존 배포 설정 보존 | Phase 2 2차 | 27-dep.md |
 | SEA | 시즌 전환 | 시즌 on/off 변수 모델, 시즌 시작·종료 순서 제어 | Phase 2 2차, 4 | 40-sea.md |
-| OPS | 운영 절차 | 12월 동결, 시즌 직후 검증, 2027-01 동결, 리허설, 최종 인수, 구 스크립트 정리 | 운영, Phase 5 | 41-ops.md |
+| OPS | 운영 절차 | 12월 동결, 시즌 직후 검증, 2027-01 동결, 리허설, 최종 인수, 구 스크립트 정리 | 운영, Phase 5 | 50-ops.md |
 
 ### 용어
 
