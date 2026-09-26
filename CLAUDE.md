@@ -16,6 +16,13 @@ AI 도구(Claude Code, Kiro 등)가 이 저장소에서 작업할 때 따르는 
 - `scripts/check-sensitive.sh`의 검사식을 바꾸면 `scripts/test-check-sensitive.sh`에 사례를 추가하고 함께 통과시킨다.
 - 규칙 원문: README.md "보안 정보 공개 금지"
 
+## GitHub Milestone·이슈 생성 규칙
+
+- AI 도구는 GitHub Milestone과 이슈를 미리 일괄 생성하지 않는다.
+- 현재 Phase 또는 다음 Phase를 시작할 때 사용자가 승인하면, 그때 해당 Phase의 Milestone과 그 Phase 티켓 이슈만 생성한다.
+- 승인 없이 Milestone·이슈를 만들지 않는다. 다른 Phase의 이슈를 앞당겨 만들지 않는다.
+- Phase 구분과 티켓 목록: `docs/wbs/01-schedule.md`. 규칙 원문: README.md "Milestone / 이슈 생성"
+
 ## 문서 위치
 
 - 문서 지도와 읽기 순서: `docs/README.md`

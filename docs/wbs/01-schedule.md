@@ -40,7 +40,7 @@
 3. DOC-02 결정 레지스터 통합
 4. DOC-03 이슈 #13 범위 경계 정리 (DOC-02 이후)
 5. DOC-04 스펙 결함 일괄 정정 (DOC-02 이후)
-6. DOC-06 GitHub Milestone·이슈 생성 (DOC-05 이후)
+6. DOC-06 GitHub Milestone·이슈 생성 규칙 (DOC-05 이후). 이후 각 Phase 시작 시 사용자 승인을 받아 그 Phase의 Milestone·이슈만 생성
 7. DOC-07 tasks.md에 기준 문서 안내 추가 (선행 없음)
 8. STA-01 저장소 디렉터리 구조 (PR #9 머지 후 그룹별 파일만 추가)
 9. STA-02 버전·provider 규칙 (STA-01 이후)

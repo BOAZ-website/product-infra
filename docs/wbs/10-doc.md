@@ -93,18 +93,20 @@
 | DOC-05-01 | 2건 모두 리뷰어 지정 | `gh pr view`에 리뷰 요청 대상 존재 |
 | DOC-05-02 | 승인 1건 이상 받은 뒤 머지하고 이슈 #7·#8 닫기 | `gh pr view --json reviews,state`에서 APPROVED와 MERGED 확인 |
 
-## DOC-06 GitHub Milestone·이슈 생성
+## DOC-06 GitHub Milestone·이슈 생성 규칙
 
-**목적:** 이 WBS를 GitHub에서 추적할 수 있게 Milestone과 이슈를 만듦
+**목적:** GitHub Milestone과 티켓 이슈를 언제 만드는지 규칙으로 정함. 작업 관리는 노션이 기준이므로 전체 티켓을 미리 이슈로 복제하지 않음
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 하루이틀 | DOC-05 | 없음 | Phase 1 | 신규 | 없음 |
+| 하루이틀 | DOC-05 | 없음 | Phase 1 | 신규 | #11 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| DOC-06-01 | GitHub Milestone을 Phase 단위(Phase 1~5)로 생성, `terraform-migration` 라벨 부여 | `gh api repos/{owner}/{repo}/milestones` 목록에 5개 이상 |
-| DOC-06-02 | 티켓 57개를 GitHub 이슈로 생성(제목에 티켓 키), tasks.md 대응은 만들지 않음(tasks.md는 참고용) | 이슈 목록에 티켓 키 검색 결과 존재 |
+| DOC-06-01 | Milestone·이슈는 미리 일괄 생성하지 않고, 현재 Phase 또는 다음 Phase를 시작할 때 사용자 승인 후 해당 Phase의 Milestone과 그 Phase 티켓 이슈만 생성한다는 규칙을 README "협업 규약"에 추가 | README에 "Milestone / 이슈 생성" 절 존재 |
+| DOC-06-02 | 같은 규칙을 AI 도구 규칙(CLAUDE.md)에 추가해 승인 없는 일괄 생성을 막음 | CLAUDE.md에 "GitHub Milestone·이슈 생성 규칙" 절 존재 |
+
+> 진행: 완료(#11). 기존 범위(Phase 1~5 Milestone 일괄 생성, 티켓 57개 이슈 일괄 생성)는 2026-09-27 결정으로 폐기. Phase 1은 Milestone을 만들지 않고 Phase 2 준비부터 적용
 
 ## DOC-07 tasks.md 기준 문서 안내
 

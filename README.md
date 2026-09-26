@@ -96,6 +96,16 @@ BOAZ 공통 규약을 따릅니다.
 
 - 허용 Type: `[Feat]` `[Fix]` `[Docs]` `[Style]` `[Refactor]` `[Test]` `[Chore]` `[Hotfix]`
 
+### Milestone / 이슈 생성
+
+작업 관리는 노션(에픽·엔지니어링 작업)이 기준이고, GitHub에는 진행하는 Phase의 것만 만듭니다.
+
+- Milestone과 티켓 이슈를 미리 일괄 생성하지 않습니다. (전체 티켓 57개를 한꺼번에 이슈로 만들지 않음)
+- 현재 Phase 또는 다음 Phase를 시작할 때 **사용자가 승인하면**, 그때 해당 Phase의 Milestone 1개와 그 Phase 티켓 이슈만 생성합니다.
+- Milestone 이름은 `docs/wbs/01-schedule.md`의 Phase 이름을 씁니다. (예: `Phase 2 준비`)
+- 이슈 본문에 티켓 키(예: `STA-05`)와 명세서 경로를 적고, 해당 Phase Milestone을 지정합니다.
+- Phase 1은 규칙을 정하기 전에 대부분 진행되어 Milestone을 만들지 않습니다. Phase 2 준비부터 적용합니다.
+
 ### 커밋 메시지
 
 `type: 내용 (#이슈번호)` 양식을 강제합니다. (예: `feat: bootstrap state bucket 구성 (#3)`)
