@@ -1,7 +1,6 @@
 ## 💡 개요
 
 * Issue Number: #
-* 기능 ID: <!-- 노션 명세서 기준. 예: NET-01-02, NET-01-03 -->
 * import 그룹: <!-- network / iam / params / storage / compute / database / cdn / deploy / 해당 없음 -->
 
 ## 🪐 주요 변경 사항
