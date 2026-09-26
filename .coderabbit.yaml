@@ -17,6 +17,11 @@ reviews:
   related_prs: false # 연관된 다른 PR을 찾아서 링크할지 여부
   poem: false # 불필요한 감성적 요소(시 등) 제거
 
+  # 머지 전 점검: 함수 docstring 비율 점검은 끔(Terraform·짧은 셸 스크립트 위주라 의미 없음). 나머지 점검은 기본값 유지
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+
   # 자동 리뷰 트리거 설정
   auto_review:
     # PR이 생성됐을 때 자동으로 리뷰 시작
