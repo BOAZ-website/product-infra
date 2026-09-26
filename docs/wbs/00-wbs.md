@@ -2,7 +2,7 @@
 
 | 기준일 | 근거 | 성격 |
 | --- | --- | --- |
-| 2026-09-26 | `docs/overview/migration-plan.md`(배경·원칙), `.kiro/specs/product-infra-migration/`(초기 설계 참고) | 실행 계획. 날짜·담당은 팀 확인 전까지 기준선 |
+| 2026-09-26 | `docs/overview/migration-plan.md`(배경·원칙), `.kiro/specs/product-infra-migration/`(초기 설계 참고) | 실행 계획. 날짜는 팀 확인 전까지 기준선, 담당자는 노션에서 배정 |
 
 > 운영 중인 AWS 인프라(수동 구축 + 셸 스크립트)를 Terraform 코드로 옮기는 작업 전체를 명세서 12개, 티켓 57개로 나눈 문서.
 > 12월 모집 시즌 전 목표는 **평시(off) 상태의 모든 자원을 import하고 `terraform plan` 결과가 "No changes"인 상태**까지. 시즌 전환 자동화와 리허설은 2027년으로 넘긴다.
@@ -104,27 +104,27 @@
 | --- | --- | --- | --- |
 | 사전 준비 | Phase 0~1 (조사, 저장소 구조, state 저장소) | 인프라 리드 1명 | DOC-01~07, STA-01~04 |
 | 그룹 import | Phase 2 (리소스 그룹 단위 import) | 팀원이 그룹별로 분담 | 아래 배정표 |
-| 담당 미정 | Phase 2 시작 전·중에 필요 | [확인 필요] | STA-05, STA-06, STA-07, OBS-01, SEA-01, STA-08, STA-09 |
+| 기반 작업 | Phase 2 시작 전·중에 필요 | 노션에서 배정 | STA-05, STA-06, STA-07, OBS-01, SEA-01, STA-08, STA-09 |
 
 - STA-05(PR CI)·STA-06·STA-07(안전 게이트)은 Phase 2 첫 PR 전에 끝나 있어야 한다. 없으면 팀원 PR에서 plan 결과 자동 확인과 교체·삭제 차단이 동작하지 않는다.
 - SEA-01은 컴퓨팅·DB 그룹 시작 전에, STA-08·09는 모든 그룹 완료 후에 필요하다.
 
 ## import 그룹 배정표
 
-> 이전 계획서의 Phase 2 그룹 8개와 명세서·티켓 대응. 팀원에게 그룹을 나눠 줄 때 이 표의 담당 칸을 채운다.
+> 이전 계획서의 Phase 2 그룹 8개와 명세서·티켓 대응. 담당자는 노션에서 배정한다.
 > 모든 그룹은 공통 절차(`docs/guides/import-procedure.md`)를 따른다. 파일은 그룹마다 따로 있으므로 서로 다른 그룹은 동시에 작업해도 코드 충돌이 없다. apply는 한 번에 한 그룹만.
 
-| 순서 | 계획서 그룹 | 명세서 | 티켓 | 수정 파일(`envs/prod/`) | 선행 | 담당 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | 네트워크 | NET | NET-01 | `network.tf` | STA-07 | [확인 필요] |
-| 2 | IAM | IAM | IAM-01, IAM-02 | `iam.tf` | STA-07 | [확인 필요] |
-| 2 | SSM 파라미터 | IAM | IAM-03, IAM-04 | `params.tf` | IAM-01 | [확인 필요] |
-| 3 | 스토리지 | STO | STO-01, STO-02 | `storage.tf` | STA-07 | [확인 필요] |
-| 4 | 컴퓨팅(EC2·EIP) | CMP | CMP-01 | `compute.tf` | SEA-01, IAM-02 | [확인 필요] |
-| 5 | DB | RDB | RDB-01 | `database.tf` | SEA-01, NET-01 | [확인 필요] |
-| 6 | 로드밸런싱(Target Group·ALB) | CMP | CMP-02, CMP-03 | `compute.tf`(CMP-01 담당이 이어서) | CMP-01 | [확인 필요] |
-| 7 | CDN·DNS·인증서 | CDN | CDN-01, CDN-02 | `cdn.tf` | CMP-02 | [확인 필요] |
-| 8 | 배포(CodeDeploy) | DEP | DEP-01, DEP-02 | `deploy.tf` | IAM-02, STO-01 | [확인 필요] |
+| 순서 | 계획서 그룹 | 명세서 | 티켓 | 수정 파일(`envs/prod/`) | 선행 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 네트워크 | NET | NET-01 | `network.tf` | STA-07 |
+| 2 | IAM | IAM | IAM-01, IAM-02 | `iam.tf` | STA-07 |
+| 2 | SSM 파라미터 | IAM | IAM-03, IAM-04 | `params.tf` | IAM-01 |
+| 3 | 스토리지 | STO | STO-01, STO-02 | `storage.tf` | STA-07 |
+| 4 | 컴퓨팅(EC2·EIP) | CMP | CMP-01 | `compute.tf` | SEA-01, IAM-02 |
+| 5 | DB | RDB | RDB-01 | `database.tf` | SEA-01, NET-01 |
+| 6 | 로드밸런싱(Target Group·ALB) | CMP | CMP-02, CMP-03 | `compute.tf`(CMP-01 담당이 이어서) | CMP-01 |
+| 7 | CDN·DNS·인증서 | CDN | CDN-01, CDN-02, CDN-03 | `cdn.tf` | CMP-02 |
+| 8 | 배포(CodeDeploy) | DEP | DEP-01, DEP-02 | `deploy.tf` | IAM-02, STO-01 |
 
 - 1~3(MS2a)은 서로 선행 관계가 없어 3명이 동시에 시작할 수 있다. IAM만 IAM-01(권한 변경 후 재조사)을 먼저 끝낸다.
 - 4~8(MS2b)은 SEA-01(시즌 변수 최소 구현)이 끝난 뒤 시작한다. DB와 배포는 컴퓨팅과 동시에 진행할 수 있다.
@@ -385,7 +385,6 @@
 | 12월 모집 시즌 시작·종료일 | 운영진 | 2026-09-30 |
 | 2027-01 출결 기능 배포 주 | 운영진 + 백엔드 리드 | 2026-09-30 |
 | 참여 인원·주당 투입 시간 | 인프라 담당 + 운영진 | 2026-09-30 |
-| 티켓별 담당자 | 인프라 담당 | 2026-10-02 |
 | property 테스트 범위: 설계대로 유지 vs plan 검사 스크립트로 축소 | 인프라 담당 + PM | 2026-10-09 |
 | dev 프론트 배포 워크플로 최근 실행 성공 여부 | 인프라 담당 | 2026-10-09 |
 | Terraform 실행 자격 증명 종류(장기 액세스 키 여부) | 인프라 담당 | 2026-10-09 |
