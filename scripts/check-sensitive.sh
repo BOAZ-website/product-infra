@@ -12,13 +12,12 @@
 
 set -uo pipefail
 
+# 파일 목록은 NUL 구분(-z)으로 받는다. 기본 출력은 한글·줄바꿈 등 특수 문자가 든 파일명을 따옴표로 감싸 실제 경로와 달라짐
 if [ "${1:-}" = "--staged" ]; then
-  files=$(git diff --cached --name-only --diff-filter=ACMR)
+  list_files() { git diff --cached --name-only --diff-filter=ACMR -z; }
 else
-  files=$(git ls-files)
+  list_files() { git ls-files -z; }
 fi
-
-[ -z "$files" ] && exit 0
 
 read_file() {
   if [ "${MODE:-}" = "--staged" ]; then git show ":$1" 2>/dev/null; else cat "$1" 2>/dev/null; fi
@@ -30,9 +29,12 @@ report() { echo "  $1:$2: $3"; fail=1; }
 
 ipv4='([0-9]{1,3}\.){3}[0-9]{1,3}'
 placeholder='^((var|local|env|secrets|data|module)\..+|aws_[a-z0-9_]+\..+|x{3,}|\*{3,}|example|examples|placeholder|sensitive|changeme|dummy|redacted)$'
+cred_key='(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key)'
+cred_sep="[\"']?[[:space:]]*[:=][[:space:]]*"
+cred_quoted='[A-Za-z0-9+/_.@!#%^&*=~:;,?()[:space:]-]'
 private_ip='^(10\.|127\.|0\.0\.0\.0|169\.254\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)'
 
-while IFS= read -r f; do
+while IFS= read -r -d '' f; do
   [ -f "$f" ] || [ "$MODE" = "--staged" ] || continue
 
   # 내용을 검사할 수 없는 바이너리(이미지·PDF·압축·오피스 문서)는 올리지 않는다
@@ -65,6 +67,8 @@ while IFS= read -r f; do
   #   값 전체가 변수 참조·자리표시자일 때만 제외: var.·local.·env.·secrets.·aws_* 참조, example, xxx, *** 등
   #   ${...}, <...> 형태는 값 문자 범위에 들지 않아 처음부터 잡히지 않는다
   #   값이 줄 끝·따옴표·쉼표·}·주석으로 끝날 때만 잡는다(값 뒤로 문장이 이어지는 설명문 오탐 방지)
+  #   따옴표 안 값은 공백·등호가 있어도 잡는다(예: "Correct Horse Battery Staple", base64의 == 패딩)
+  #   그래서 문서에 token = "설명 문장" 형태로 쓰면 오탐이 난다. 유출을 놓치는 것보다 낫다고 보고 허용하며, 걸리면 문장을 키=값 형태가 아니게 고쳐 쓴다
   while IFS= read -r hit; do
     [ -z "$hit" ] && continue
     line=${hit%%:*}
@@ -72,7 +76,8 @@ while IFS= read -r f; do
     printf '%s' "$value" | grep -qiE "$placeholder" && continue
     report "$f" "$line" "비밀번호·토큰·시크릿 값으로 보이는 키=값"
   done < <(printf '%s\n' "$content" \
-    | grep -noiE "(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key)[\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_.@!#%^&*-]{8,}([\"',;}]|[[:space:]]*(#|//)|[[:space:]]*$)" || true)
+    | grep -noiE "${cred_key}${cred_sep}(\"${cred_quoted}{8,}\"|'${cred_quoted}{8,}'|[\"']?[A-Za-z0-9+/_.@!#%^&*=-]{8,}([\"',;}]|[[:space:]]*(#|//)|[[:space:]]*$))" \
+    | sort -t: -k1,1n -u || true)
   # 서비스 토큰 형식: GitHub, Slack, OpenAI 형식, Context7
   printf '%s\n' "$content" \
     | grep -nE '\bgh[pousr]_[A-Za-z0-9]{36,}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}\b|\bsk-[A-Za-z0-9]{20,}\b|\bctx7sk-[A-Za-z0-9-]{20,}\b' \
@@ -87,7 +92,7 @@ while IFS= read -r f; do
   # CloudFront 배포 ID(E…), Route53 호스팅 영역 ID(Z…): 대문자·숫자 혼합만
   printf '%s\n' "$content" | grep -noE '\b(E[0-9A-Z]{11,13}|Z0[0-9A-Z]{10,20})\b' | grep -E ':[A-Z]*[0-9]' \
     | while IFS=: read -r line id; do echo "  $f:$line: CloudFront·Route53 ID: $id"; done | grep . && fail=1
-done <<< "$files"
+done < <(list_files)
 
 if [ "$fail" -ne 0 ]; then
   echo ""
