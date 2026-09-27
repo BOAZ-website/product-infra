@@ -199,6 +199,15 @@ ap-northeast-2에는 인증서가 없음
 - `boaz-prod-frontend`는 실제로 공개되어 있지 않지만 PAB가 꺼져 있어 방어 계층이 하나 빠져 있음. admin 버킷과 같이 PAB를 켜는 것을 권고함(변경이므로 승인 필요)
 - 기존 Terraform state 후보 버킷은 11개 버킷 중에 없음
 
+### Terraform으로 새로 만든 버킷 (조사 이후)
+
+| 버킷 | 생성 | versioning | 암호화 | PublicAccessBlock | policy·lifecycle | ownership |
+|---|---|---|---|---|---|---|
+| `boaz-terraform-state-156312218841` | 2026-09-27, `bootstrap/` apply (STA-03, #25) | Enabled | AES256 | 전체 True | TLS 강제 Deny policy, lifecycle 3개(noncurrent 90일·최근 20개 보관, multipart 7일, 삭제 마커 정리), BucketOwnerEnforced | managed (`bootstrap/`) |
+
+- state 키: `bootstrap/terraform.tfstate`(bootstrap), `envs/prod/terraform.tfstate`(STA-04에서 연결)
+- bootstrap을 다시 실행할 때 `bootstrap/terraform.tfvars`·`bootstrap/backend.hcl`(gitignore 대상)에 이 버킷 이름과 계정 ID를 넣음
+
 ## 계획서와의 차이 (요약)
 
 | 항목 | 계획서 | 실측 | 처리 |
