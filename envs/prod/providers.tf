@@ -5,6 +5,9 @@
 
 provider "aws" {
   region = "ap-northeast-2"
+
+  # 다른 계정 자격 증명으로 실행하면 plan 단계에서 실패시킴
+  allowed_account_ids = [var.expected_account_id]
 }
 
 # CloudFront viewer 인증서(ACM)·WAF WebACL(CLOUDFRONT 범위) 조회용. CloudFront 배포·Route53은 기본 provider 사용
@@ -13,4 +16,6 @@ provider "aws" {
 provider "aws" {
   alias  = "us_east_1"
   region = "us-east-1"
+
+  allowed_account_ids = [var.expected_account_id]
 }
