@@ -16,7 +16,7 @@
 | Phase | 기간 | 담당 | 목표 | 티켓 | 완료 기준 |
 | --- | --- | --- | --- | --- | --- |
 | Phase 0 사전 조사 | 완료(2026-09-26) | 인프라 리드 | 운영 자원 조사, 결정 항목 정리 | 없음(PR #10) | 조사 기록 3종 머지 |
-| Phase 1 저장소·state 기반 | ~2026-10-18 [추정] | 인프라 리드 | 문서 정리, 저장소 구조, state 저장소 | DOC-01~07, STA-01~04 | PR #9·#10·#12 머지, CI Terraform 1.11 이상, bootstrap apply 성공, envs/prod 초기화와 잠금 확인 |
+| Phase 1 저장소·state 기반 | 완료(2026-09-27) | 인프라 리드 | 문서 정리, 저장소 구조, state 저장소 | DOC-01~07, STA-01~04 | PR #9·#10·#12 머지, CI Terraform 1.11 이상, bootstrap apply 성공, envs/prod 초기화와 잠금 확인 |
 | Phase 2 준비 | ~2026-10-25 [추정] | 노션에서 배정 | 팀원 PR을 받기 전 PR 검사·안전 게이트·경보 구축 | STA-05, STA-06, STA-07, OBS-01 | 샘플 PR에 plan 코멘트 자동 게시, 교체·삭제 plan 차단 확인, RDS 메모리 경보 수신 |
 | Phase 2 1차 (위험 낮은 그룹) | ~2026-11-08 [추정] | 팀원(그룹별) | 네트워크·IAM·SSM·스토리지 import | NET-01, IAM-01~04, STO-01~02 | 그룹별 plan "No changes", 삭제·교체 0건, import 기록 갱신 |
 | Phase 2 2차 (보호 자원 그룹) | season-up 7일 전 [확인 필요: 모집 시작일] | 팀원(그룹별) | 시즌 변수 최소 구현, 서버·DB·CDN·배포 import, 관리자 CloudFront 설정 | SEA-01, CMP-01~03, RDB-01, CDN-01~03, DEP-01~02 | 그룹별 plan "No changes", EC2-B 재배포 순서 확인, RDS 사전 스냅샷, 관리자 페이지 접속 확인 |

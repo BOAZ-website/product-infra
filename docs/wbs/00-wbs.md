@@ -164,7 +164,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | STA-01 | 저장소 디렉터리 구조 | STA | 하루이틀 | 없음 | 없음 | Phase 1 | 예 | 완료(#23) |
 | STA-02 | 버전·provider 규칙 | STA | 하루이틀 | STA-01 | 없음 | Phase 1 | 예 | 완료(#24) |
 | STA-03 | state 버킷 구현 | STA | 한 주 | STA-02 | state 버킷·키 | Phase 1 | 예 | 완료(#25) |
-| STA-04 | envs/prod backend 초기화 | STA | 하루이틀 | STA-03 | state 버킷·키 | Phase 1 | 예 | 대기 |
+| STA-04 | envs/prod backend 초기화 | STA | 하루이틀 | STA-03 | state 버킷·키 | Phase 1 | 예 | 완료(#26) |
 | STA-05 | PR CI(fmt·validate·plan) | STA | 한 주 | STA-02 | 없음 | Phase 2 준비 | 예 | 일부 완료(fmt·validate·tflint) |
 | STA-06 | property 테스트 실행 환경 | STA | 한 주 | STA-01 | 없음 | Phase 2 준비 | 예 | 대기 |
 | STA-07 | 안전 게이트 + P1·P6 | STA | 2~3주 | STA-04, STA-06 | 없음 | Phase 2 준비 | 예 | 대기 |

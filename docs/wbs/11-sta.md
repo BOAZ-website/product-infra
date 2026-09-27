@@ -75,6 +75,8 @@
 | STA-04-01 | backend 설정에 `use_lockfile = true`만 사용 | `backend.tf`에 해당 값 존재, `dynamodb_table` 없음 |
 | STA-04-02 | bootstrap 완료 전에는 envs/prod 초기화가 실패하도록 함 | bootstrap 전 `terraform init` 실행 시 명확한 오류 |
 
+> 진행: 완료(#26). 2026-09-27 init 성공·plan "No changes". backend 설정 없이 init, 버킷 없이 init 모두 오류로 실패 확인. 승인 대기 중인 apply가 잠금을 잡은 상태에서 동시 plan이 차단됨 확인. provider 두 개와 backend에 `allowed_account_ids` 계정 가드, 다른 계정 자격 증명은 plan 단계에서 실패. 팀원용 로컬 준비·force-unlock 절차는 `docs/guides/import-procedure.md` 0절·2절
+
 ## STA-05 PR CI(fmt·validate·plan)
 
 **목적:** PR마다 형식·문법 검사와 plan을 자동 실행하고 결과를 PR에 남김
