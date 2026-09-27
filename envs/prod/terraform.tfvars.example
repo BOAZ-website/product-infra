@@ -1,0 +1,4 @@
+# terraform.tfvars로 복사해 값을 채움(terraform.tfvars는 gitignore 대상)
+# 실제 값은 docs/records/에만 기록
+
+expected_account_id = "<AWS 계정 ID 12자리>"
