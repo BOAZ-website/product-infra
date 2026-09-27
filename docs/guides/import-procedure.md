@@ -7,6 +7,21 @@
 
 ---
 
+## 0. 로컬 준비
+
+그룹 작업을 시작하기 전 한 번만 함. 두 파일 모두 gitignore 대상이라 커밋되지 않음
+
+| 순서 | 할 일 | 완료 확인 방법 |
+| --- | --- | --- |
+| 1 | `envs/prod/backend.hcl.example`을 `backend.hcl`로, `terraform.tfvars.example`을 `terraform.tfvars`로 복사하고 `docs/records/inventory.md`의 state 버킷 이름·계정 ID로 채움 | 두 파일 존재, `git status`에 나타나지 않음 |
+| 2 | 운영 계정 자격 증명인지 확인: `aws sts get-caller-identity`의 Account가 inventory.md의 계정 ID와 같음 | Account 일치 |
+| 3 | `terraform -chdir=envs/prod init -input=false -backend-config=backend.hcl` | `Successfully configured the backend "s3"!` |
+| 4 | `terraform -chdir=envs/prod plan -input=false` | 오류 없이 plan 완료 |
+
+- 계정 가드: provider와 backend 모두 `allowed_account_ids`가 있어 다른 계정 자격 증명이면 init·plan 단계에서 실패함
+- workspace는 쓰지 않음(`terraform workspace new` 금지). workspace를 쓰면 state가 `env:/` 경로로 갈라짐
+- plan·apply에는 항상 `-input=false`를 붙임. 변수 파일이 없을 때 입력을 기다리지 않고 바로 실패함
+
 ## 1. 파일 규칙
 
 그룹마다 자기 파일만 수정함. 다른 그룹 파일을 고쳐야 하면 그 그룹 담당자에게 요청함
@@ -36,6 +51,12 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 - apply는 `진행 중`으로 먼저 적은 사람이 함. 동시에 `진행 중`인 그룹은 최대 1개
 - 기다리는 사람은 `terraform plan`만 실행하며 코드를 맞춤. plan도 state 잠금을 잡으므로 동시에 실행하면 한쪽이 잠금을 못 얻어 실패할 수 있음. `terraform plan -lock-timeout=5m`처럼 잠금 대기 시간을 주고, 잠금을 끄는 옵션(`-lock=false`)은 쓰지 않음
 - 잠금이 오래 풀리지 않으면 강제 해제(`force-unlock`)하지 말고 잠금을 잡은 사람에게 먼저 확인함
+- 강제 해제가 꼭 필요할 때만 아래 순서를 따름
+  1. 오류 메시지의 Lock ID·Who·Created 확인
+  2. 잠금을 잡은 사람에게 연락해 해당 terraform 프로세스가 종료됐는지 확인
+  3. `import-log.md`에 해제 사유·Lock ID·시각 기록
+  4. `terraform -chdir=envs/prod force-unlock <Lock ID>`
+  5. 바로 `terraform plan -input=false`로 state가 정상인지 확인. 이상하면 state 버킷의 이전 버전으로 복구하고 리뷰 요청
 
 ## 3. 작업 순서
 

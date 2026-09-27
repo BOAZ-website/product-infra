@@ -50,10 +50,12 @@ git config core.hooksPath .githooks
 
 ```bash
 terraform fmt -recursive                 # 포맷
-terraform -chdir=envs/prod init          # 초기화 (backend 설정 필요)
+terraform -chdir=envs/prod init -input=false -backend-config=backend.hcl   # 초기화
 terraform -chdir=envs/prod validate      # 검증
-terraform -chdir=envs/prod plan          # 계획 확인
+terraform -chdir=envs/prod plan -input=false                               # 계획 확인
 ```
+
+`init` 전에 `envs/prod/backend.hcl.example` → `backend.hcl`, `terraform.tfvars.example` → `terraform.tfvars`로 복사해 값을 채웁니다(둘 다 gitignore 대상, 값은 `docs/records/inventory.md`). 자세한 준비 절차는 `docs/guides/import-procedure.md` 0절.
 
 CI는 자격증명 없이 `fmt -check` / `validate`(`-backend=false`) / `tflint`만 수행합니다. 실제 `plan`/`apply`/`drift`는 OIDC role과 backend가 확정된 뒤 별도 워크플로우에서 다룹니다.
 
