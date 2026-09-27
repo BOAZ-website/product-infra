@@ -1,0 +1,4 @@
+# backend.hcl로 복사해 값을 채움(backend.hcl은 gitignore 대상)
+# terraform init -input=false -backend-config=backend.hcl
+
+bucket = "<state 버킷 이름>"
