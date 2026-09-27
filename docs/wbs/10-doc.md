@@ -106,7 +106,7 @@
 | DOC-06-01 | Milestone·이슈는 미리 일괄 생성하지 않고, 현재 Phase 또는 다음 Phase를 시작할 때 사용자 승인 후 해당 Phase의 Milestone과 그 Phase 티켓 이슈만 생성한다는 규칙을 README "협업 규약"에 추가 | README에 "Milestone / 이슈 생성" 절 존재 |
 | DOC-06-02 | 같은 규칙을 AI 도구 규칙(CLAUDE.md)에 추가해 승인 없는 일괄 생성을 막음 | CLAUDE.md에 "GitHub Milestone·이슈 생성 규칙" 절 존재 |
 
-> 진행: 완료(#11). 기존 범위(Phase 1~5 Milestone 일괄 생성, 티켓 57개 이슈 일괄 생성)는 2026-09-27 결정으로 폐기. Phase 1은 Milestone을 만들지 않고 Phase 2 준비부터 적용
+> 진행: 완료(#11). 기존 범위(Phase 1~5 Milestone 일괄 생성, 티켓 57개 이슈 일괄 생성)는 2026-09-27 결정으로 폐기. 2026-09-27 사용자 승인으로 Phase 0·Phase 1 Milestone을 소급 생성해 노션 티켓 기준으로 기존 이슈·PR을 연결함(Phase 0은 닫음). Phase 2 준비 Milestone도 같은 날 생성, 이후 Phase는 시작 시 승인 후 생성
 
 ## DOC-07 tasks.md 기준 문서 안내
 
