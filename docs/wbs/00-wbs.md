@@ -108,11 +108,13 @@
 | 구간 | 계획서 단계 | 담당 | 티켓 |
 | --- | --- | --- | --- |
 | 사전 준비 | Phase 0~1 (조사, 저장소 구조, state 저장소) | 인프라 리드 1명 | DOC-01~07, STA-01~04 |
-| 그룹 import | Phase 2 (리소스 그룹 단위 import) | 팀원이 그룹별로 분담 | 아래 배정표 |
-| 기반 작업 | Phase 2 준비·마무리 | 노션에서 배정 | 준비: STA-05, STA-06, STA-07, OBS-01 / 마무리: STA-08, STA-09 |
+| 기반 작업 | Phase 2 준비 | 인프라 리드 | STA-05, STA-06, STA-07, SEA-01 |
+| 파트별 구축 | Phase 2 1차·2차 (1차 시작 시 8개 파트 동시 배정) | 팀원이 노션 명세서(파트) 단위로 1명씩 분담 | 아래 배정표 |
+| 마무리 | Phase 2 마무리 | 노션에서 배정 | STA-08, STA-09 |
 
 - STA-05(PR CI)·STA-06·STA-07(안전 게이트)은 Phase 2 첫 PR 전에 끝나 있어야 함. 없으면 팀원 PR에서 plan 결과 자동 확인과 교체·삭제 차단이 동작하지 않음
-- SEA-01은 컴퓨팅·DB 그룹 시작 전에, STA-08·09는 모든 그룹 완료 후에 필요하
+- SEA-01(시즌 변수 최소 구현)은 컴퓨팅·DB 그룹이 쓰므로 Phase 2 준비에서 인프라 리드가 끝냄. STA-08·09는 모든 그룹 완료 후에 필요함
+- 배정 단위는 노션 명세서(파트) 1개 = 팀원 1명, 작업 단위는 티켓 1개 = GitHub 이슈 1개(= 노션 엔지니어링 작업 1개)
 
 ## import 그룹 배정표
 
@@ -121,6 +123,7 @@
 
 | 순서 | 계획서 그룹 | 명세서 | 티켓 | 수정 파일(`envs/prod/`) | 선행 |
 | --- | --- | --- | --- | --- | --- |
+| 1 | 모니터링·경보 | OBS | OBS-01 | 신규 자원(그룹 import 아님) | STA-01 |
 | 1 | 네트워크 | NET | NET-01 | `network.tf` | STA-07 |
 | 2 | IAM | IAM | IAM-01, IAM-02 | `iam.tf` | STA-07 |
 | 2 | SSM 파라미터 | IAM | IAM-03, IAM-04 | `params.tf` | IAM-01 |
@@ -131,8 +134,10 @@
 | 7 | CDN·DNS·인증서 | CDN | CDN-01, CDN-02, CDN-03 | `cdn.tf` | CMP-02 |
 | 8 | 배포(CodeDeploy) | DEP | DEP-01, DEP-02 | `deploy.tf` | IAM-02, STO-01 |
 
-- 1~3(Phase 2 1차)은 서로 선행 관계가 없어 3명이 동시에 시작할 수 있음. IAM만 IAM-01(권한 변경 후 재조사)을 먼저 끝냄
-- 4~8(Phase 2 2차)은 SEA-01(시즌 변수 최소 구현)이 끝난 뒤 시작함. DB와 배포는 컴퓨팅과 동시에 진행할 수 있음
+- **8개 파트(OBS·NET·IAM·STO·CMP·RDB·CDN·DEP)는 Phase 2 1차 시작 시 동시에 배정·착수함.** 순서 열은 착수 순서가 아니라 머지·apply 순서
+- 1~3(Phase 2 1차)은 서로 선행 관계가 없어 바로 import까지 진행함. IAM만 IAM-01(권한 변경 후 재조사)을 먼저 끝냄
+- 4~8(Phase 2 2차) 파트는 착수 직후 재조사·명세서 확인·모듈 초안(로컬 `generate-config-out`)·앞 그룹에 필요한 output 요청까지 진행하고, 선행 그룹이 `dev`에 머지되면 plan 맞추기와 PR을 진행함. 그룹 간 값은 output으로만 받으므로 선행 그룹 머지 전에는 plan "No changes"를 맞출 수 없음
+- 인원이 8명보다 적으면 선행 관계로 이어진 파트를 한 사람에게 묶음(예: CMP+DEP, NET+RDB)
 - EC2 인스턴스 프로파일은 IAM 그룹이 관리하고 컴퓨팅 그룹은 참조만 함
 
 ---
@@ -174,7 +179,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | STA-11 | 승인 후 apply | STA | 한 주 | STA-10 | apply 승인자 | Phase 3 | 아니오 | 대기 |
 | STA-12 | drift 감지 CI + P9 | STA | 하루이틀 | STA-11 | 없음 | Phase 3 | 아니오 | 대기 |
 | STA-13 | 정적·통합 검증 구성 | STA | 한 주 | SEA-02, SEA-03, STA-12 | 없음 | Phase 4 | 아니오 | 일부 완료(fmt·validate·tflint) |
-| OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 준비 | 예 | 대기 |
+| OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 1차 | 예 | 대기 |
 | OBS-02 | 접근 로그·대시보드 | OBS | 하루이틀 | OBS-01, CDN-02 | 없음 | Phase 3 | 아니오 | 대기 |
 | NET-01 | network 그룹 import | NET | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 예 | 대기 |
 | IAM-01 | 배포 Role 권한 콘솔 적용 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 대기 |
@@ -192,7 +197,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | CDN-03 | 관리자 CloudFront 보안·SPA 설정 | CDN | 한 주 | CDN-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
 | DEP-01 | deploy 모듈 작성 | DEP | 하루이틀 | IAM-02, STO-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
 | DEP-02 | CodeDeploy import | DEP | 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
-| SEA-01 | 시즌 변수 모델 최소 구현 | SEA | 한 주 | STA-07, Phase 2 1차 | 없음 | Phase 2 2차 | 예 | 대기 |
+| SEA-01 | 시즌 변수 모델 최소 구현 | SEA | 한 주 | STA-04 | 없음 | Phase 2 준비 | 예 | 대기 |
 | SEA-02 | 시즌 시작(on) 순서 제어 + P4 | SEA | 한 주 | CMP-02, CDN-02, STA-09, STA-11 | 없음 | Phase 4 | 아니오 | 대기 |
 | SEA-03 | 시즌 종료(off) 2단계 apply + P5 | SEA | 한 주 | SEA-02 | 없음 | Phase 4 | 아니오 | 대기 |
 | SEA-04 | 시즌 상태 매핑 테스트 P3 | SEA | 하루이틀 | SEA-01 | 없음 | Phase 4 | 아니오 | 대기 |
