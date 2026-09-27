@@ -109,7 +109,22 @@ jobs:
           rc=0
           for d in "${dirs[@]}"; do
             echo "::group::validate ${d}"
-            if terraform -chdir="${d}" init -backend=false -input=false -no-color; then
+            # root 모듈(bootstrap, envs/*)은 잠금 파일이 반드시 있어야 하며, 잠금 파일을 바꾸지 않고 검증한다.
+            # 잠금 파일이 없으면 init이 새로 만들어 버전 고정 없이 통과하므로 실패 처리한다.
+            # modules/*는 root가 아니라 잠금 파일을 두지 않는다.
+            lock_opt=""
+            case "${d}" in
+              bootstrap|envs/*)
+                if [ ! -f "${d}/.terraform.lock.hcl" ]; then
+                  echo "::error::${d}/.terraform.lock.hcl 이 없습니다. terraform providers lock 으로 생성해 커밋하세요."
+                  rc=1
+                  echo "::endgroup::"
+                  continue
+                fi
+                lock_opt="-lockfile=readonly"
+                ;;
+            esac
+            if terraform -chdir="${d}" init -backend=false -input=false -no-color ${lock_opt}; then
               terraform -chdir="${d}" validate -no-color || rc=1
             else
               echo "init 실패: ${d}"
@@ -122,6 +137,9 @@ jobs:
   tflint:
     name: TFLint
     runs-on: ubuntu-latest
+    env:
+      # .tflint.hcl의 required_version과 함께 올린다
+      TFLINT_VERSION: "v0.64.0"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -131,13 +149,14 @@ jobs:
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
-          tflint_version: latest
+          tflint_version: ${{ env.TFLINT_VERSION }}
 
+      # 플러그인 설치 실패를 무시하지 않는다(무시하면 AWS 규칙 없이 통과함).
+      # --recursive에서 모든 디렉터리가 저장소 루트 설정을 쓰도록 절대 경로로 지정한다.
       - name: Run TFLint
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ ! -f .tflint.hcl ]; then
-            echo ".tflint.hcl 이 없어 기본 설정으로 실행합니다."
-          fi
-          tflint --init || true
-          tflint --recursive --no-color
+          tflint --init --config "${GITHUB_WORKSPACE}/.tflint.hcl"
+          tflint --recursive --config "${GITHUB_WORKSPACE}/.tflint.hcl" --no-color

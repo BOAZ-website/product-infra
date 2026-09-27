@@ -11,6 +11,8 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+# terraform plan -generate-config-out 초안(자원 ID 포함, 정리 후 삭제)
+generated.tf
 
 # 변수 파일 (예시 파일은 추적)
 *.tfvars

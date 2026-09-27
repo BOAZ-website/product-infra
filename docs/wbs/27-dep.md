@@ -30,7 +30,7 @@
 **목적:** 배포 그룹을 import하고 현재 설정을 그대로 유지함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/deploy/`, `envs/prod/deploy.tf`, `envs/prod/imports/deploy.tf`. 서비스 롤은 iam, 번들 버킷은 storage 그룹 output을 참조
+> 수정 파일: `modules/deploy/`, `envs/prod/deploy.tf`, `envs/prod/imports_deploy.tf`. 서비스 롤은 iam, 번들 버킷은 storage 그룹 output을 참조
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

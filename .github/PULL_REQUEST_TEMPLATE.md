@@ -23,7 +23,7 @@
 
 <!-- import 그룹 PR만 작성. 그 외 PR은 이 절을 지워주세요. 기준: docs/guides/import-procedure.md -->
 
-- [ ] 수정 파일이 자기 그룹 파일(`modules/<그룹>/`, `envs/prod/<그룹>.tf`, `envs/prod/imports/<그룹>.tf`)뿐이다
+- [ ] 수정 파일이 자기 그룹 파일(`modules/<그룹>/`, `envs/prod/<그룹>.tf`, `envs/prod/imports_<그룹>.tf`)뿐이다
 - [ ] 착수 전 해당 그룹 자원을 다시 조사해 `docs/records/inventory.md`를 갱신했다
 - [ ] plan 결과에 변경·교체·삭제가 0건이다(import만 있음)
 - [ ] 보호 대상 자원에 `prevent_destroy`가 있다

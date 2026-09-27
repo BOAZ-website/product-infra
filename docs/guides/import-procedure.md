@@ -13,18 +13,20 @@
 
 | 그룹 | 모듈 폴더 | envs/prod 파일 | import 블록 파일 | 명세서 |
 | --- | --- | --- | --- | --- |
-| network | `modules/network/` | `envs/prod/network.tf` | `envs/prod/imports/network.tf` | NET |
-| iam | `modules/iam/` | `envs/prod/iam.tf` | `envs/prod/imports/iam.tf` | IAM |
-| params | `modules/params/` | `envs/prod/params.tf` | `envs/prod/imports/params.tf` | IAM |
-| storage | `modules/storage/` | `envs/prod/storage.tf` | `envs/prod/imports/storage.tf` | STO |
-| compute | `modules/compute/` | `envs/prod/compute.tf` | `envs/prod/imports/compute.tf` | CMP |
-| database | `modules/database/` | `envs/prod/database.tf` | `envs/prod/imports/database.tf` | RDB |
-| cdn | `modules/cdn/` | `envs/prod/cdn.tf` | `envs/prod/imports/cdn.tf` | CDN |
-| deploy | `modules/deploy/` | `envs/prod/deploy.tf` | `envs/prod/imports/deploy.tf` | DEP |
+| network | `modules/network/` | `envs/prod/network.tf` | `envs/prod/imports_network.tf` | NET |
+| iam | `modules/iam/` | `envs/prod/iam.tf` | `envs/prod/imports_iam.tf` | IAM |
+| params | `modules/params/` | `envs/prod/params.tf` | `envs/prod/imports_params.tf` | IAM |
+| storage | `modules/storage/` | `envs/prod/storage.tf` | `envs/prod/imports_storage.tf` | STO |
+| compute | `modules/compute/` | `envs/prod/compute.tf` | `envs/prod/imports_compute.tf` | CMP |
+| database | `modules/database/` | `envs/prod/database.tf` | `envs/prod/imports_database.tf` | RDB |
+| cdn | `modules/cdn/` | `envs/prod/cdn.tf` | `envs/prod/imports_cdn.tf` | CDN |
+| deploy | `modules/deploy/` | `envs/prod/deploy.tf` | `envs/prod/imports_deploy.tf` | DEP |
 
+- import 블록 파일은 `envs/prod/imports_<그룹>.tf`(평면 파일). Terraform은 root 모듈 디렉터리 바로 아래 `.tf`만 읽으므로 `imports/` 같은 하위 폴더에 두면 import 블록이 무시됨
+- 그룹 파일(`envs/prod/<그룹>.tf`)에는 `module "<그룹>"` 호출과 그룹 전용 variable·locals만 둠. resource·data는 `modules/<그룹>/`에 작성
 - 공통 파일(`envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `outputs.tf`)은 STA 담당만 수정함
 - 그룹 간 값 전달(예: network의 서브넷 ID를 database가 사용)은 상대 그룹 모듈의 output을 참조함. 필요한 output이 없으면 해당 그룹 담당자에게 추가를 요청함
-- import가 끝나 state에 등록된 뒤에는 `envs/prod/imports/<그룹>.tf`의 import 블록을 지워도 됨. 지우는 것은 plan "No changes" 확인 후 별도 커밋으로 함
+- import가 끝나 state에 등록된 뒤에는 `envs/prod/imports_<그룹>.tf`의 import 블록을 지워도 됨. 지우는 것은 plan "No changes" 확인 후 별도 커밋으로 함
 
 ## 2. apply 순서 규칙
 
@@ -41,7 +43,7 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 | --- | --- | --- |
 | 1. 착수 선언 | `import-log.md`에 그룹 상태 `진행 중`, 담당자, 시작 시각 기록. 브랜치 `feat/import-<그룹>` 생성 | import-log.md 해당 행 갱신 |
 | 2. 직전 재조사 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사해 inventory.md 갱신. 시크릿 값은 조회하지 않음 | inventory 갱신 시각이 착수 이후 |
-| 3. 코드 작성 | import 블록을 먼저 쓰고 `terraform plan -generate-config-out=generated.tf`로 코드 초안 생성. 초안을 정리해 모듈·그룹 파일로 옮김 | `terraform validate` 통과 |
+| 3. 코드 작성 | import 블록을 root 주소(예: `aws_vpc.main`)로 먼저 쓰고 `terraform plan -generate-config-out=generated.tf`로 코드 초안 생성(초안 생성은 root 주소만 지원). 초안을 `modules/<그룹>/`으로 옮긴 뒤 import 블록의 `to`를 `module.<그룹>.<자원>`으로 바꿈. `generated.tf`는 커밋하지 않고 삭제 | `terraform validate` 통과 |
 | 4. 보호 설정 | 보호 대상 자원에 `prevent_destroy` 추가. 재생성을 일으키는 속성은 실제 값과 똑같이 맞춤 | 코드에 `prevent_destroy` 존재 |
 | 5. plan 맞추기 | `terraform plan`에서 차이가 0이 될 때까지 코드 수정. 교체·삭제가 나오면 즉시 멈추고 리뷰 요청 | plan 결과에 import만 있고 변경·교체·삭제 0건 |
 | 6. PR | PR 템플릿 작성, plan 결과 첨부, 리뷰 1명 이상 승인 | PR에 승인 1건 이상 |

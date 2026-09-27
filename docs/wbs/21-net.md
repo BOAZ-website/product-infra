@@ -22,7 +22,7 @@
 | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 4.1, 6.1 | 없음 |
 
 > 공통 절차 적용(착수 선언·직전 재조사·plan "No changes" 확인·import-log 기록) → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/network/`, `envs/prod/network.tf`, `envs/prod/imports/network.tf`
+> 수정 파일: `modules/network/`, `envs/prod/network.tf`, `envs/prod/imports_network.tf`
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

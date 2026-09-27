@@ -75,4 +75,4 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 
 - 조사 근거: `docs/records/inventory.md` (조사 시점 2026-09-23, read-only)
 - 결정 필요 항목: `docs/records/decisions.md`
-- import 블록은 그룹별로 `envs/prod/imports/<group>.tf`에 추가(`docs/guides/import-procedure.md` 1절).
+- import 블록은 그룹별로 `envs/prod/imports_<group>.tf`에 추가(`docs/guides/import-procedure.md` 1절).

@@ -22,7 +22,7 @@
 | 한 주 | STA-07 | 관리 대상 버킷·레코드 | Phase 2 1차 | 4.4, 6.3 | 없음 |
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/storage/`, `envs/prod/storage.tf`, `envs/prod/imports/storage.tf`
+> 수정 파일: `modules/storage/`, `envs/prod/storage.tf`, `envs/prod/imports_storage.tf`
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |

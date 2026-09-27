@@ -18,7 +18,7 @@
 **목적:** database 모듈을 작성하고 RDS 관련 자원을 import해 plan "No changes"를 확인함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/database/`, `envs/prod/database.tf`, `envs/prod/imports/database.tf`. 서브넷·보안 그룹 ID는 network 그룹 output을 참조
+> 수정 파일: `modules/database/`, `envs/prod/database.tf`, `envs/prod/imports_database.tf`. 서브넷·보안 그룹 ID는 network 그룹 output을 참조
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

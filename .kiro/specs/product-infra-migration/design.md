@@ -19,7 +19,7 @@
 
 1. `requirements.md`를 source of truth로 사용하고, 이 문서의 예시 placeholder를 실제 AWS 식별자로 오인하지 않는다.
 2. 모든 AWS 사전 조사는 `--profile tf --region ap-northeast-2`를 사용한다. CloudFront 전역 API는 profile만 사용하고, CloudFront ACM은 `us-east-1` provider alias로 조회한다.
-3. Terraform은 `>= 1.11.0, < 2.0.0`으로 고정한다(S3 backend 자체 잠금 `use_lockfile`은 1.10에서 도입, 1.11에서 정식 지원). AWS provider 버전 범위는 `docs/records/decisions.md`의 "AWS provider 버전" 결정에 따른다(현재 기준 `>= 5.0.0, < 6.0.0`). `.terraform.lock.hcl`을 커밋한다.
+3. Terraform은 `>= 1.11.0, < 2.0.0`으로 고정한다(S3 backend 자체 잠금 `use_lockfile`은 1.10에서 도입, 1.11에서 정식 지원). AWS provider는 `>= 6.0.0, < 7.0.0`으로 고정한다(`docs/records/decisions.md` "AWS provider 버전"). `.terraform.lock.hcl`을 커밋한다.
 4. 운영 리소스의 `destroy`·`replace`, Secret_Parameter 값 노출, 미확정 식별자 사용, backend/lock 실패는 apply 전에 차단한다.
 5. 기존 배포 workflow가 기대하는 이름·버킷·배포 ID·role ARN을 output과 계약 검사로 보존한다.
 
@@ -90,13 +90,13 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.0.0, < 6.0.0"
+      version = ">= 6.0.0, < 7.0.0"
     }
   }
 }
 ```
 
-provider는 기본 `aws`를 `ap-northeast-2`에 두고, CloudFront ACM용 `aws.us_east_1` alias를 둔다. 두 provider 모두 `default_tags`에 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`를 적용한다. 적용 불가 리소스는 `docs/import-log.md`에 리소스 종류와 사유를 목록화하며, 공통 태그 목록 자체는 apply 차단 조건으로 사용하지 않는다.
+provider는 기본 `aws`를 `ap-northeast-2`에 두고, CloudFront ACM·WAF(CLOUDFRONT 범위)용 `aws.us_east_1` alias를 둔다. 공통 태그 `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`는 import 단계에서는 envs/prod에 적용하지 않는다(기존 자원에 태그 변경 diff가 생겨 No changes를 맞출 수 없음). 모든 그룹 import와 최종 일치 확인 뒤 태그 전용 PR로 `default_tags`를 추가하고, 새로 만드는 bootstrap에는 처음부터 적용한다. 적용 불가 리소스는 `docs/import-log.md`에 리소스 종류와 사유를 목록화하며, 공통 태그 목록 자체는 apply 차단 조건으로 사용하지 않는다. `.terraform.lock.hcl`은 root마다(`envs/prod/`, `bootstrap/`) 커밋하고 CI(linux)와 로컬(macOS) 플랫폼 체크섬을 모두 포함한다.
 
 ## Components and Interfaces
 
@@ -117,10 +117,9 @@ BOAZ-website/product-infra/
 │       ├── versions.tf
 │       ├── providers.tf
 │       ├── variables.tf
-│       ├── locals.tf
-│       ├── main.tf
 │       ├── outputs.tf
-│       ├── imports.tf
+│       ├── <그룹>.tf        (network·iam·params·storage·compute·database·cdn·deploy, 그룹별 module 호출)
+│       ├── imports_<그룹>.tf (그룹별 import 블록, root 바로 아래 평면 파일)
 │       ├── checks.tf
 │       ├── terraform.tfvars.example
 │       └── backend.hcl.example
@@ -143,7 +142,6 @@ BOAZ-website/product-infra/
 │   ├── inventory.md
 │   ├── workflow-contract.md
 │   └── decisions.md
-├── .terraform.lock.hcl
 ├── README.md
 └── .gitignore
 ```
@@ -473,7 +471,7 @@ Infra CI는 output을 기존 workflow의 literal/secret reference와 비교한�
 7. CloudFront → Route53 → ACM
 8. CodeDeploy/deploy contract
 
-각 그룹에서 `imports.tf`에 Terraform 1.5+ import block을 추가하고, `terraform plan -out=plan.bin`으로 import와 resource configuration diff를 함께 검토한다. import ID가 조사 log의 ID와 문자 단위로 일치하지 않으면 apply하지 않는다.
+각 그룹에서 `imports_<그룹>.tf`에 import block을 추가하고, `terraform plan -out=plan.bin`으로 import와 resource configuration diff를 함께 검토한다. import ID가 조사 log의 ID와 문자 단위로 일치하지 않으면 apply하지 않는다.
 
 ### No changes와 위험 action gate
 
@@ -679,7 +677,7 @@ For every completed on/off rehearsal, the recorded evidence SHALL include ALB st
 | 속성 | 검증 전략 | 리허설/DoD 매핑 |
 |---|---|---|
 | P1 보호 리소스 무교체 불변식 | plan JSON의 RDS/EC2/CloudFront/Route53/S3 action에 delete/replace가 없는지 검사하고 `prevent_destroy` 및 순수 action gate를 검증 | DoD 1, 2, 9; 모든 import group plan |
-| P2 Import 수렴 | `imports.tf` ID와 inventory 조사값 대조, group plan의 residual diff를 log에 기록, 최종 exact No changes 확인 | DoD 1, 2; import rehearsal |
+| P2 Import 수렴 | `imports_<그룹>.tf` ID와 inventory 조사값 대조, group plan의 residual diff를 log에 기록, 최종 exact No changes 확인 | DoD 1, 2; import rehearsal |
 | P3 시즌 상태 매핑 | `season_capacity`·`api_origin` 유효 조합 3개의 순수 canonical model property test와 plan JSON 비교, 잘못된 값·조합 validation | DoD 3, 8; on/off 리허설 |
 | P4 시즌 시작 dependency | 재배포 성공 → `season_capacity=on` → TG health → `api_origin=alb` 순서의 preflight event timestamp 검사, 재배포 실패·900초 timeout 실패 fixture 검증 | DoD 3, 4, 7; on 리허설 |
 | P5 시즌 종료 안전 순서 | origin-only 1단계 apply와 `Deployed` 증적 없이는 2단계 plan/apply가 실패하는지 검사 | DoD 3, 8, 9; off 리허설 |

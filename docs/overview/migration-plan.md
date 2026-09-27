@@ -54,7 +54,7 @@ product-infra/
 ├── envs/prod/                운영 환경. 그룹별 파일로 분리
 │   ├── versions.tf providers.tf backend.tf variables.tf outputs.tf   (공통, 리드만 수정)
 │   ├── network.tf iam.tf params.tf storage.tf compute.tf database.tf cdn.tf deploy.tf
-│   └── imports/<그룹>.tf     그룹별 import 블록
+│   └── imports_<그룹>.tf     그룹별 import 블록(root 바로 아래 평면 파일)
 ├── modules/                  network compute database storage cdn deploy iam params
 ├── tests/                    property·통합·정적 검사
 ├── docs/                     문서 (docs/README.md 참조)
@@ -63,7 +63,7 @@ product-infra/
 
 - Terraform `>= 1.11.0, < 2.0.0`. S3 자체 잠금(`use_lockfile`)은 1.10에서 도입, 1.11에서 정식 기능
 - AWS provider 버전 범위 고정, `.terraform.lock.hcl` 커밋
-- 기본 태그: `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=product-infra`. 모든 그룹 import가 끝나고 plan "No changes"를 확인한 뒤 태그 추가 전용 PR로 적용
+- 기본 태그: `Project=boaz`, `Environment=prod`, `ManagedBy=terraform`, `Repository=BOAZ-website/product-infra`. 모든 그룹 import가 끝나고 plan "No changes"를 확인한 뒤 태그 추가 전용 PR로 적용
 - state: 전용 S3 버킷(버전 관리·암호화·퍼블릭 차단) + `use_lockfile = true`, 키 `envs/prod/terraform.tfstate`
 
 ---
