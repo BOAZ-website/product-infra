@@ -60,6 +60,8 @@
 | STA-03-02 | 버킷과 보호 설정 전부에 `prevent_destroy` 적용 | 삭제하는 plan을 만들면 오류로 차단됨 |
 | STA-03-03 | DynamoDB 잠금 테이블을 만들지 않음(S3 자체 잠금 사용) | 코드 검색에서 `dynamodb_table` 없음 |
 
+> 진행: 완료(#25). 2026-09-27 bootstrap apply(추가 7, 변경·삭제 0). SSE-S3(AES256), `BucketOwnerEnforced`, TLS 강제 정책, lifecycle 3개 추가. provider에 `allowed_account_ids` 계정 가드. bootstrap state는 같은 버킷 `bootstrap/terraform.tfstate`로 이전. 버킷 이름은 `docs/records/inventory.md`
+
 ## STA-04 envs/prod backend 초기화
 
 **목적:** 운영 환경 코드가 STA-03 버킷에 state를 저장하도록 연결함
