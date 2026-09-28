@@ -37,7 +37,8 @@ reviews:
     - "!**/*.tfstate"               # state 파일 (민감·자동 생성)
     - "!**/*.tfstate.*"
     - "!**/*.tfplan"                # plan 바이너리
-    - "!**/*.tfvars"                # 변수 값(민감 가능) — 리뷰 대상에서 제외
+    - "!**/terraform.tfvars"        # 변수 값(계정 ID 등) — 리뷰 대상에서 제외
+    # season.auto.tfvars는 시크릿이 없고 시즌 전환 검토 대상이라 제외하지 않음(나머지 *.tfvars는 .gitignore로 PR에 올라오지 않음)
     - "!**/.terraform.lock.hcl"     # provider lock (자동 생성)
 
   # 인프라(Terraform) 특화 프롬프트 지침
