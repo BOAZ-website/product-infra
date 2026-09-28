@@ -43,7 +43,8 @@ jobs:
               '🧹 CHORE': /\b(chore|Chore|CHORE)\b/i,
               '🛠️ REFACTOR': /\b(refactor|Refactor|REFACTOR)\b/i,
               '🔎 TEST': /\b(test|Test|TEST)\b/i,
-              '🚀 DEPLOY': /\b(deploy|Deploy|DEPLOY)\b/i
+              '🚀 DEPLOY': /\b(deploy|Deploy|DEPLOY)\b/i,
+              '🚀 RELEASE': /^\[release\]/i
             };
 
             // 제목에서 패턴 매칭

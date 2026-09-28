@@ -98,7 +98,7 @@ BOAZ 공통 규약을 따릅니다.
 
 `[Type] 내용` 양식을 사용합니다. (예: `[Feat] network module 구현`)
 
-- 허용 Type: `[Feat]` `[Fix]` `[Docs]` `[Style]` `[Refactor]` `[Test]` `[Chore]` `[Hotfix]`
+- 허용 Type: `[Feat]` `[Fix]` `[Docs]` `[Style]` `[Refactor]` `[Test]` `[Chore]` `[Hotfix]` `[Release]`
 
 ### Milestone / 이슈 생성
 
