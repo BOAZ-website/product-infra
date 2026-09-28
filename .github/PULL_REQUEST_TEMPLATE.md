@@ -17,7 +17,7 @@
 - 영향 리소스:
 - `terraform plan` 결과: <!-- No changes / create N / update N / (delete·replace 있으면 반드시 사유) -->
 - 보호 리소스(RDS, S3, CloudFront 등) `delete`/`replace` 여부: 없음 / 있음(사유·승인 필수)
-- `season_mode` 관련 변경: 없음 / 있음
+- 시즌 변수(`season_capacity`·`api_origin`, `season.auto.tfvars`) 관련 변경: 없음 / 있음
 
 ## 📋 import 그룹 PR 체크리스트
 
