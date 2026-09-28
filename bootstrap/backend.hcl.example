@@ -1,0 +1,8 @@
+# backend.hcl로 복사해 값을 채움(backend.hcl은 gitignore 대상)
+# terraform init -input=false -backend-config=backend.hcl
+
+# terraform.tfvars의 state_bucket_name과 같은 값이어야 함
+bucket = "<state 버킷 이름>"
+
+# 다른 계정 자격 증명이면 init 단계에서 실패시킴(provider 가드보다 먼저 동작)
+allowed_account_ids = ["<AWS 계정 ID 12자리>"]

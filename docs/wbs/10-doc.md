@@ -1,0 +1,189 @@
+# DOC Migration Planning & 문서화 명세서
+
+기준일 2026-09-26 · → 전체 일정은 `docs/wbs/00-wbs.md` 참조
+
+## 명세서 목적
+
+- 이전 계획·WBS·일정을 세우고 GitHub 이슈·Milestone으로 연결함
+- GitHub 실제 상태와 문서 표기가 다른 부분을 바로잡음
+- 흩어진 결정 목록을 하나로 합치고, 착수 전에 스펙 결함을 정정함
+- 마지막 단계의 README·런북·계약 문서도 이 명세서에서 다룸
+
+**범위:** wbs.md, decisions.md, tasks.md, design.md, requirements.md, overview/migration-plan.md, README, 런북, 계약 문서
+**범위 밖:** Terraform 코드 작성(→ 각 자원 명세서), backend·frontend 저장소 문서(OPS-08 제외)
+
+---
+
+## DOC-01 새 WBS PR #12 머지
+
+**목적:** 구 WBS(`docs/wbs.md`)를 담았던 PR #12를 새 WBS·명세서·문서 구조 개편 PR로 바꿨으므로, 리뷰를 거쳐 머지하고 이슈 #11을 닫음. 기존 "wbs.md 상태 오기 정정" 작업은 구 문서 삭제로 불필요해졌음
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | DOC-05 | 없음 | Phase 1 | 없음 | #11, PR #12 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-01-01 | 조사 문서 3종을 `docs/records/`로 옮기고 `infra-spec.md` 정리. PR #12가 먼저 머지되어 후속 이슈 #14로 분리 | PR #15 머지 후 `docs/records/` 존재 |
+| DOC-01-02 | 리뷰 승인 후 PR #12 머지, 이슈 #11 자동 종료 확인 | `gh pr view 12`에서 MERGED, `gh issue view 11`에서 CLOSED |
+
+## DOC-02 결정 레지스터 통합
+
+**목적:** decisions.md를 결정·확인 필요 레지스터 하나로 만들고, 빠진 항목을 추가함
+
+> 진행: 완료(#18). WBS의 결정 대기·확인 필요 표를 레지스터로 옮기고, 결론 난 항목(EIP, admin 포함 여부, CodeDeploy 태그 방식) 상태를 완료로 갱신
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | 없음 | 없음 | Phase 1 | 1.2 | 없음 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-02-01 | WAF WebACL 관리 방식, 브랜치 전략, CloudTrail 존재 여부 항목 추가 | decisions.md에 각 항목이 상태·결정 주체·기한과 함께 존재 |
+| DOC-02-02 | 이미 결론 난 항목(EIP, admin 포함 여부, CodeDeploy 태그 방식)의 상태를 `완료`로 갱신 | 해당 행 상태 열이 `대기`에서 `완료`로 바뀜 |
+| DOC-02-03 | import-log.md에 그룹별 상태 칸(대기·진행 중·완료)과 담당자·시작 시각 칸 추가(PR #10 머지 후) | import-log.md에 8개 그룹 행과 상태 칸 존재 |
+
+## DOC-03 이슈 #13 범위 경계 정리
+
+**목적:** 관리자 콘솔 인프라 요구사항(#13) 중 이 작업에 포함할 것과 뺄 것을 문서에 명시함
+
+> 진행: 완료. #13에 반영 현황 코멘트 등록. 다른 저장소에서 할 항목(frontend_admin 배포 워크플로우, backend 배포 방식 변수화, backend #210 연계)은 코멘트에 추후 진행 체크리스트로 남김. #13은 해당 이슈 생성과 PR #12 머지 후 종료.
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | DOC-02 | 없음 | Phase 1 | 신규 | #13 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-03-01 | 이슈 #13에 범위 경계 코멘트 등록(기존 admin 자원 import는 포함, 앱 배포 workflow 변경은 제외). 2026-09-26 등록 완료 | `gh issue view 13`에서 코멘트 확인 |
+| DOC-03-02 | 계획서 비목표 문구에 "기존 admin 자원 import는 범위 안" 명시 (2026-09-26 `overview/migration-plan.md`에 반영됨) | 문서에서 문구 확인 |
+
+## DOC-04 스펙 결함 일괄 정정
+
+**목적:** 검토 보고서에서 찾은 스펙 결함 9건을 착수 전에 고침
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 한 주 | DOC-02 | 없음 | Phase 1 | 1.1~4.8 전반(문서 정정) | 없음 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-04-01 | `required_version`과 CI `TF_VERSION`(기존 `ci.yml` 1.9.8)을 1.11 이상으로 상향(S3 잠금 기능 `use_lockfile`은 1.10에서 도입, 1.11에서 정식) | versions 파일과 workflow에서 1.11 이상 값 확인 |
+| DOC-04-02 | 기본 태그 값 `Repository`를 실제 저장소명 `product-infra`로 정정 | 변경 내용 확인 |
+| DOC-04-03 | "state 등록만 하는 apply"와 "자원을 바꾸는 apply"를 구분하는 문구 추가 | 문서에 두 개념이 별도 절로 존재 |
+| DOC-04-04 | 시즌 모델을 변수 2개(`season_capacity`: ALB·EC2-B·Multi-AZ / `api_origin`: ec2·alb)로 바꾸기로 설계 문서에 기록 | design.md에 2변수 표 존재 |
+| DOC-04-05 | 시즌 시작 시 "EC2-B 기동 → 재배포 성공 → Target Group 등록" 순서를 설계 문서에 명시 | 해당 절에 순서와 실패 시 중지 기준 기재 |
+| DOC-04-06 | requirements의 "API/www/dev" 표기를 실제 대상인 "admin"으로 정정(tasks.md는 참고용이라 제외) | 변경 내용 확인 |
+| DOC-04-07 | 보안 그룹 규칙을 규칙별 개별 리소스로 관리하기로 확정하고 inventory.md 표기 통일 | design.md와 inventory.md 표기 일치 |
+| DOC-04-08 | infra-spec.md의 SSH 허용 개인 IP 기재 삭제, Session Manager 전환 우선순위 기록(#14에서 `docs/overview/current-infra.md`로 반영) | IP 주소 패턴 검색 결과 없음 |
+| DOC-04-09 | infra-spec.md 최신화(#13): EC2-A Elastic IP "미적용" → 연결됨, www·api·admin CloudFront의 WAF 연결 추가(#14에서 반영) | 문서가 inventory 조사 결과와 일치 |
+
+> 진행: 완료(#2). 03은 #11(migration-plan.md), 08·09는 #14, 나머지(01·02·04·05·06·07)는 #2 후속 PR에서 `.kiro` 스펙 원본·`ci.yml`·inventory.md에 반영. AWS provider 버전 범위는 결정 레지스터 "AWS provider 버전"을 따르도록 두고 값은 바꾸지 않음
+
+## DOC-05 PR #9·#10 리뷰·머지
+
+**목적:** 이미 작업이 끝나 리뷰를 기다리는 사전 준비 PR 2건(저장소 구조, AWS 조사 기록)을 머지함
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | 없음 | 없음 | Phase 1 | 1.1~1.3, 2.1 | #7, #8, PR #9, PR #10 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-05-01 | 2건 모두 리뷰어 지정 | `gh pr view`에 리뷰 요청 대상 존재 |
+| DOC-05-02 | 승인 1건 이상 받은 뒤 머지하고 이슈 #7·#8 닫기 | `gh pr view --json reviews,state`에서 APPROVED와 MERGED 확인 |
+
+## DOC-06 GitHub Milestone·이슈 생성 규칙
+
+**목적:** GitHub Milestone과 티켓 이슈를 언제 만드는지 규칙으로 정함. 작업 관리는 노션이 기준이므로 전체 티켓을 미리 이슈로 복제하지 않음
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | DOC-05 | 없음 | Phase 1 | 신규 | #11 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-06-01 | Milestone·이슈는 미리 일괄 생성하지 않고, 현재 Phase 또는 다음 Phase를 시작할 때 사용자 승인 후 해당 Phase의 Milestone과 그 Phase 티켓 이슈만 생성한다는 규칙을 README "협업 규약"에 추가 | README에 "Milestone / 이슈 생성" 절 존재 |
+| DOC-06-02 | 같은 규칙을 AI 도구 규칙(CLAUDE.md)에 추가해 승인 없는 일괄 생성을 막음 | CLAUDE.md에 "GitHub Milestone·이슈 생성 규칙" 절 존재 |
+
+> 진행: 완료(#11). 기존 범위(Phase 1~5 Milestone 일괄 생성, 티켓 57개 이슈 일괄 생성)는 2026-09-27 결정으로 폐기. 2026-09-27 사용자 승인으로 Phase 0·Phase 1 Milestone을 소급 생성해 노션 티켓 기준으로 기존 이슈·PR을 연결함(Phase 0은 닫음). Phase 2 준비 Milestone도 같은 날 생성, 이후 Phase는 시작 시 승인 후 생성
+
+## DOC-07 tasks.md 기준 문서 안내
+
+**목적:** 작업 순서·완료 조건의 기준은 노션 명세서로 확정됐으므로, tasks.md는 내용을 고치지 않고 참고용이라는 안내만 넣음
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | 없음 | 없음 | Phase 1 | 파일 상단 | 없음 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-07-01 | tasks.md 맨 위에 "이 문서는 참고용이며 작업 순서·완료 조건의 기준은 노션 WBS·명세서" 안내 추가. 순서 재배치·저장소 이름 정정은 하지 않음 | tasks.md 첫 부분에 안내 문구 존재 |
+
+> 진행: 완료(#2). DOC-04 스펙 정정 PR에서 함께 반영. 안내 문구에 정정 전 값(저장소 이름, `season_mode`, Terraform 1.9)이 남아 있음을 명시
+
+## DOC-08 README 작성
+
+**목적:** 처음 보는 사람이 README만 보고 plan을 실행할 수 있게 함
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 한 주 | STA-04, STA-09, STA-12 | 없음 | Phase 5 | 9.1 | 없음 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-08-01 | 저장소 구조, AWS 프로필, 확정 버전 기재 | 새로 clone한 환경에서 README만 보고 `terraform init` 성공 |
+| DOC-08-02 | plan·apply 실패 시 중지 기준 기재 | 실패 유형별 대응 표 존재 |
+
+## DOC-09 시즌 전환 런북 작성
+
+**목적:** 시즌 시작·종료를 사람이 순서대로 따라 할 수 있는 절차서를 만듦
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 한 주 | SEA-02, SEA-03 | 없음 | Phase 5 | 9.2 | 없음 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-09-01 | 종료 2단계 절차(origin 복귀 → CloudFront `Deployed` 확인 → ALB 제거)와 배포 방식 구분(AllAtOnce/OneAtATime) 기재 | 런북 순서와 SEA-03 구현 순서 일치 |
+
+## DOC-10 최종 Import_Log 갱신
+
+**목적:** 마지막 plan 결과를 기록으로 남김
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | STA-09, 모든 import 그룹 | 없음 | Phase 5 | 9.3 | 없음 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-10-01 | 마지막 plan의 "No changes" 문구·실행 시점·검증자 기록 | import-log.md 마지막 행에 세 값 존재 |
+
+## DOC-11 workflow·CI 계약 문서
+
+**목적:** 기존 배포 workflow가 참조하는 값과 Terraform output의 대응 규칙을 문서로 남김
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | STA-10 | 없음 | Phase 5 | 9.4 | 없음 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-11-01 | backend·frontend workflow 참조 값과 output 비교 규칙 정리 | 문서의 표와 실제 output 이름이 1:1 대응 |
+
+## DOC-12 결정 결과 문서화
+
+**목적:** 모든 결정의 최종 결과와 스펙 변경 수동 승인 절차(#13 R18)를 기록함
+
+| 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
+| --- | --- | --- | --- | --- | --- |
+| 하루이틀 | 관련 결정 전부 | 없음 | Phase 5 | 9.5 | #13 |
+
+| 기능 ID | 기능 | 완료 확인 방법 |
+| --- | --- | --- |
+| DOC-12-01 | 결정 레지스터 전 항목의 최종 상태를 표 하나로 정리. 인스턴스 타입·DB 클래스 변경은 수동 승인 기록 규칙 포함 | 모든 행에 상태·결정 주체·기한 값 존재 |
+
+---
+
+## 확인 필요 사항
+
