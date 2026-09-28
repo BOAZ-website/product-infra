@@ -1,8 +1,12 @@
 name: CI
 
-# Terraform 정적 검증 CI.
-# AWS 자격증명이 필요 없는 검증만 수행한다: fmt, init(-backend=false), validate, tflint.
-# 실제 plan / drift / apply 는 OIDC role 과 backend 가 확정된 뒤 별도 workflow(plan.yml/apply.yml)에서 다룬다.
+# Terraform PR CI (STA-05).
+# - AWS 자격증명 없이: 민감 정보 검사, fmt, init(-backend=false)·validate·test, tflint, 정적 테스트
+# - PR에서만: envs/prod plan(GitHub OIDC, 읽기 전용 역할) → 요약을 PR 코멘트로 게시
+# - Apply Ready: 위 검사가 모두 성공해야 초록. 이 체크가 "apply 대상" 표시(STA-05-02)
+# 공개 저장소라 Actions 로그·코멘트는 누구나 본다. plan 원문·plan JSON은 출력·업로드하지 않는다.
+# 외부 액션은 커밋 SHA로 고정하고(주석은 버전), pull_request_target은 쓰지 않는다(STA-05-04).
+# apply / drift는 별도 workflow(STA-11·STA-12)에서 다룬다.
 
 on:
   push:
@@ -20,10 +24,10 @@ env:
 jobs:
   sensitive:
     name: Sensitive Info Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -33,16 +37,19 @@ jobs:
       - name: 민감 정보 검사 회귀 테스트
         run: bash scripts/test-check-sensitive.sh
 
+      - name: 정적 테스트(plan 요약·마스킹)
+        run: python3 -m unittest discover -s tests/static -v
+
   gitleaks:
     name: Gitleaks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # 버전과 체크섬을 고정한다(gitleaks_<버전>_checksums.txt의 linux_x64 값). 올릴 때 둘 다 바꾼다
       GITLEAKS_VERSION: "8.30.1"
       GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -59,15 +66,15 @@ jobs:
 
   fmt:
     name: Terraform Format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
@@ -77,15 +84,15 @@ jobs:
 
   validate:
     name: Terraform Validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
@@ -136,18 +143,18 @@ jobs:
 
   tflint:
     name: TFLint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # .tflint.hcl의 required_version과 함께 올린다
       TFLINT_VERSION: "v0.64.0"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+        uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4.1.1
         with:
           tflint_version: ${{ env.TFLINT_VERSION }}
 
@@ -160,3 +167,154 @@ jobs:
           set -euo pipefail
           tflint --init --config "${GITHUB_WORKSPACE}/.tflint.hcl"
           tflint --recursive --config "${GITHUB_WORKSPACE}/.tflint.hcl" --no-color
+
+  plan:
+    name: Terraform Plan (envs/prod)
+    # 같은 저장소 브랜치의 PR만. 포크 PR은 OIDC 토큰·시크릿이 없어 실행하지 않음
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    # state 잠금 파일은 하나라 plan도 한 번에 하나씩 실행
+    concurrency:
+      group: terraform-plan-envs-prod
+      cancel-in-progress: false
+    outputs:
+      configured: ${{ steps.config.outputs.configured }}
+    env:
+      TF_DIR: envs/prod
+      AWS_REGION: ap-northeast-2
+      # 계정 ID·버킷 이름·역할 ARN은 저장소 secret으로만 받음(로그에서 마스킹됨)
+      PLAN_ROLE_ARN: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+      STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
+      ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # OIDC 역할(bootstrap/ci_plan_role.tf) apply와 secret 등록 전에는 plan을 건너뜀. Apply Ready도 표시되지 않음
+      - name: plan 설정 확인
+        id: config
+        run: |
+          if [ -n "${PLAN_ROLE_ARN}" ] && [ -n "${STATE_BUCKET}" ] && [ -n "${ACCOUNT_ID}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::plan 미구성(secret AWS_PLAN_ROLE_ARN·TF_STATE_BUCKET·AWS_ACCOUNT_ID 필요). plan을 건너뜁니다."
+          fi
+
+      - name: Setup Terraform
+        if: steps.config.outputs.configured == 'true'
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: AWS 자격 증명(OIDC)
+        if: steps.config.outputs.configured == 'true'
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
+        with:
+          role-to-assume: ${{ env.PLAN_ROLE_ARN }}
+          role-session-name: product-infra-plan-pr-${{ github.event.pull_request.number }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-duration-seconds: 1800
+          allowed-account-ids: ${{ env.ACCOUNT_ID }}
+          mask-aws-account-id: true
+
+      # plan 원문·오류에는 자원 ID·IP가 들어가므로 파일로만 받고, 요약과 마스킹한 오류만 출력함
+      - name: terraform plan
+        id: plan
+        if: steps.config.outputs.configured == 'true'
+        env:
+          # secret 마스킹은 로그에만 적용되고 PR 코멘트(API)에는 적용되지 않으므로 요약·오류에서도 직접 가림
+          PLAN_SUMMARY_REDACT: |-
+            ${{ secrets.TF_STATE_BUCKET }}
+            ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          set -uo pipefail
+          work="${RUNNER_TEMP}/tfplan"
+          mkdir -p "${work}"
+          summary="${work}/summary.md"
+
+          printf 'bucket = "%s"\nallowed_account_ids = ["%s"]\n' "${STATE_BUCKET}" "${ACCOUNT_ID}" > "${TF_DIR}/backend.hcl"
+          printf 'expected_account_id = "%s"\n' "${ACCOUNT_ID}" > "${TF_DIR}/terraform.tfvars"
+
+          fail() {
+            echo "::error::$1"
+            {
+              echo "$1"
+              echo
+              echo '```text'
+              grep -E 'Error|error' "$2" | head -n 20 | python3 scripts/plan_summary.py redact
+              echo '```'
+            } > "${summary}"
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+
+          terraform -chdir="${TF_DIR}" init -input=false -no-color -lockfile=readonly -backend-config=backend.hcl \
+            > "${work}/init.log" 2>&1 || fail "terraform init 실패" "${work}/init.log"
+          terraform -chdir="${TF_DIR}" plan -input=false -no-color -lock-timeout=5m -out="${work}/plan.bin" \
+            > "${work}/plan.log" 2>&1 || fail "terraform plan 실패" "${work}/plan.log"
+          terraform -chdir="${TF_DIR}" show -json "${work}/plan.bin" > "${work}/plan.json" 2> "${work}/show.log" \
+            || fail "terraform show 실패" "${work}/show.log"
+
+          python3 scripts/plan_summary.py summary "${work}/plan.json" > "${summary}"
+          echo "result=success" >> "$GITHUB_OUTPUT"
+
+      - name: plan 요약 게시
+        if: always() && steps.config.outputs.configured == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          PLAN_RESULT: ${{ steps.plan.outputs.result }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = `${process.env.RUNNER_TEMP}/tfplan/summary.md`;
+            const body = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '요약을 만들지 못했습니다. Actions 로그를 확인하세요.';
+            const ok = process.env.PLAN_RESULT === 'success';
+            const MARKER = '<!-- terraform-plan-envs-prod -->';
+            const text = [
+              MARKER,
+              `### Terraform Plan (envs/prod): ${ok ? '✅ 성공' : '❌ 실패'}`,
+              `커밋 \`${context.payload.pull_request.head.sha.slice(0, 7)}\` · 시즌 값은 \`envs/prod/season.auto.tfvars\` 기준`,
+              '',
+              body,
+              '',
+              '_plan 원문·값은 공개 저장소 규칙에 따라 표시하지 않습니다._',
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+            const prev = comments.find((c) => c.user.type === 'Bot' && c.body.includes(MARKER));
+            if (prev) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body: text });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body: text });
+            }
+
+      - name: plan 파일 정리
+        if: always()
+        run: rm -rf "${RUNNER_TEMP}/tfplan" "${TF_DIR}/backend.hcl" "${TF_DIR}/terraform.tfvars" "${TF_DIR}/.terraform"
+
+  apply-ready:
+    name: Apply Ready
+    # plan이 구성된 PR에서만 판정. 미구성·포크 PR에서는 skipped(apply 대상 아님)
+    needs: [sensitive, gitleaks, fmt, validate, tflint, plan]
+    if: always() && github.event_name == 'pull_request' && needs.plan.outputs.configured == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 모든 검사 성공 확인
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "검사 결과: ${RESULTS}"
+          if ! echo "${RESULTS}" | jq -e 'length > 0 and all(. == "success")' > /dev/null; then
+            echo "::error::fmt·validate·plan 등 검사 중 성공하지 않은 항목이 있어 apply 대상이 아닙니다."
+            exit 1
+          fi
+          echo "모든 검사 성공: apply 대상"

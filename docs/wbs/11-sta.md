@@ -81,7 +81,13 @@
 
 **목적:** PR마다 형식·문법 검사와 plan을 자동 실행하고 결과를 PR에 남김
 
-> 진행: `.github/workflows/ci.yml`에 AWS 권한 없이 도는 `fmt -check`·`init -backend=false`·`validate`·tflint가 이미 있음(PR #3). 남은 것은 plan 실행·PR 코멘트·OIDC 연결.
+> 진행: 코드 완료(#31), 운영 반영 대기.
+> - `ci.yml`에 plan 작업(`Terraform Plan (envs/prod)`)과 집계 작업(`Apply Ready`) 추가. Apply Ready는 민감 정보·gitleaks·fmt·validate·tflint·plan이 모두 성공해야 초록(STA-05-02)
+> - plan 역할: `bootstrap/ci_plan_role.tf`. 기존 GitHub OIDC provider를 참조(IAM 그룹이 import 예정), 이 저장소 `pull_request` 토큰만 허용, ReadOnlyAccess + state 조회·`.tflock` 쓰기, S3 객체(state 제외)·복호화·시크릿·로그 읽기 명시 거부
+> - 공개 저장소라 plan 원문·plan JSON은 출력·업로드하지 않음. `scripts/plan_summary.py`가 개수와 자원 주소만 요약하고 오류 로그는 식별자를 가림(검사: `tests/static/test_plan_summary.py`)
+> - 모든 workflow의 `uses:`를 커밋 SHA로 고정. `pull_request_target`은 plan workflow에서 쓰지 않음. 기존 제목·base 검사·자동 라벨 workflow는 코드를 checkout하지 않는 github-script만 실행해 유지
+> - 남은 것: bootstrap apply(운영 승인), 저장소 secret 3개(`AWS_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `AWS_ACCOUNT_ID`) 등록, 샘플 PR에서 코멘트·Apply Ready 확인. 그 전까지 plan은 건너뛰고 Apply Ready는 skipped
+> - 알려진 제약: plan 역할은 `kms:Decrypt`를 거부하므로 SecureString SSM 파라미터를 읽는 plan은 실패함. params 그룹(IAM-03) 착수 전에 처리 방식을 정함
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
