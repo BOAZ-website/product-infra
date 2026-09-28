@@ -29,8 +29,8 @@ jobs:
             const issue_number = target.number;
             const title = (target.title || '').trim();
 
-            // 허용: [Feat] [Fix] [Docs] [Style] [Refactor] [Test] [Chore] [Hotfix] (대소문자 무시)
-            const pattern = /^\[(feat|fix|docs|style|refactor|test|chore|hotfix)\]\s+.+/i;
+            // 허용: [Feat] [Fix] [Docs] [Style] [Refactor] [Test] [Chore] [Hotfix] [Release] (대소문자 무시)
+            const pattern = /^\[(feat|fix|docs|style|refactor|test|chore|hotfix|release)\]\s+.+/i;
             const ok = pattern.test(title);
 
             // 봇이 이전에 남긴 안내 코멘트 찾기 (전체 페이지 조회)
@@ -65,7 +65,7 @@ jobs:
               '',
               '`[Type] 내용` 형식으로 맞춰주세요. 예: `[Feat] VPC module 구현`',
               '',
-              '허용 Type: `[Feat]` `[Fix]` `[Docs]` `[Style]` `[Refactor]` `[Test]` `[Chore]` `[Hotfix]`',
+              '허용 Type: `[Feat]` `[Fix]` `[Docs]` `[Style]` `[Refactor]` `[Test]` `[Chore]` `[Hotfix]` `[Release]`',
               '',
               '_알림용이며 머지를 막지 않습니다. 제목을 고치면 이 코멘트는 자동으로 사라집니다._',
             ].join('\n');
