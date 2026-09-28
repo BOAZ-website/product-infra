@@ -96,7 +96,7 @@
 | AWS 운영 자원 조사 | inventory·decisions·import-log 문서 3종(tasks.md 1.1~1.3) | #8, PR #10 | 완료(머지). `docs/records/`로 이동(#14) |
 | WBS·문서 개편 | 구 `docs/wbs.md`를 `docs/wbs/`로 대체, 문서 구조 개편 | #11, PR #12 | 완료(머지) |
 | 조사 기록 이동·현행 인프라 문서 정리 | `docs/records/` 이동, `docs/overview/current-infra.md` 정리(개인 IP 삭제, EIP·WAF 반영) | #14, PR #15 | 완료(머지) |
-| 공개 저장소 보안 정보 공개 방지 | 보안 정보 공개 금지 규칙(README·CLAUDE.md), 검사 스크립트·회귀 테스트, 커밋 전 훅, CI(민감 정보 검사·gitleaks), GitHub secret scanning·push protection | #16, PR #17 | 진행 중(push protection·secret scanning은 2026-09-26 적용) |
+| 공개 저장소 보안 정보 공개 방지 | 보안 정보 공개 금지 규칙(README·CLAUDE.md), 검사 스크립트·회귀 테스트, 커밋 전 훅, CI(민감 정보 검사·gitleaks), GitHub secret scanning·push protection | #16, PR #17 | 완료(머지). push protection·secret scanning은 2026-09-26 적용 |
 | 관리자 콘솔 인프라 요구사항 | 요구사항 정리(R1~R18) | #13 | 완료. 인프라 항목은 이 WBS에 반영, 다른 저장소 후속 이슈 생성(backend#214·#215, frontend_admin#28) |
 | 결정 레지스터 통합(DOC-02) | 레지스터 통합, 결론 난 결정 상태 갱신 | #18, PR #19·#20 | 완료(머지) |
 | 스펙 원본 결함 정정(DOC-04) | `.kiro` 스펙을 Terraform 1.11 이상·시즌 2변수 모델·admin 표기로 정정, CI 버전 상향, 보안 그룹 표기 통일 | #2, PR #21 | 완료(머지) |
