@@ -62,6 +62,9 @@ def redact(text: str, literals: list[str] | None = None) -> str:
 
 def classify(actions: list[str]) -> str:
     """resource_changes[].change.actions를 하나의 분류로 바꾼다."""
+    # removed 블록(Terraform 1.7+): 자원은 남기고 state에서만 뺌. 관리 대상에서 빠지므로 따로 표시
+    if "forget" in actions:
+        return "forget"
     if "delete" in actions and "create" in actions:
         return "replace"
     if actions == ["delete"]:
@@ -102,14 +105,15 @@ def summarize(plan: dict) -> dict:
 def render(result: dict) -> str:
     counts = result["counts"]
     lines = [
-        "| import | create | update | replace | delete | output 변경 |",
-        "| --- | --- | --- | --- | --- | --- |",
-        "| {imp} | {c} | {u} | {r} | {d} | {o} |".format(
+        "| import | create | update | replace | delete | forget | output 변경 |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| {imp} | {c} | {u} | {r} | {d} | {f} | {o} |".format(
             imp=result["imports"],
             c=counts["create"],
             u=counts["update"],
             r=counts["replace"],
             d=counts["delete"],
+            f=counts["forget"],
             o=result["output_changes"],
         ),
     ]
@@ -122,6 +126,8 @@ def render(result: dict) -> str:
             lines.append(f"- 외 {len(changed) - MAX_ADDRESSES}건")
     if counts["replace"] or counts["delete"]:
         lines += ["", "⚠️ 교체·삭제가 있습니다. 보호 자원이면 apply하지 않습니다(안전 게이트 STA-07)."]
+    if counts["forget"]:
+        lines += ["", "⚠️ state에서 빼는(forget) 자원이 있습니다. 자원은 남지만 Terraform 관리에서 빠집니다."]
     return "\n".join(lines)
 
 
