@@ -285,6 +285,16 @@ jobs:
             || fail "terraform show 실패" "${work}/show.log"
 
           python3 scripts/plan_summary.py summary "${work}/plan.json" > "${summary}"
+
+          # 안전 게이트(STA-07): 보호 자원 삭제·교체, 시크릿 노출, 과도한 보안 그룹 규칙이면 이 작업을 실패시킴(Apply Ready도 실패)
+          python3 scripts/plan_gate.py "${work}/plan.json" > "${work}/gate.md"
+          gate_rc=$?
+          { echo; cat "${work}/gate.md"; } >> "${summary}"
+          if [ "${gate_rc}" -ne 0 ]; then
+            echo "::error::안전 게이트가 이 plan을 차단했습니다. PR 코멘트의 사유를 확인하세요."
+            echo "result=blocked" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
           echo "result=success" >> "$GITHUB_OUTPUT"
 
       - name: plan 요약 게시
@@ -297,11 +307,11 @@ jobs:
             const fs = require('fs');
             const path = `${process.env.RUNNER_TEMP}/tfplan/summary.md`;
             const body = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '요약을 만들지 못했습니다. Actions 로그를 확인하세요.';
-            const ok = process.env.PLAN_RESULT === 'success';
+            const status = { success: '✅ 성공', blocked: '❌ 안전 게이트 차단' }[process.env.PLAN_RESULT] || '❌ 실패';
             const MARKER = '<!-- terraform-plan-envs-prod -->';
             const text = [
               MARKER,
-              `### Terraform Plan (envs/prod): ${ok ? '✅ 성공' : '❌ 실패'}`,
+              `### Terraform Plan (envs/prod): ${status}`,
               `커밋 \`${context.payload.pull_request.head.sha.slice(0, 7)}\` · 시즌 값은 \`envs/prod/season.auto.tfvars\` 기준`,
               '',
               body,

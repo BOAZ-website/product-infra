@@ -4,6 +4,7 @@
 
 > 각 명세서에는 그 그룹에만 해당하는 항목만 적음. 이 페이지의 절차는 모든 그룹이 똑같이 따름
 > 시작 조건: STA-07(안전 게이트) 완료. 이전에는 어떤 그룹도 import를 시작하지 않음
+> 게이트는 PR CI plan 작업에서 자동으로 돎(`scripts/plan_gate.py`). 로컬에서 미리 확인: `terraform -chdir=envs/prod plan -out=plan.bin` → `terraform -chdir=envs/prod show -json plan.bin > /tmp/plan.json` → `python3 scripts/plan_gate.py /tmp/plan.json`(plan JSON에는 값이 평문으로 들어가므로 저장소 안에 두지 않고 확인 뒤 지움)
 
 ---
 
