@@ -62,6 +62,11 @@
 | --- | --- | --- |
 | IAM-03-01 | `/boaz/infra/*`는 정확히 12개. 개수가 다르면 plan 실패 | 13개로 바꾼 테스트에서 실패 |
 | IAM-03-02 | 앱 시크릿은 존재·타입·암호화 키만 확인. 복호화 조회 안 함, output에 노출 안 함 | plan 출력에 시크릿 값 없음 |
+
+> 앱 시크릿 확인 방법: `aws ssm describe-parameters`(이름·타입·KMS 키 등 메타데이터만, 값 없음)로 확인하고 결과는 `docs/records/`에 이름·타입만 기록함. 다음은 쓰지 않음
+> - `aws_ssm_parameter` resource로 import: plan이 값을 복호화해 읽음. PR CI plan 역할은 `kms:Decrypt`를 거부해 plan이 실패하고, 값이 state에 들어가 안전 게이트 G2도 차단함(STA-05·STA-07)
+> - `data "aws_ssm_parameter"`: 기본이 복호화 조회이고, `with_decryption = false`여도 암호문이 state에 남음
+> - `aws ssm get-parameter --with-decryption`(CLAUDE.md "시크릿은 조회 자체를 하지 않는다")
 | IAM-03-03 | P7 테스트: 파라미터 값은 직접 입력하지 않고 관리 자원의 속성에서 가져옴 | `pytest -k P7` 통과 |
 | IAM-03-04 | 기존 `register-ssm-params.sh`를 실행 경로에서 참조하지 않음 | 검사 결과 참조 0건 |
 
