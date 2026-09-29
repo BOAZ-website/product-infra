@@ -87,7 +87,7 @@
 > - 공개 저장소라 plan 원문·plan JSON은 출력·업로드하지 않음. `scripts/plan_summary.py`가 개수와 자원 주소만 요약하고 오류 로그는 식별자를 가림(검사: `tests/static/test_plan_summary.py`)
 > - 모든 workflow의 `uses:`를 커밋 SHA로 고정. `pull_request_target`은 plan workflow에서 쓰지 않음. 기존 제목·base 검사·자동 라벨 workflow는 코드를 checkout하지 않는 github-script만 실행해 유지
 > - 남은 것: bootstrap apply(운영 승인), 저장소 secret 3개(`AWS_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `AWS_ACCOUNT_ID`) 등록, 샘플 PR에서 코멘트·Apply Ready 확인. 그 전까지 plan은 건너뛰고 Apply Ready는 skipped
-> - 알려진 제약: plan 역할은 `kms:Decrypt`를 거부하므로 SecureString SSM 파라미터를 읽는 plan은 실패함. params 그룹(IAM-03) 착수 전에 처리 방식을 정함
+> - plan 역할은 `kms:Decrypt`를 거부함. 설계상 앱 시크릿(SecureString)은 값 관리 대상이 아니고(requirements.md Secret_Parameter, design.md "값 소유 resource로 만들지 않는다"), IAM-03이 import하는 `/boaz/infra/*` 12개는 String이라 복호화가 필요 없음. 앱 시크릿을 `aws_ssm_parameter`로 import하면 plan이 권한 오류로 실패하고 안전 게이트(G2)도 막음. 존재·타입 확인 방법은 `docs/wbs/22-iam.md` IAM-03 참고
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
