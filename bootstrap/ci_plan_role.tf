@@ -7,8 +7,12 @@
 # - PR 코드가 이 역할로 실행되므로 데이터 영역 읽기(S3 객체·복호화·시크릿·로그 등)는 명시적으로 거부함
 
 locals {
-  github_repository = "BOAZ-website/product-infra"
-  prod_state_key    = "envs/prod/terraform.tfstate"
+  # 이 저장소는 2026-07-15 이후 생성돼 GitHub OIDC가 immutable subject 형식(repo:OWNER@OWNER_ID/REPO@REPO_ID:...)을 씀.
+  # 이름만 쓴 형식(repo:BOAZ-website/product-infra:...)은 토큰과 맞지 않아 AssumeRole이 실패함.
+  # 확인: gh api repos/BOAZ-website/product-infra/actions/oidc/customization/sub 의 sub_claim_prefix
+  # (GitHub 소유자·저장소 번호는 공개 정보이며 AWS 식별자가 아님)
+  github_oidc_sub_prefix = "repo:BOAZ-website@258640138/product-infra@1377059386"
+  prod_state_key         = "envs/prod/terraform.tfstate"
 }
 
 data "aws_iam_openid_connect_provider" "github" {
@@ -35,7 +39,7 @@ data "aws_iam_policy_document" "ci_plan_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${local.github_repository}:pull_request"]
+      values   = ["${local.github_oidc_sub_prefix}:pull_request"]
     }
   }
 }
