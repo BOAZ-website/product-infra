@@ -112,6 +112,8 @@
 | --- | --- | --- |
 | STA-06-01 | hypothesis 라이브러리 설치, 테스트당 100회 이상 실행 설정 | `pytest tests/property/` 실행 성공 |
 
+> 진행: 완료(#32). `tests/requirements.in`(pytest·hypothesis 고정) → 해시 잠금 `tests/requirements.txt`, pytest 설정 `pyproject.toml`(testpaths `tests/static`·`tests/property`), hypothesis 프로필 `tests/property/conftest.py`(기본 `ci` 100회·derandomize, `thorough` 1000회). 환경 자체 검사 `tests/property/test_harness.py`. CI `Python Tests` 작업이 실행하고 `Apply Ready` 조건에 포함. 결정 "property 테스트 범위"는 대기 상태라 권장안(판정 로직은 고정 입력 테스트, hypothesis는 P1·P6)으로 선행 구현함
+
 ## STA-07 안전 게이트 + P1·P6
 
 **목적:** import를 시작하기 전에 삭제·교체·시크릿 노출을 막는 검사를 만듦. Phase 2 1차 모든 그룹의 시작 조건

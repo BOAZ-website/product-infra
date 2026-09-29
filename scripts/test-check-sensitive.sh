@@ -26,6 +26,8 @@ must_fail=(
   "pass""word = \"Correct Horse Battery Staple\""
   "pass""word = 'Correct Horse Battery Staple'"
   "sec""ret=QWxhZGRpbjpvcGVuIHNlc2FtZQ=="
+  # 해시 제외 규칙이 같은 줄의 계정 ID까지 지우면 안 됨
+  "--hash=sha256:$(printf 'a%.0s' {1..64}) 계정 1234567""89012"
 )
 must_pass=(
   "db_pass""word = var.db_password"
@@ -35,6 +37,9 @@ must_pass=(
   "pass""word = \"xxxxxxxx\""
   "- RDS pass""word: Terraform 값 관리 대상이 아니며"
   "사설 대역 10.0.0.0/16"
+  # sha256 해시 안의 12자리 숫자 구간은 계정 ID가 아님(tests/requirements.txt, .terraform.lock.hcl)
+  "    --hash=sha256:ab1234567""89012cd$(printf 'e%.0s' {1..48})"
+  "    \"zh:1234567""89012$(printf 'f%.0s' {1..52})\","
 )
 
 # $1: 파일 내용, $2: 파일명(생략 시 sample.md)

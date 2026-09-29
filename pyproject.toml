@@ -1,0 +1,12 @@
+# Python 테스트 설정 (STA-06). 패키지 배포용이 아니라 pytest 설정만 둠
+#   python -m pip install --require-hashes -r tests/requirements.txt
+#   python -m pytest              # tests/static + tests/property
+#   python -m pytest -k P1        # 특정 Property만
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests/static", "tests/property"]
+# scripts/를 패키지처럼 import(from scripts import plan_gate)
+pythonpath = ["."]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
