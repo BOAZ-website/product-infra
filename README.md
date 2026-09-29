@@ -57,7 +57,7 @@ terraform -chdir=envs/prod plan -input=false                               # 계
 
 `init` 전에 `envs/prod/backend.hcl.example` → `backend.hcl`, `terraform.tfvars.example` → `terraform.tfvars`로 복사해 값을 채웁니다(둘 다 gitignore 대상, 값은 `docs/records/inventory.md`). 자세한 준비 절차는 `docs/guides/import-procedure.md` 0절.
 
-CI는 자격증명 없이 `fmt -check` / `validate`(`-backend=false`) / `tflint`를 수행하고, PR에서는 GitHub OIDC 읽기 전용 역할로 `envs/prod` plan을 실행해 요약(개수·자원 주소)을 PR 코멘트로 남깁니다. 모든 검사가 성공하면 `Apply Ready` 체크가 초록이 됩니다. plan 원문은 공개 저장소 규칙에 따라 출력하지 않습니다. `apply`/`drift`는 별도 워크플로우(STA-11·STA-12)에서 다룹니다.
+CI는 자격증명 없이 민감 정보 검사(`check-sensitive.sh`·gitleaks) / `fmt -check` / `validate`(`-backend=false`)·`terraform test` / `tflint` / Python 테스트(`pytest`: `tests/static` 정적 테스트, `tests/property` property 테스트)를 수행하고, PR에서는 GitHub OIDC 읽기 전용 역할로 `envs/prod` plan을 실행해 요약(개수·자원 주소)을 PR 코멘트로 남깁니다. 모든 검사가 성공하면 `Apply Ready` 체크가 초록이 됩니다. plan 원문은 공개 저장소 규칙에 따라 출력하지 않습니다. `apply`/`drift`는 별도 워크플로우(STA-11·STA-12)에서 다룹니다.
 
 ## 안전 원칙
 
