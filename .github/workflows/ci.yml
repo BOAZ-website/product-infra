@@ -130,6 +130,11 @@ jobs:
             esac
             if terraform -chdir="${d}" init -backend=false -input=false -no-color ${lock_opt}; then
               terraform -chdir="${d}" validate -no-color || rc=1
+              # tests/*.tftest.hcl이 있으면 mock provider로 terraform test 실행(AWS 요청 없음. 예: envs/prod 시즌 변수 검사)
+              tests=("${d}"/tests/*.tftest.hcl)
+              if [ "${#tests[@]}" -gt 0 ]; then
+                terraform -chdir="${d}" test -no-color || rc=1
+              fi
             else
               echo "init 실패: ${d}"
               rc=1

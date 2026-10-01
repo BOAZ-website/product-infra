@@ -18,6 +18,8 @@ generated.tf
 *.tfvars
 *.tfvars.json
 !*.tfvars.example
+# 시즌 상태는 시크릿이 없고 PR로 기록해야 하므로 추적함 (SEA-01)
+!envs/*/season.auto.tfvars
 
 # backend 설정 (예시 파일은 추적)
 backend.hcl

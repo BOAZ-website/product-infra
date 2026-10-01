@@ -4,7 +4,7 @@
 조사 계정: `156312218841` (조사자 IAM 사용자명은 공개 저장소이므로 기재하지 않음)
 조사 시점(UTC): 2026-09-23
 조사 방식: read-only (describe/list/get). secret 값·RDS password·SSM SecureString 복호화 미실행.
-현행 상태: `season_mode=off`와 일치 (ALB·listener 없음, EC2-B stopped·`app` 태그 없음, Target Group 등록 대상은 EC2-A뿐, CloudFront api origin EC2-A:8080, RDS Multi-AZ false).
+현행 상태: 평시(`season_capacity = "off"`, `api_origin = "ec2"`)와 일치 (ALB·listener 없음, EC2-B stopped·`app` 태그 없음, Target Group 등록 대상은 EC2-A뿐, CloudFront api origin EC2-A:8080, RDS Multi-AZ false).
 
 ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) / `excluded`(관리 제외) / `unconfirmed`(추가 확인 필요)
 
@@ -88,7 +88,7 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 |---|---|---|---|
 | Target Group | `arn:aws:elasticloadbalancing:ap-northeast-2:156312218841:targetgroup/boaz-api-tg/d42747d4f4ff49e6` | `boaz-api-tg`, HTTP 8080, HC `/actuator/health`, target type instance | managed |
 | TG 등록 대상 | `i-08bb34407c19504cf:8080` | EC2-A만 등록, 상태 `unused` (LB 없음) | managed (`aws_lb_target_group_attachment`) |
-| ALB / Listener | 없음 | season_mode=on에서만 생성 | managed (조건부) |
+| ALB / Listener | 없음 | `season_capacity = "on"`에서만 생성 | managed (조건부) |
 
 ## 7. CDN (CloudFront)
 

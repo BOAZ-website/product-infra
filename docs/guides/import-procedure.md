@@ -40,7 +40,8 @@
 
 - import 블록 파일은 `envs/prod/imports_<그룹>.tf`(평면 파일). Terraform은 root 모듈 디렉터리 바로 아래 `.tf`만 읽으므로 `imports/` 같은 하위 폴더에 두면 import 블록이 무시됨
 - 그룹 파일(`envs/prod/<그룹>.tf`)에는 `module "<그룹>"` 호출과 그룹 전용 variable·locals만 둠. resource·data는 `modules/<그룹>/`에 작성
-- 공통 파일(`envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `outputs.tf`)은 STA 담당만 수정함
+- 공통 파일(`envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `locals.tf`, `outputs.tf`, `season.auto.tfvars`)은 STA 담당만 수정함
+- 시즌에 따라 상태가 달라지는 자원(compute·database·cdn 그룹)은 `var.season_capacity`·`var.api_origin`을 직접 쓰지 않고 `local.season`(`envs/prod/locals.tf`)을 모듈 입력으로 넘겨받음. 시즌 값은 `season.auto.tfvars`가 자동으로 넘기므로 plan 때 따로 입력하지 않음
 - 그룹 간 값 전달(예: network의 서브넷 ID를 database가 사용)은 상대 그룹 모듈의 output을 참조함. 필요한 output이 없으면 해당 그룹 담당자에게 추가를 요청함
 - import가 끝나 state에 등록된 뒤에는 `envs/prod/imports_<그룹>.tf`의 import 블록을 지워도 됨. 지우는 것은 plan "No changes" 확인 후 별도 커밋으로 함
 
