@@ -45,6 +45,7 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | CodeDeploy 태그 방식 | 결정 | 완료 | 현행 태그 방식(`ec2_tag_set`) 유지 | 백엔드 리드 | 2026-11-06 | DEP-01, DEP-02 | 실측과 일치해 현행 유지로 확정. backend#214(배포 방식 변수화)가 배포 그룹 설정을 바꾸면 다시 검토 |
 | AWS provider 버전 | 결정 | 완료 | 6.x(`>= 6.0.0, < 7.0.0`), 잠금 파일로 버전 고정 | 인프라 담당 | Phase 1 중 | STA-02 | 5.x는 2025-06 이후 갱신 없음. 신규 코드라 6.0 호환성 변경(`aws_eip`의 `domain`, `aws_instance.user_data` 평문 저장 등) 영향 없음. 업그레이드는 전용 PR에서 plan "No changes" 확인, 시즌 동결 중 금지 (#24) |
 | default_tags 적용 시점 | 결정 | 완료 | envs/prod는 모든 그룹 import와 최종 일치 확인(STA-09) 뒤 태그 전용 PR로 적용, bootstrap은 처음부터 적용 | 인프라 담당 | Phase 1 중 | STA-02, STA-09 | 기존 자원에 태그가 없어 import 단계에 적용하면 모든 plan에 태그 변경이 생겨 "No changes"를 맞출 수 없음 (#24) |
+| 시즌 값 관리 위치 | 결정 | 완료 | `envs/prod/season.auto.tfvars`를 커밋(.gitignore 예외), 변수 기본값 없음 | 인프라 담당 | Phase 2 준비 | SEA-01 | 시크릿·자원 ID가 없고, 커밋해야 CI plan이 현재 시즌 값을 알 수 있고 시즌 전환이 PR로 남음. 기본값이 있으면 시즌 중 누락 시 ALB 삭제 plan이 생김 (#34) |
 
 ## 참고
 
