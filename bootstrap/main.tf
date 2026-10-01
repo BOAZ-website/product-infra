@@ -66,7 +66,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
   }
 }
 
-# HTTPS가 아닌 요청 거부. 특정 principal만 허용하는 정책은 CI OIDC 역할이 생기는 STA-05에서 추가
+# HTTPS가 아닌 요청 거부. 특정 principal만 허용하는 정책은 apply 역할이 생기는 STA-11에서 추가
+# (STA-05의 plan 역할은 역할 정책으로 state 조회·잠금 파일 쓰기만 받음. 지금 버킷 정책으로 principal을 좁히면 로컬 실행 세션이 막힐 수 있음)
 data "aws_iam_policy_document" "state" {
   statement {
     sid     = "DenyInsecureTransport"

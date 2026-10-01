@@ -9,7 +9,7 @@ on:
 
 jobs:
   labeler:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       issues: write
@@ -19,7 +19,7 @@ jobs:
       # 제목 기반 라벨링
       - name: Auto Labeling based on title
         if: github.event_name == 'pull_request_target' || github.event_name == 'issues'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

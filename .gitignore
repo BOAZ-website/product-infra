@@ -34,5 +34,8 @@ TICKET-*.md
 .idea/
 .vscode/
 
-# 로컬 AI 도구 상태 (oh-my-claudecode)
+# 로컬 AI 도구 상태 (oh-my-claudecode, serena)
 .omc/
+.serena/
+# Python 캐시 (scripts/, tests/)
+__pycache__/
