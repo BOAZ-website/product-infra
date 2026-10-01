@@ -28,6 +28,8 @@
 | SEA-01-02 | `season_capacity` off·on 각각의 ALB·EC2-B 상태·기능 태그·대상 목록·api origin·Multi-AZ를 locals로 정의 | `locals.tf`에 두 상태가 표 형태로 대응 |
 | SEA-01-03 | 시크릿·추정 ID를 기본값으로 넣지 않음 | `terraform.tfvars.example`에 실제 값 없음 |
 
+> 진행: 완료(#34). 변수는 `envs/prod/variables.tf`(기본값 없음, `off`+`alb`는 variable validation에서 plan 전 실패), 상태 모델은 `envs/prod/locals.tf`의 `local.season`(대상은 역할 키 `ec2_a`·`ec2_b`·`alb`), 현재 값은 커밋되는 `envs/prod/season.auto.tfvars`(평시 `off`·`ec2`). 검사는 `envs/prod/tests/season.tftest.hcl`(mock provider, AWS 요청 없음)로 CI validate 작업에서 실행
+
 ## SEA-02 시즌 시작(on) 순서 제어 + P4
 
 **목적:** 시즌 시작 시 ALB가 준비되고 대상이 정상이 된 뒤에만 origin을 바꿈
