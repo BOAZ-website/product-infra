@@ -1,7 +1,7 @@
 name: CI
 
 # Terraform PR CI (STA-05).
-# - AWS 자격증명 없이: 민감 정보 검사, fmt, init(-backend=false)·validate·test, tflint, 정적 테스트
+# - AWS 자격증명 없이: 민감 정보 검사, fmt, init(-backend=false)·validate·test, tflint, Python 테스트(정적·property)
 # - PR에서만: envs/prod plan(GitHub OIDC, 읽기 전용 역할) → 요약을 PR 코멘트로 게시
 # - Apply Ready: 위 검사가 모두 성공해야 초록. 이 체크가 "apply 대상" 표시(STA-05-02)
 # 공개 저장소라 Actions 로그·코멘트는 누구나 본다. plan 원문·plan JSON은 출력·업로드하지 않는다.
@@ -36,9 +36,6 @@ jobs:
 
       - name: 민감 정보 검사 회귀 테스트
         run: bash scripts/test-check-sensitive.sh
-
-      - name: 정적 테스트(plan 요약·마스킹)
-        run: python3 -m unittest discover -s tests/static -v
 
   gitleaks:
     name: Gitleaks
@@ -172,6 +169,30 @@ jobs:
           set -euo pipefail
           tflint --init --config "${GITHUB_WORKSPACE}/.tflint.hcl"
           tflint --recursive --config "${GITHUB_WORKSPACE}/.tflint.hcl" --no-color
+
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      # 의존성은 해시로 고정(tests/requirements.txt, 원본 tests/requirements.in)
+      - name: 테스트 의존성 설치
+        run: python -m pip install --disable-pip-version-check --no-deps --require-hashes -r tests/requirements.txt
+
+      # 정적 테스트(tests/static)와 property 테스트(tests/property, 테스트당 100회 이상). AWS 요청 없음
+      - name: pytest
+        env:
+          HYPOTHESIS_PROFILE: ci
+        run: python -m pytest
 
   plan:
     name: Terraform Plan (envs/prod)
@@ -309,7 +330,7 @@ jobs:
   apply-ready:
     name: Apply Ready
     # plan이 구성된 PR에서만 판정. 미구성·포크 PR에서는 skipped(apply 대상 아님)
-    needs: [sensitive, gitleaks, fmt, validate, tflint, plan]
+    needs: [sensitive, gitleaks, fmt, validate, tflint, python-tests, plan]
     if: always() && github.event_name == 'pull_request' && needs.plan.outputs.configured == 'true'
     runs-on: ubuntu-24.04
     steps:

@@ -59,6 +59,9 @@ class ClassifyTest(unittest.TestCase):
         self.assertEqual(plan_summary.classify(["delete", "create"]), "replace")
         self.assertEqual(plan_summary.classify(["create", "delete"]), "replace")
 
+    def test_forget_is_separate(self):
+        self.assertEqual(plan_summary.classify(["forget"]), "forget")
+
     def test_single_actions(self):
         self.assertEqual(plan_summary.classify(["delete"]), "delete")
         self.assertEqual(plan_summary.classify(["create"]), "create")
@@ -97,8 +100,15 @@ class SummaryTest(unittest.TestCase):
 
     def test_no_changes(self):
         out = plan_summary.render(plan_summary.summarize({"resource_changes": []}))
-        self.assertIn("| 0 | 0 | 0 | 0 | 0 | 0 |", out)
+        self.assertIn("| 0 | 0 | 0 | 0 | 0 | 0 | 0 |", out)
         self.assertNotIn("교체·삭제", out)
+        self.assertNotIn("forget", out.split("\n", 2)[2])
+
+    def test_forget_is_listed_and_warned(self):
+        plan = {"resource_changes": [_rc("module.compute.aws_instance.ec2_b", ["forget"])]}
+        out = plan_summary.render(plan_summary.summarize(plan))
+        self.assertIn("`forget` module.compute.aws_instance.ec2_b", out)
+        self.assertIn("state에서 빼는(forget)", out)
 
     def test_address_is_redacted(self):
         plan = {"resource_changes": [_rc(f'module.x.aws_instance.y["{INSTANCE_ID}"]', ["update"])]}

@@ -85,7 +85,9 @@ while IFS= read -r -d '' f; do
 
   # 3) docs/records/ 밖: 계정 ID·ARN·자원 ID
   case "$f" in docs/records/*) continue ;; esac
-  printf '%s\n' "$content" | grep -nE 'arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:|(^|[^0-9])[0-9]{12}([^0-9]|$)' \
+  # sha256 해시(64자리 16진수: 의존성 잠금 파일·provider 잠금 파일)는 계정 ID 검사에서 뺌. 줄 번호는 그대로 유지됨
+  printf '%s\n' "$content" | sed -E 's/[0-9a-fA-F]{64}/<sha256>/g' \
+    | grep -nE 'arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:|(^|[^0-9])[0-9]{12}([^0-9]|$)' \
     | while IFS=: read -r line _; do echo "  $f:$line: AWS 계정 ID(12자리 숫자) 또는 계정 ID가 들어간 ARN"; done | grep . && fail=1
   printf '%s\n' "$content" | grep -noE '\b(vpc|subnet|sg|sgr|igw|eigw|rtb|rtbassoc|acl|aclassoc|eipalloc|eipassoc|pl|i|ami|vol|snap|eni|nat|vpce|tgw|tgw-attach|pcx|dopt|lt|cgw|vgw|vpn)-[0-9a-f]{8,17}\b' \
     | while IFS=: read -r line id; do echo "  $f:$line: AWS 자원 ID: $id"; done | grep . && fail=1
