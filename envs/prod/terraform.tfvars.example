@@ -2,3 +2,4 @@
 # 실제 값은 docs/records/에만 기록
 
 expected_account_id = "<AWS 계정 ID 12자리>"
+# 시즌 값(season_capacity·api_origin)은 여기 적지 않음. 커밋되는 season.auto.tfvars가 관리함(SEA-01)

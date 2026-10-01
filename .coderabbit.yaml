@@ -9,7 +9,7 @@ reviews:
     변경 사항을 아래 형식으로 간결하게 요약해주세요:
     - **변경 목적**: (1~2 문장)
     - **주요 변경 내용**: (bullet list, 스택/모듈 기준 - bootstrap / envs/prod / modules/*)
-    - **영향 범위**: 관리 리소스 변경 / state·backend 변경 / IAM·보안 변경 / season_mode 변경 / 문서 변경 여부
+    - **영향 범위**: 관리 리소스 변경 / state·backend 변경 / IAM·보안 변경 / 시즌 변수(season_capacity·api_origin) 변경 / 문서 변경 여부
   review_status: true
   collapse_walkthrough: true   # 변경 사항 요약 코멘트 토글로 표시
   assess_linked_issues: true  # PR에 연결된 이슈를 분석하여 리뷰에 활용할지 여부
@@ -37,7 +37,8 @@ reviews:
     - "!**/*.tfstate"               # state 파일 (민감·자동 생성)
     - "!**/*.tfstate.*"
     - "!**/*.tfplan"                # plan 바이너리
-    - "!**/*.tfvars"                # 변수 값(민감 가능) — 리뷰 대상에서 제외
+    - "!**/terraform.tfvars"        # 변수 값(계정 ID 등) — 리뷰 대상에서 제외
+    # season.auto.tfvars는 시크릿이 없고 시즌 전환 검토 대상이라 제외하지 않음(나머지 *.tfvars는 .gitignore로 PR에 올라오지 않음)
     - "!**/.terraform.lock.hcl"     # provider lock (자동 생성)
 
   # 인프라(Terraform) 특화 프롬프트 지침
@@ -54,7 +55,8 @@ reviews:
        인라인 블록이 아니라 개별 `aws_vpc_security_group_ingress_rule`/`egress_rule`로 정의되는지 확인하세요.
     4. **import 정합성**: 기존 리소스는 재생성이 아니라 `import`로 편입되어야 하며, 동일 커밋 plan이
        "No changes"에 수렴하는지 관점에서 검토하세요.
-    5. **season_mode**: off/on 전환이 canonical 모델과 일치하는지, CloudFront origin 교체·ALB
+    5. **시즌 변수**: `season_capacity`(off/on)·`api_origin`(ec2/alb) 상태가 `envs/prod/locals.tf`의 시즌 모델과
+       일치하는지, `season.auto.tfvars`에서 두 값을 한 PR에 함께 바꾸지 않는지, CloudFront origin 교체·ALB
        생성/삭제 순서(전파 안전성)가 깨지지 않는지 확인하세요.
     6. **계약 보존**: 기존 배포 workflow가 참조하는 버킷명·CloudFront ID·role ARN·CodeDeploy 앱/그룹명이
        바뀌지 않는지 확인하세요.
