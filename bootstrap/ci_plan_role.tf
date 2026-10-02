@@ -56,7 +56,9 @@ resource "aws_iam_role_policy_attachment" "ci_plan_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
 
-data "aws_iam_policy_document" "ci_plan" {
+# state 조회·잠금 파일 쓰기 + 데이터 영역 읽기 거부. CI plan 역할과 팀원 읽기 전용 그룹이 공용으로 씀(STA-05·#44)
+# 둘 다 "ReadOnlyAccess + 이 정책" 조합이라, 보호 자원 설정은 조회 가능하되 시크릿·S3 객체·로그는 읽지 못함
+data "aws_iam_policy_document" "terraform_plan" {
   # state 조회
   statement {
     sid       = "StateList"
@@ -84,6 +86,7 @@ data "aws_iam_policy_document" "ci_plan" {
   }
 
   # ReadOnlyAccess에 들어 있는 데이터 영역 읽기 거부(지원서·배포 번들 등 S3 객체, 로그, 시크릿, 암호문 복호화)
+  # state 본문·잠금 파일만 NotResource로 예외(조건 키가 아니라 NotResource를 써야 GetObject에 정확히 적용됨)
   statement {
     sid    = "DenyObjectReadOutsideState"
     effect = "Deny"
@@ -96,6 +99,7 @@ data "aws_iam_policy_document" "ci_plan" {
     ]
   }
 
+  # kms:Decrypt만 막아 평문 시크릿을 차단함. ssm:GetParameter 자체는 막지 않음(IAM 그룹 plan이 파라미터를 읽어야 함)
   statement {
     sid    = "DenyDataPlaneReads"
     effect = "Deny"
@@ -124,10 +128,15 @@ data "aws_iam_policy_document" "ci_plan" {
   }
 }
 
-resource "aws_iam_role_policy" "ci_plan" {
-  name   = "terraform-plan-state-and-deny"
-  role   = aws_iam_role.ci_plan.id
-  policy = data.aws_iam_policy_document.ci_plan.json
+resource "aws_iam_policy" "terraform_plan" {
+  name        = "terraform-plan-state-and-deny"
+  description = "Terraform plan용 state 접근 + 데이터 영역 읽기 거부. CI 역할·팀원 읽기 전용 그룹 공용"
+  policy      = data.aws_iam_policy_document.terraform_plan.json
+}
+
+resource "aws_iam_role_policy_attachment" "ci_plan" {
+  role       = aws_iam_role.ci_plan.name
+  policy_arn = aws_iam_policy.terraform_plan.arn
 }
 
 output "ci_plan_role_arn" {
