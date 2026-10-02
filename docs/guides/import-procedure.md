@@ -43,6 +43,7 @@
 - 공통 파일(`envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `locals.tf`, `outputs.tf`, `season.auto.tfvars`)은 STA 담당만 수정함
 - 시즌에 따라 상태가 달라지는 자원(compute·database·cdn 그룹)은 `var.season_capacity`·`var.api_origin`을 직접 쓰지 않고 `local.season`(`envs/prod/locals.tf`)을 모듈 입력으로 넘겨받음. 시즌 값은 `season.auto.tfvars`가 자동으로 넘기므로 plan 때 따로 입력하지 않음
 - 그룹 간 값 전달(예: network의 서브넷 ID를 database가 사용)은 상대 그룹 모듈의 output을 참조함. 필요한 output이 없으면 해당 그룹 담당자에게 추가를 요청함
+- 두 그룹이 서로의 output을 참조하면 순환 참조가 됨. 한쪽은 data source로 조회함(예: storage 버킷 정책의 CloudFront 배포 ARN, `23-sto.md` STO-01-05)
 - import가 끝나 state에 등록된 뒤에는 `envs/prod/imports_<그룹>.tf`의 import 블록을 지워도 됨. 지우는 것은 plan "No changes" 확인 후 별도 커밋으로 함
 
 ## 2. apply 순서 규칙
@@ -51,6 +52,7 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 
 - `import-log.md`의 그룹 상태를 `대기` → `진행 중` → `완료`로 적음
 - apply는 `진행 중`으로 먼저 적은 사람이 함. 동시에 `진행 중`인 그룹은 최대 1개
+- apply 대기가 겹치면 12월 전 마감이 걸린 두 작업 줄을 먼저 apply함: ① STO-01 → CDN-02 1단계 → CDN-03(관리자 페이지 오픈), ② IAM-02 → CMP-01 → CMP-02(시즌 전환). 나머지 그룹(OBS·NET·IAM-03·RDB·DEP 등)은 그 사이에 apply함
 - 기다리는 사람은 `terraform plan`만 실행하며 코드를 맞춤. plan도 state 잠금을 잡으므로 동시에 실행하면 한쪽이 잠금을 못 얻어 실패할 수 있음. `terraform plan -lock-timeout=5m`처럼 잠금 대기 시간을 주고, 잠금을 끄는 옵션(`-lock=false`)은 쓰지 않음
 - 잠금이 오래 풀리지 않으면 강제 해제(`force-unlock`)하지 말고 잠금을 잡은 사람에게 먼저 확인함
 - 강제 해제가 꼭 필요할 때만 아래 순서를 따름

@@ -115,6 +115,7 @@
 - STA-05(PR CI)·STA-06·STA-07(안전 게이트)은 Phase 2 첫 PR 전에 끝나 있어야 함. 없으면 팀원 PR에서 plan 결과 자동 확인과 교체·삭제 차단이 동작하지 않음
 - SEA-01(시즌 변수 최소 구현)은 컴퓨팅·DB 그룹이 쓰므로 Phase 2 준비에서 인프라 리드가 끝냄. STA-08·09는 모든 그룹 완료 후에 필요함
 - 배정 단위는 노션 명세서(파트) 1개 = 팀원 1명, 작업 단위는 티켓 1개 = GitHub 이슈 1개(= 노션 엔지니어링 작업 1개)
+- 예외: CDN은 규모(4~5주)가 커서 정·부 2명이 나눔. 이슈 담당자는 정, 부는 맡은 티켓 담당·PR 리뷰어. 나누는 방식은 `26-cdn.md` CDN-02 참조
 
 ## import 그룹 배정표
 
@@ -131,13 +132,14 @@
 | 4 | 컴퓨팅(EC2·EIP) | CMP | CMP-01 | `compute.tf` | SEA-01, IAM-02 |
 | 5 | DB | RDB | RDB-01 | `database.tf` | SEA-01, NET-01 |
 | 6 | 로드밸런싱(Target Group·ALB) | CMP | CMP-02, CMP-03 | `compute.tf`(CMP-01 담당이 이어서) | CMP-01 |
-| 7 | CDN·DNS·인증서 | CDN | CDN-01, CDN-02, CDN-03 | `cdn.tf` | CMP-02 |
+| 7 | CDN·DNS·인증서 | CDN | CDN-01, CDN-02, CDN-03 | `cdn.tf` | STO-01(api 배포는 CMP-02) |
 | 8 | 배포(CodeDeploy) | DEP | DEP-01, DEP-02 | `deploy.tf` | IAM-02, STO-01 |
 
 - **8개 파트(OBS·NET·IAM·STO·CMP·RDB·CDN·DEP)는 Phase 2 1차 시작 시 동시에 배정·착수함.** 순서 열은 착수 순서가 아니라 머지·apply 순서
 - 1~3(Phase 2 1차)은 서로 선행 관계가 없어 바로 import까지 진행함. IAM만 IAM-01(권한 변경 후 재조사)을 먼저 끝냄
 - 4~8(Phase 2 2차) 파트는 착수 직후 재조사·명세서 확인·모듈 초안(로컬 `generate-config-out`)·앞 그룹에 필요한 output 요청까지 진행하고, 선행 그룹이 `dev`에 머지되면 plan 맞추기와 PR을 진행함. 그룹 간 값은 output으로만 받으므로 선행 그룹 머지 전에는 plan "No changes"를 맞출 수 없음
 - 인원이 8명보다 적으면 선행 관계로 이어진 파트를 한 사람에게 묶음(예: CMP+DEP, NET+RDB)
+- 2026-10-02 확정. 참여 인원 5명, 묶음 OBS+STO, NET+CDN(정), RDB+CDN(부), IAM+DEP, CMP 단독. 담당자 이름은 노션 배정 문서에 둠
 - EC2 인스턴스 프로파일은 IAM 그룹이 관리하고 컴퓨팅 그룹은 참조만 함
 
 ---
@@ -191,10 +193,10 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | CMP-01 | EC2·EIP 그룹 import | CMP | 2~3주 | SEA-01, IAM-02 | EC2-A EIP 처리, EC2-B 제어 방식 | Phase 2 2차 | 예 | 대기 |
 | CMP-02 | Target Group·ALB 그룹 import | CMP | 한 주 | CMP-01 | 없음 | Phase 2 2차 | 예 | 대기 |
 | CMP-03 | EC2-B 재배포 순서 게이트 | CMP | 하루이틀 | CMP-02, DEP-02 | 없음 | Phase 2 2차 | 예 | 대기 |
-| RDB-01 | RDS 그룹 import | RDB | 한 주 | SEA-01, NET-01 | 없음 | Phase 2 2차 | 예 | 대기 |
-| CDN-01 | cdn 모듈 작성 | CDN | 한 주 | CMP-02 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 예 | 대기 |
-| CDN-02 | CloudFront·Route53·ACM import | CDN | 2~3주 | CDN-01, CMP-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
-| CDN-03 | 관리자 CloudFront 보안·SPA 설정 | CDN | 한 주 | CDN-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
+| RDB-01 | RDS 그룹 import | RDB | 2~3주 | SEA-01, NET-01 | 없음 | Phase 2 2차 | 예 | 대기 |
+| CDN-01 | cdn 모듈 작성 | CDN | 한 주 | STO-01 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 예 | 대기 |
+| CDN-02 | CloudFront·Route53·ACM import | CDN | 2~3주 | CDN-01, STO-01(1단계), CMP-02(2단계) | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
+| CDN-03 | 관리자 CloudFront 보안·SPA 설정 | CDN | 한 주 | CDN-02 1단계 | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
 | DEP-01 | deploy 모듈 작성 | DEP | 하루이틀 | IAM-02, STO-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
 | DEP-02 | CodeDeploy import | DEP | 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
 | SEA-01 | 시즌 변수 모델 최소 구현 | SEA | 한 주 | STA-04 | 없음 | Phase 2 준비 | 예 | 완료(#34) |

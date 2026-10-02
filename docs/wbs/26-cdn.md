@@ -19,7 +19,7 @@
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | CMP-02 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 4.7 | 없음 |
+| 한 주 | STO-01 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 4.7 | 없음 |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -29,29 +29,32 @@
 
 ## CDN-02 CloudFront·Route53·ACM import
 
-**목적:** 3개 배포와 DNS·인증서를 import하고 WAF 연결을 유지함
+**목적:** 3개 배포와 DNS·인증서를 import하고 WAF 연결을 유지함. 두 단계로 나눠 진행함
+- 1단계: admin·www CloudFront, Route53 레코드, ACM 인증서. 두 배포의 origin은 S3라 storage 그룹 output만 필요함(2026-10-02 조회 확인)
+- 2단계: api CloudFront. origin이 EC2-A(평시)·ALB(시즌)라 compute 그룹 output이 필요해 CMP-02 머지 후 진행함
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
-> 수정 파일: `modules/cdn/`, `envs/prod/cdn.tf`, `envs/prod/imports_cdn.tf`. EC2-A·ALB 주소는 compute 그룹 output을 참조
+> 수정 파일: `modules/cdn/`, `envs/prod/cdn.tf`, `envs/prod/imports_cdn.tf`. admin·www 버킷 정보는 storage 그룹 output을, EC2-A·ALB 주소는 compute 그룹 output을 참조
+> 정·부 2명이 나눠 진행할 때는 모듈 안 파일을 자원별로 나누고(예: `cloudfront.tf`, `dns.tf`) PR·apply는 한 번에 하나씩 함
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 2~3주 | CDN-01, CMP-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 6.7 | #13(R9, R10 일부) |
+| 2~3주 | CDN-01, STO-01(1단계), CMP-02(2단계) | WAF WebACL 관리 방식 | Phase 2 2차 | 6.7 | #13(R9, R10 일부) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| CDN-02-01 | CloudFront 3개·Route53 레코드·us-east-1 인증서를 조사로 확정한 값으로 import | `terraform state list`에 전부 존재 |
+| CDN-02-01 | CloudFront 3개·Route53 레코드·us-east-1 인증서를 조사로 확정한 값으로 import. 1단계(admin·www·Route53·ACM)를 먼저 머지하고 2단계(api)는 CMP-02 머지 후 별도 PR | `terraform state list`에 전부 존재 |
 | CDN-02-02 | 각 배포에 기존 WAF WebACL을 `web_acl_id`로 참조(WebACL 자체는 import 안 함) | plan에 WAF 연결 해제 없음 |
 | CDN-02-03 | www의 403/404 → `/index.html` 동작, 각 배포의 캐시 정책을 그대로 유지. admin은 현재 오류 응답 설정이 없으므로 없는 상태 그대로 import | plan에 캐시 정책·오류 응답 변경 없음 |
 | CDN-02-04 | 레거시 OAI 4개와 대응 자원 없는 인증서 검증 CNAME의 처리 방침 기록(이번엔 관리 제외) | decisions.md에 방침·사유 존재 |
 
 ## CDN-03 관리자 CloudFront 보안·SPA 설정
 
-**목적:** 12월 관리자 페이지 오픈에 필요한 CloudFront 쪽 보안·라우팅 설정을 코드로 추가함. cdn 그룹 plan "No changes"(CDN-02) 확인 직후 별도 PR로 진행하고, 시즌 동결 시작 전에 apply까지 끝냄. #13 R5·R9·R10.
+**목적:** 12월 관리자 페이지 오픈에 필요한 CloudFront 쪽 보안·라우팅 설정을 코드로 추가함. CDN-02 1단계(admin 배포 포함) plan "No changes" 확인 직후 별도 PR로 진행하고, 시즌 동결 시작 전에 apply까지 끝냄. #13 R5·R9·R10.
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
-| 한 주 | CDN-02 | WAF WebACL 관리 방식 | Phase 2 2차 | 신규 | #13(R5, R9, R10) |
+| 한 주 | CDN-02 1단계 | WAF WebACL 관리 방식 | Phase 2 2차 | 신규 | #13(R5, R9, R10) |
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
@@ -65,7 +68,7 @@
 
 ## 확인 필요 사항
 
-- CDN-03은 12월 관리자 페이지 오픈 전, 시즌 동결 시작 전에 apply까지 끝나야 함. CMP-01 → CMP-02 → CDN-01 → CDN-02 → CDN-03이 한 줄로 이어지므로 이 경로가 12월 전 일정의 가장 긴 경로 [추정]
+- CDN-03은 12월 관리자 페이지 오픈 전, 시즌 동결 시작 전에 apply까지 끝나야 함. 2026-10-02부터 선행을 STO-01 → CDN-01 → CDN-02 1단계 → CDN-03으로 바꿔 CMP-01·CMP-02를 기다리지 않음. CDN-03 완료 예상 11월 말~12월 초 [추정]
 - CDN-03이 동결 전에 끝나지 못하면 관리자 페이지 오픈을 시즌 뒤로 미루거나 콘솔 적용으로 전환하는 판단 필요 [확인 필요]
 - CDN import가 2027-01 전에 끝나지 않으면, 관리자 콘솔 SPA 설정을 콘솔에서 먼저 바꾸고 코드에 반영하는 절차가 필요 [확인 필요]
 - CloudFront가 자동 생성한 WebACL이 요금제 묶음인지 [확인 필요]

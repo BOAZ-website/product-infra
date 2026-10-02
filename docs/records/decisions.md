@@ -31,7 +31,7 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | 12월 모집 시즌 시작·종료일 | 확인 | 대기 | season-up·season-down 날짜 | 운영진 | 2026-09-30 | Phase 2 마감, OPS-01 | |
 | 동결 종료 시점 | 확인 | 대기 | season-down 후 3일 또는 7일 | 운영진 | 2026-10-02 | OPS-01 | |
 | 2027-01 출결 기능 배포 주 | 확인 | 대기 | 배포 주, RDS 유지보수 시간(목요일 20:00 UTC)과 겹치는지 | 운영진 + 백엔드 리드 | 2026-09-30 | OPS-03 | |
-| 참여 인원·주당 투입 시간 | 확인 | 대기 | Phase 2 참여 인원과 시간 | 인프라 담당 + 운영진 | 2026-09-30 | Phase 2 범위 | 1명 이하면 Phase 2 2차를 동결 뒤로 |
+| 참여 인원·주당 투입 시간 | 확인 | 대기 | Phase 2 참여 인원과 시간 | 인프라 담당 + 운영진 | 2026-09-30 | Phase 2 범위 | 1명 이하면 Phase 2 2차를 동결 뒤로. 2026-10-02 참여 인원 5명 확인, 파트 배정은 `00-wbs.md` 배정표. 팀원별 주당 투입 시간은 미확인 |
 | Terraform 실행 자격 증명 | 확인 | 완료 | 장기 액세스 키인지 여부 | 인프라 담당 | 2026-10-09 | STA-05 | 2026-09-27 확인: 로컬은 `aws login` 세션·MFA, 장기 액세스 키 없음. CI는 GitHub OIDC plan 역할(`bootstrap/ci_plan_role.tf`) (#31) |
 | PR plan 결과 공개 범위 | 결정 | 완료 | PR 코멘트·로그에는 action별 개수와 자원 주소만, plan 원문·plan JSON은 출력·업로드 안 함 | 인프라 담당 | Phase 2 준비 | STA-05 | 공개 저장소라 Actions 로그·artifact·코멘트를 누구나 봄. plan JSON에는 sensitive 값도 평문으로 들어감 (#31) |
 | dev 프론트 배포 워크플로 | 확인 | 대기 | 최근 실행 성공 여부 | 인프라 담당 | 2026-10-09 | OPS-06 | 연결된 CloudFront 배포가 삭제된 상태 |
@@ -46,6 +46,9 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | AWS provider 버전 | 결정 | 완료 | 6.x(`>= 6.0.0, < 7.0.0`), 잠금 파일로 버전 고정 | 인프라 담당 | Phase 1 중 | STA-02 | 5.x는 2025-06 이후 갱신 없음. 신규 코드라 6.0 호환성 변경(`aws_eip`의 `domain`, `aws_instance.user_data` 평문 저장 등) 영향 없음. 업그레이드는 전용 PR에서 plan "No changes" 확인, 시즌 동결 중 금지 (#24) |
 | default_tags 적용 시점 | 결정 | 완료 | envs/prod는 모든 그룹 import와 최종 일치 확인(STA-09) 뒤 태그 전용 PR로 적용, bootstrap은 처음부터 적용 | 인프라 담당 | Phase 1 중 | STA-02, STA-09 | 기존 자원에 태그가 없어 import 단계에 적용하면 모든 plan에 태그 변경이 생겨 "No changes"를 맞출 수 없음 (#24) |
 | 시즌 값 관리 위치 | 결정 | 완료 | `envs/prod/season.auto.tfvars`를 커밋(.gitignore 예외), 변수 기본값 없음 | 인프라 담당 | Phase 2 준비 | SEA-01 | 시크릿·자원 ID가 없고, 커밋해야 CI plan이 현재 시즌 값을 알 수 있고 시즌 전환이 PR로 남음. 기본값이 있으면 시즌 중 누락 시 ALB 삭제 plan이 생김 (#34) |
+| CDN 선행 분리 | 결정 | 완료 | CDN-01·CDN-02 1단계·CDN-03의 선행을 CMP-02에서 STO-01로 변경, api 배포만 CDN-02 2단계로 CMP-02 이후 | 인프라 담당 | Phase 2 1차 착수 전 | CDN-01, CDN-02, CDN-03 | 2026-10-02 확정. admin·www CloudFront origin이 S3이고 평시 ALB가 없음을 조회로 확인. CDN-03이 CMP-01·CMP-02를 기다리지 않음 (#35) |
+| storage·cdn 참조 방향 | 결정 | 완료 | cdn이 storage output을 참조하고, storage 버킷 정책의 CloudFront 배포 ARN은 data source로 조회 | 인프라 담당 | STO-01 전 | STO-01, CDN-02 | 2026-10-02 확정. 프론트엔드 버킷 정책 조건(`AWS:SourceArn`)에 배포 ARN이 있어 양방향 output 참조 시 순환 참조 (#35) |
+| apply 우선순위 | 결정 | 완료 | STO-01 → CDN-02 1단계 → CDN-03 줄과 IAM-02 → CMP-01 → CMP-02 줄을 먼저, 나머지 그룹은 그 사이에 apply | 인프라 담당 | Phase 2 1차 착수 전 | Phase 2 전체 | 2026-10-02 확정. `import-procedure.md` 2절 (#35) |
 
 ## 참고
 
