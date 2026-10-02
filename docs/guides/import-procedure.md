@@ -10,18 +10,31 @@
 
 ## 0. 로컬 준비
 
-그룹 작업을 시작하기 전 한 번만 함. 두 파일 모두 gitignore 대상이라 커밋되지 않음
+그룹 작업을 시작하기 전 한 번만 함. 아래 생성 파일(`backend.hcl`, `terraform.tfvars`, 자격 증명)은 모두 저장소에 커밋하지 않음
+
+### 0-1. AWS 계정과 자격 증명
+
+- 팀원은 인프라 리드가 만든 IAM 사용자로 접근함. 콘솔 초기 비밀번호는 비공개 채널로 1회 전달받고 **첫 로그인 시 바로 변경**함
+- 권한은 읽기 전용임(`terraform-readonly` 그룹: 모든 조회 + state 접근). import 재조사와 `plan`은 되지만 자원 생성·변경·`apply`는 안 됨. 실제 `apply`는 인프라 리드만 함(결정 레지스터 "apply 실행 주체")
+- CLI로 `terraform plan`을 돌리려면 **콘솔 로그인만으로는 안 되고 CLI 자격 증명이 필요함.** 아래 중 하나:
+  - **(A) `aws login`(권장)**: `aws login --profile boaz` → 브라우저로 콘솔 로그인 → 임시 세션이 프로필에 들어옴. 장기 키를 파일에 저장하지 않고 세션은 몇 시간 뒤 만료됨. 만료되면 다시 `aws login`
+  - **(B) 액세스 키**: 콘솔 IAM → 본인 사용자 → 보안 자격 증명 → 액세스 키 생성 → `aws configure --profile boaz`로 등록. 장기 키라 `~/.aws/credentials`에 평문 저장되므로 **절대 커밋하지 않음**(이 저장소 보안 규칙). 공유 금지, 안 쓰면 비활성화
+- 어느 방식이든 명령에 프로필을 붙임: `aws --profile boaz ...`, Terraform은 `AWS_PROFILE=boaz`를 export하거나 provider 프로필로 지정
+- 시크릿은 조회하지 않음(권한도 막혀 있음): `kms:Decrypt`, `secretsmanager:GetSecretValue`, SecureString 복호화, S3 객체 내용(state 제외)은 거부됨. import 재조사에는 필요 없음(설정·타입은 `describe-*`로 조회)
+
+### 0-2. 작업 파일 준비
 
 | 순서 | 할 일 | 완료 확인 방법 |
 | --- | --- | --- |
 | 1 | `envs/prod/backend.hcl.example`을 `backend.hcl`로, `terraform.tfvars.example`을 `terraform.tfvars`로 복사하고 `docs/records/inventory.md`의 state 버킷 이름·계정 ID로 채움 | 두 파일 존재, `git status`에 나타나지 않음 |
-| 2 | 운영 계정 자격 증명인지 확인: `aws sts get-caller-identity`의 Account가 inventory.md의 계정 ID와 같음 | Account 일치 |
+| 2 | 운영 계정 자격 증명인지 확인: `aws --profile boaz sts get-caller-identity`의 Account가 inventory.md의 계정 ID와 같음 | Account 일치 |
 | 3 | `terraform -chdir=envs/prod init -input=false -backend-config=backend.hcl` | `Successfully configured the backend "s3"!` |
 | 4 | `terraform -chdir=envs/prod plan -input=false` | 오류 없이 plan 완료 |
 
 - 계정 가드: provider와 backend 모두 `allowed_account_ids`가 있어 다른 계정 자격 증명이면 init·plan 단계에서 실패함
 - workspace는 쓰지 않음(`terraform workspace new` 금지). workspace를 쓰면 state가 `env:/` 경로로 갈라짐
 - plan·apply에는 항상 `-input=false`를 붙임. 변수 파일이 없을 때 입력을 기다리지 않고 바로 실패함
+- state 잠금 파일(`.tflock`)은 읽기 전용 권한으로도 쓸 수 있음. `-lock=false`로 잠금을 피하지 않음(동시 작업 충돌 위험)
 
 ## 1. 파일 규칙
 
