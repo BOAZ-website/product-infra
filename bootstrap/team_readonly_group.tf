@@ -3,7 +3,7 @@
 # 결정(docs/records/decisions.md "팀원 접근 방식 / 권한 범위 / apply 실행 주체"):
 # - 접근: IAM 사용자. CLI는 각자 액세스 키로 사용(막지 않음). MFA 강제는 하지 않음
 # - 권한: 읽기 전용(ReadOnlyAccess) + state 접근(plan용). 쓰기·apply 없음
-# - apply: 인프라 리드(admin_daehyun·admin_seoyeon)만. 팀원은 재조사·plan까지
+# - apply: 관리자(Admin 그룹: admin_daehyun·admin_seoyeon·admin_minseo)만. 읽기 전용 팀원은 재조사·plan까지
 #
 # 그룹·정책만 코드로 관리함. 팀원 IAM 사용자는 이름이 공개 저장소에 들어갈 수 없어 코드 밖(CLI)에서 만들어 이 그룹에 넣음.
 # 첫 로그인 시 비밀번호를 바꿀 수 있도록 IAMUserChangePassword를 그룹에 붙임.

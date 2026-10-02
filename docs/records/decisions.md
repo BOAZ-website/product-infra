@@ -50,8 +50,8 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | storage·cdn 참조 방향 | 결정 | 완료 | cdn이 storage output을 참조하고, storage 버킷 정책의 CloudFront 배포 ARN은 data source로 조회 | 인프라 담당 | STO-01 전 | STO-01, CDN-02 | 2026-10-02 확정. 프론트엔드 버킷 정책 조건(`AWS:SourceArn`)에 배포 ARN이 있어 양방향 output 참조 시 순환 참조 (#35) |
 | 팀원 AWS 접근 방식 | 결정 | 완료 | IAM 사용자 + 각자 액세스 키로 CLI 사용(막지 않음). MFA 강제는 하지 않음 | 인프라 담당 | Phase 2 1차 착수 전 | #44 | 2026-10-02 확정. 급한 착수 우선, 장기 키 허용·MFA 생략은 공개 저장소 기준상 트레이드오프로 인지. IAM Identity Center는 미도입(계정 1개·단기 작업이라 과함) |
 | 팀원 권한 범위 | 결정 | 완료 | 읽기 전용(`ReadOnlyAccess` + state 접근, 시크릿·S3객체·복호화 Deny). 그룹 `terraform-readonly` | 인프라 담당 | Phase 2 1차 착수 전 | #44 | 2026-10-02 확정·적용. import·plan은 조회만 필요. 쓰기·apply 없음. 그룹·정책은 bootstrap 코드, 사용자는 코드 밖(이름 비공개) |
-| apply 실행 주체 | 결정 | 완료 | 인프라 리드(admin_daehyun·admin_seoyeon)만 apply. 팀원은 재조사·plan까지 | 인프라 담당 | Phase 2 1차 착수 전 | #44, STA-11 | 2026-10-02 확정. state 1개라 동시 apply 위험·보호 자원 많음. 보호 자원 쓰기 예외(RDB 스냅샷·IAM-01 Role 변경·OBS 생성 apply)는 리드가 대행. Phase 3 STA-11에서 승인 후 자동 apply로 전환 검토 |
-| admin_minseo 읽기 전용 전환 시점 | 결정 | 대기 | 관리자 유지하다가 관리자 페이지 FE(S3·CloudFront) 배포가 CI/CD로 전환되면 `terraform-readonly`로 변경 | 인프라 담당 + 민서 | 관리자 FE CI/CD 구축 후 | #44 | 2026-10-02. 민서가 관리자 권한으로 관리자 페이지 FE를 수동 배포 중(S3 업로드·CloudFront 무효화). 읽기 전용으로 바꾸면 배포가 막혀 보류 |
+| apply 실행 주체 | 결정 | 완료 | 관리자(admin_daehyun·admin_seoyeon·admin_minseo, Admin 그룹)가 apply. 읽기 전용 팀원(준희·우성)은 재조사·plan까지 | 인프라 담당 | Phase 2 1차 착수 전 | #44, STA-11 | 2026-10-02 확정. state 1개라 동시 apply 위험·보호 자원 많음. apply는 한 번에 한 그룹만. OBS 생성 apply·IAM-01 Role 변경 등 보호 자원 쓰기는 관리자가 수행. Phase 3 STA-11에서 승인 후 자동 apply로 전환 검토 |
+| admin_minseo 권한 | 결정 | 완료 | 관리자(Admin 그룹) 유지 | 인프라 담당 + 민서 | 2026-10-02 | #44 | 당초 읽기 전용 검토했으나, DB 스냅샷(RDB-01-04) 등 운영 편의로 관리자 유지. 웹사이트 이미지 업로드는 앱이 자기 역할로 처리해 민서 개인 권한과 무관 |
 | apply 우선순위 | 결정 | 완료 | STO-01 → CDN-02 1단계 → CDN-03 줄과 IAM-02 → CMP-01 → CMP-02 줄을 먼저, 나머지 그룹은 그 사이에 apply | 인프라 담당 | Phase 2 1차 착수 전 | Phase 2 전체 | 2026-10-02 확정. `import-procedure.md` 2절 (#35) |
 
 ## 참고
