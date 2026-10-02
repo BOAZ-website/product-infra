@@ -95,3 +95,5 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 - [ ] plan 출력과 코드에 시크릿 값, 계정 ID, 개인 IP가 없음
 - [ ] 명세서의 그룹 고유 기능이 모두 반영됨
 - [ ] `import-log.md`가 갱신됨
+
+<!-- STA-05 PR plan CI 스모크 테스트용 변경(자원 영향 없음). plan 코멘트·Apply Ready 확인 후 되돌림 -->
