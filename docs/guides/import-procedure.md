@@ -29,10 +29,9 @@
 | 순서 | 할 일 | 완료 확인 방법 |
 | --- | --- | --- |
 | 1 | `envs/prod/backend.hcl.example`을 `backend.hcl`로, `terraform.tfvars.example`을 `terraform.tfvars`로 복사하고 `docs/records/inventory.md`의 state 버킷 이름·계정 ID로 채움 | 두 파일 존재, `git status`에 나타나지 않음 |
-| 2 | 인프라 리드에게 비공개 채널로 그룹 변수 공유 파일(JSON)을 받아 `envs/prod/team.auto.tfvars.json`으로 저장. 파일이 갱신되면 다시 받아 덮어씀(1-1절) | 파일 존재, `git status`에 나타나지 않음 |
-| 3 | 운영 계정 자격 증명인지 확인: `aws --profile boaz sts get-caller-identity`의 Account가 inventory.md의 계정 ID와 같음 | Account 일치 |
-| 4 | `terraform -chdir=envs/prod init -input=false -backend-config=backend.hcl` | `Successfully configured the backend "s3"!` |
-| 5 | `terraform -chdir=envs/prod plan -input=false` | 오류 없이 plan 완료 |
+| 2 | 운영 계정 자격 증명인지 확인: `aws --profile boaz sts get-caller-identity`의 Account가 inventory.md의 계정 ID와 같음 | Account 일치 |
+| 3 | `terraform -chdir=envs/prod init -input=false -backend-config=backend.hcl` | `Successfully configured the backend "s3"!` |
+| 4 | `terraform -chdir=envs/prod plan -input=false` | 오류 없이 plan 완료 |
 
 - 계정 가드: provider와 backend 모두 `allowed_account_ids`가 있어 다른 계정 자격 증명이면 init·plan 단계에서 실패함
 - workspace는 쓰지 않음(`terraform workspace new` 금지). workspace를 쓰면 state가 `env:/` 경로로 갈라짐
@@ -72,12 +71,16 @@
 
 1. **다른 자원 참조**: 같은 state에 있는 자원의 속성을 참조함. 예: 서브넷의 `vpc_id`는 `aws_vpc.main.id`, 다른 그룹 자원은 그 그룹 모듈의 output
 2. **data source 조회**: 참조할 자원이 없으면 이름·태그 기준 data source로 조회함. 예: 버킷 정책의 CloudFront 배포 ARN(`23-sto.md` STO-01-05), AMI는 `data "aws_ami"`에 이름 필터
-3. **그룹 변수**: 위 두 가지로 없앨 수 없는 값(import 블록의 `id`, SSH 허용 CIDR 등)은 기본값 없는 변수로 받음. 선언은 `envs/prod/<그룹>.tf`, 값은 아래 두 곳에 둠
-   - 로컬: 모든 그룹 변수 값은 인프라 리드가 나눠 주는 공유 파일 `envs/prod/team.auto.tfvars.json`(CI secret과 같은 JSON, gitignore `*.tfvars.json` 대상)에 있음. Terraform은 plan 때 모든 그룹 코드를 평가하므로, 다른 그룹이 변수를 추가해 `dev`에 머지되면 이 파일 없이는 로컬 plan이 실패함. 자기 그룹의 새 변수는 작업 중에만 `envs/prod/<그룹>.auto.tfvars`에 넣어 쓰고, 머지 전에 인프라 리드에게 공유 파일 추가를 요청함. 실제 값은 `docs/records/inventory.md` 또는 읽기 명령으로 조회. 공유 파일은 저장소·PR·공개 채널에 올리지 않음
-   - PR CI: 저장소 secret `TF_CI_TFVARS_JSON`(모든 그룹 변수를 담은 JSON 객체 하나). plan 단계가 이 값을 `envs/prod/ci.auto.tfvars.json`으로 써서 plan한 뒤 지움. **변수를 새로 만들거나 이름을 바꾼 PR은 secret 갱신이 먼저 필요함.** PR 본문에 추가한 변수 이름과 inventory.md의 참조 위치를 적고 STA 담당에게 갱신을 요청함. 갱신 전까지 CI plan은 변수 누락으로 실패함
-   - STA 담당의 갱신: GitHub secret은 값을 다시 읽을 수 없으므로 JSON 원본을 저장소 밖 비공개 파일(권한 600)로 보관함. 원본에 항목을 추가한 뒤 `gh secret set TF_CI_TFVARS_JSON < <원본 파일>`로 CI secret을 다시 등록하고, 같은 파일을 비공개 채널로 팀원에게 다시 전달함(로컬 공유 파일). 아직 선언되지 않은 변수 값이 들어 있어도 plan은 경고만 내므로 값을 먼저 넣어 둬도 됨. 2026-10-03 `{}`로 최초 등록
+3. **그룹 값**: 위 두 가지로 없앨 수 없는 값(import 블록의 `id`, SSH 허용 CIDR 등)은 SSM String 파라미터 `/boaz/terraform/group-vars`(JSON 객체 하나)에 `<그룹>.<키>` 형태로 둠. 코드는 `local.group_vars.<그룹>.<키>`로 참조함(`envs/prod/locals.tf`가 plan 때 이 파라미터를 직접 읽음)
+   - 예: `{"network": {"ssh_allowed_cidrs": [...]}, "compute": {...}}`의 값을 `local.group_vars.network.ssh_allowed_cidrs`로 씀
+   - 로컬 plan·PR CI 모두 별도 파일·secret 없이 같은 파라미터를 읽음. 읽기 전용 권한(`ssm:GetParameter`)으로 충분하고, String 유형이라 KMS 복호화가 필요 없음
+   - 실제 값은 `docs/records/inventory.md` 또는 읽기 명령으로 조회함. 값을 저장소·PR·공개 채널에 적지 않음
+   - 새 키를 쓰는 PR: 본문에 추가한 키 이름(`<그룹>.<키>`)과 inventory.md의 참조 위치를 적고 관리자(인프라 리드)에게 파라미터 갱신을 요청함. 읽기 전용 팀원은 파라미터를 바꿀 수 없음. 갱신 전까지 그 PR의 plan은 키 누락으로 실패함
+   - 관리자의 갱신: 현재 값을 읽어 키를 추가한 JSON 파일을 저장소 밖에 만든 뒤 `aws ssm put-parameter --name /boaz/terraform/group-vars --type String --overwrite --value file://<파일>`로 덮어씀. 그 키를 쓰는 PR이 머지되기 **전에** 갱신함. 아직 코드가 쓰지 않는 키가 들어 있어도 plan에 영향 없으므로 먼저 넣어 둬도 됨. 작업 후 JSON 파일은 지움
+   - 이전 값은 파라미터 이력(`aws ssm get-parameter-history`)으로 되돌릴 수 있음(관리자만)
+   - Standard 등급이라 값 전체가 4KB를 넘을 수 없음. 넘을 것 같으면 STA 담당과 파라미터 분리를 정함
+   - 파라미터 값은 plan 출력에 그대로 나타날 수 있음(sensitive 표시 없음). plan 원문을 공개 채널에 붙이지 않는 기존 규칙을 그대로 따름
 
-- 변수 파일 예시는 `envs/prod/<그룹>.auto.tfvars.example`로 커밋해도 됨(값 자리는 `<...>`로 비움, 예시 파일만 gitignore 예외)
 - `check-sensitive.sh`가 잡는 것은 계정 ID·IP·키 형태뿐임. 자원 ID 대부분은 걸리지 않으므로 PR 리뷰에서 직접 확인함(5절 체크리스트)
 
 ## 2. apply 순서 규칙
