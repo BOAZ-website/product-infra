@@ -4,7 +4,7 @@
 
 > 각 명세서에는 그 그룹에만 해당하는 항목만 적음. 이 페이지의 절차는 모든 그룹이 똑같이 따름
 > 시작 조건: STA-07(안전 게이트) 완료. 이전에는 어떤 그룹도 import를 시작하지 않음
-> 게이트는 PR CI plan 작업에서 자동으로 돎(`scripts/plan_gate.py`). 로컬에서 미리 확인: `terraform -chdir=envs/prod plan -out=plan.bin` → `terraform -chdir=envs/prod show -json plan.bin > /tmp/plan.json` → `python3 scripts/plan_gate.py /tmp/plan.json`(plan JSON에는 값이 평문으로 들어가므로 저장소 안에 두지 않고 확인 뒤 지움)
+> 게이트는 PR CI plan 작업에서 자동으로 돎(`scripts/plan_gate.py`). Phase 2 동안은 보호 자원 밖 자원의 삭제·교체도 차단함(G4). 관리자는 apply 직전에 apply할 plan 파일로 반드시 로컬에서 다시 실행함(2절). 로컬에서 미리 확인: `terraform -chdir=envs/prod plan -out=plan.bin` → `terraform -chdir=envs/prod show -json plan.bin > /tmp/plan.json` → `python3 scripts/plan_gate.py /tmp/plan.json`(plan JSON에는 값이 평문으로 들어가므로 저장소 안에 두지 않고 확인 뒤 지움)
 
 ---
 
@@ -86,7 +86,9 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
   - `작업 중`: 재조사·코드 작성·plan 맞추기·PR 리뷰. 여러 그룹이 동시에 있어도 됨(1차 시작 시 8개 파트 동시 착수)
   - `apply 중`: PR 승인 뒤 관리자가 apply를 실행하는 동안. **동시에 `apply 중`인 그룹은 최대 1개**
 - apply는 `apply 중`으로 먼저 적은 그룹부터 함. 읽기 전용 팀원은 apply 권한이 없으므로 관리자(인프라 리드)에게 요청함
-- **apply 직전 rebase 규칙**: apply할 브랜치를 `dev` 최신으로 rebase(또는 merge)한 뒤 다시 plan함. 다른 그룹이 먼저 apply한 자원이 해당 브랜치 코드에 없으면 그 자원이 plan에 삭제(destroy)로 나옴. plan에 **해당 그룹의 import와 변경만** 있을 때만 apply함. 다른 그룹 자원의 삭제·변경이 하나라도 보이면 멈추고 rebase부터 다시 함
+- **머지 뒤 `dev`에서 apply**: apply는 PR 브랜치가 아니라 PR을 머지한 `dev` 최신 커밋에서 함. 브랜치에서 apply하고 나중에 머지하면, 그 사이 다른 그룹의 plan에서 이 그룹 자원이 코드에 없어 삭제(destroy)로 나옴. 순서는 `apply 중` 기록 → PR 머지 → `dev` 최신에서 plan → 게이트 검사 → 같은 plan 파일로 apply → 최종 확인. `apply 중`인 동안 다른 PR은 머지하지 않음
+- **apply 전 로컬 게이트 필수**: PR CI의 게이트는 실제로 apply하는 plan 파일을 검사하지 않음. 관리자는 apply할 그 plan 파일로 `terraform -chdir=envs/prod show -json plan.bin > /tmp/plan.json && python3 scripts/plan_gate.py /tmp/plan.json`을 실행해 통과한 경우에만 apply함. 확인 뒤 `/tmp/plan.json`은 지움(값이 평문으로 들어 있음)
+- plan에 **해당 그룹의 import와 변경만** 있을 때만 apply함. 다른 그룹 자원의 삭제·변경이 하나라도 보이면 멈추고 `dev` 최신 상태부터 다시 확인함
 - apply 대기가 겹치면 12월 전 마감이 걸린 두 선행 순서를 먼저 apply함: ① STO-01 → CDN-02 1단계 → CDN-03(관리자 페이지 오픈), ② IAM-02 → CMP-01 → CMP-02(시즌 전환). 나머지 그룹(OBS·NET·IAM-03·RDB·DEP 등)은 그 사이에 apply함
 - 기다리는 사람은 `terraform plan`만 실행하며 코드를 맞춤. plan도 state 잠금을 잡으므로 동시에 실행하면 한쪽이 잠금을 못 얻어 실패할 수 있음. `terraform plan -lock-timeout=5m`처럼 잠금 대기 시간을 주고, 잠금을 끄는 옵션(`-lock=false`)은 쓰지 않음
 - 잠금이 오래 풀리지 않으면 강제 해제(`force-unlock`)하지 말고 잠금을 잡은 사람에게 먼저 확인함
@@ -107,9 +109,9 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 | 4. 보호 설정 | 보호 대상 자원에 `prevent_destroy` 추가. 재생성을 일으키는 속성은 실제 값과 똑같이 맞춤 | 코드에 `prevent_destroy` 존재 |
 | 5. plan 맞추기 | `terraform plan`에서 차이가 0이 될 때까지 코드 수정. 교체·삭제가 나오면 즉시 멈추고 리뷰 요청 | plan 결과에 import만 있고 변경·교체·삭제 0건 |
 | 6. PR | PR 템플릿 작성. plan 결과는 PR CI가 다는 요약 코멘트로 대체함. **plan 원문은 붙이지 않음**(자원 ID·IP가 들어 있음). 새 변수를 만들었으면 본문에 적고 STA 담당에게 CI secret 갱신 요청(1-1절). 리뷰 1명 이상 승인 | PR에 승인 1건 이상, `Apply Ready` 통과 |
-| 7. apply | `dev` 최신으로 rebase 후 다시 plan(2절 rebase 규칙). 해당 그룹 변경만 있으면 `import-log.md` 상태를 `apply 중`으로 바꾸고 관리자에게 apply 요청. 관리자가 그 plan 파일로 apply(state 등록만 일어남) | apply 로그에 `import`만 존재 |
-| 8. 최종 확인 | 같은 커밋에서 다시 `terraform plan` | 출력에 "No changes." 문구 |
-| 9. 기록 | PR 머지. `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 그룹 상태 `완료` | import-log.md 해당 행 갱신 |
+| 7. 머지·apply | 관리자에게 apply 요청. 관리자가 `import-log.md` 상태를 `apply 중`으로 바꾸고 PR 머지 → `dev` 최신에서 `plan -out=plan.bin` → 로컬 게이트 통과 확인 → 같은 plan 파일로 apply(state 등록만 일어남). 2절 "머지 뒤 dev에서 apply" 참조 | 게이트 통과, apply 로그에 `import`만 존재 |
+| 8. 최종 확인 | `dev` 같은 커밋에서 다시 `terraform plan` | 출력에 "No changes." 문구 |
+| 9. 기록 | `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 그룹 상태 `완료`(이 갱신은 작은 PR로 올림) | import-log.md 해당 행 갱신 |
 
 ## 4. 멈춰야 하는 경우
 
@@ -125,7 +127,7 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 리뷰어는 아래 항목을 모두 확인한 뒤 승인함
 
 - [ ] 수정 파일이 자기 그룹 파일(1절 표)뿐
-- [ ] plan 결과에 변경·교체·삭제가 0건. 다른 그룹 자원이 plan에 나오지 않음(나오면 rebase 요청)
+- [ ] plan 결과에 변경·교체·삭제가 0건. 다른 그룹 자원이 plan에 나오지 않음(나오면 `dev` 최신으로 맞춘 뒤 다시 plan 요청)
 - [ ] 보호 대상 자원에 `prevent_destroy`가 있음
 - [ ] 코드에 시크릿 값, 계정 ID, 개인 IP, 자원 ID(`vpc-`·`subnet-`·`sg-`·`i-`·`ami-`·CloudFront 배포 ID·Route53 영역 ID 등)가 없음. PR 본문에 plan 원문이 붙어 있지 않음
 - [ ] 명세서의 그룹 고유 기능이 모두 반영됨
