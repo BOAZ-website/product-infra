@@ -65,6 +65,41 @@
 - import가 끝나 state에 등록된 뒤에는 `envs/prod/imports_<그룹>.tf`의 import 블록을 지워도 됨. 지우는 것은 plan "No changes" 확인 후 별도 커밋으로 함
 - us-east-1 자원(ACM 인증서, WAF WebACL 조회)을 다루는 모듈(cdn)은 모듈 안에서 `terraform { required_providers { aws = { source = "hashicorp/aws", configuration_aliases = [aws.us_east_1] } } }`로 별칭을 선언함. 그룹 파일의 `module "cdn"` 호출에는 `providers = { aws = aws, aws.us_east_1 = aws.us_east_1 }`를 넘김. 별칭 provider 자체는 `providers.tf`에 이미 있음
 
+### 1-0. `envs/prod/`와 `modules/`의 차이
+
+| 구분 | `envs/prod/` (root) | `modules/<그룹>/` (모듈) |
+| --- | --- | --- |
+| 역할 | 운영 환경 하나를 실행하는 진입점. `terraform plan`·`apply`를 이 폴더에서 실행함 | 자원 정의 묶음. 단독 실행 불가. root가 호출해야 동작함 |
+| 들어가는 것 | backend(state 위치)·provider·계정 가드, 시즌 변수(`local.season`), 그룹 값(`local.group_vars`), 그룹별 `module "<그룹>"` 호출, import 블록(`imports_<그룹>.tf`) | 실제 `resource`·`data` 블록, 입력(`variables.tf`), 출력(`outputs.tf`), provider 요구 사항(`versions.tf`) |
+| state | 하나의 state(`envs/prod/terraform.tfstate`)에 모든 그룹 자원이 기록됨 | state 없음. 자원 주소가 `module.<그룹>.<자원>`으로 root state에 들어감 |
+| 값의 출처 | 환경마다 다른 값(자원 ID, CIDR, 시즌 상태)을 여기서 정해 모듈에 넘김 | 값을 직접 정하지 않고 입력으로 받음 |
+| 수정 담당 | 공통 파일은 STA 담당, `<그룹>.tf`·`imports_<그룹>.tf`는 그룹 담당 | 그룹 담당 |
+
+- 같은 모듈을 다른 환경에서도 쓸 수 있게 나눈 구조임
+  - 일회용 dev 환경을 채택하면(decisions.md "dev 환경 신설", 대기) `envs/dev/`를 만듦
+  - `envs/dev/`는 같은 모듈을 다른 입력으로 호출함
+- 모듈 안에는 환경 이름·자원 ID·IP·계정 ID·도메인·인스턴스 타입을 고정값이나 default로 넣지 않음. 값은 root에서 넘김
+- 호출 흐름: `envs/prod/<그룹>.tf`의 `module "<그룹>" { source = "../../modules/<그룹>" ... }`가 모듈을 불러옴
+  - 입력으로 넘기는 값: 그룹 값, 시즌 값, 다른 그룹 output
+- import 블록은 root에만 둘 수 있음. 모듈 안 자원을 가리킬 때는 `to = module.<그룹>.<자원>`으로 씀
+- 2026-10-03 기준 각 모듈 폴더에 뼈대 파일(`versions.tf`, `main.tf`, `variables.tf`, `outputs.tf`, 머리 주석만)이 있음
+  - `envs/prod/<그룹>.tf`의 `module` 호출은 그룹 담당이 첫 작업 때 추가함
+  - cdn·obs는 `providers = { aws = aws, aws.us_east_1 = aws.us_east_1 }`를 함께 전달함
+
+### 1-0-1. 모듈 작성 규칙
+
+- 파일 구성: `versions.tf`(provider 요구 사항), `variables.tf`, `outputs.tf`, 자원 파일(`main.tf` 또는 역할별 파일, 예: `vpc.tf`, `security_groups.tf`)
+- 이름: 그룹에 하나뿐인 자원은 `main`, 여러 개면 역할 키(`ec2_a`, `ec2_b`, `www`, `admin` 등). 이름·`for_each` 키에 ID·IP를 쓰지 않음(자원 주소가 PR CI 코멘트에 공개됨)
+- variable·output: 모두 `type`과 `description`을 적음(tflint 검사). 쓰지 않는 variable은 선언하지 않음
+- 입력 이름: 시즌은 `season`(compute·database·cdn), 그룹 값은 `group_vars`(자기 그룹 부분만), 다른 그룹 값은 상대 모듈 output
+- output 이름: 각 이슈 "착수 전 확인 사항"의 제안을 따름. 바꿀 때는 사용하는 그룹 담당과 합의함
+- 태그: 지금은 넣지 않음. `default_tags`는 STA-09 뒤 태그 전용 PR로 적용함(decisions.md "default_tags 적용 시점")
+- 보호: 명세서가 정한 보호 대상 자원에 `prevent_destroy`를 둠
+  - `prevent_destroy`는 변수로 바꿀 수 없음
+  - dev 환경에서의 재사용 방식은 "dev 환경 신설" 결정 때 다시 정함
+- 새 provider(예: obs의 `archive`): 실제로 쓰는 PR에서 모듈 `versions.tf`에 추가함
+  - root 잠금 파일 갱신은 STA 담당에게 요청함
+
 ### 1-1. 자원 ID·IP를 코드 밖으로 빼는 규칙
 
 공개 저장소이므로 자원 ID(VPC·서브넷·보안 그룹·인스턴스·CloudFront 배포·Route53 영역·AMI 등), 계정 ID가 들어간 ARN, 개인 IP는 `.tf` 파일에 적지 않음. `terraform plan -generate-config-out` 초안에는 이 값이 그대로 들어가므로 아래 순서로 바꾼 뒤 옮김
