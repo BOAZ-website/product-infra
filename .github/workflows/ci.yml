@@ -216,6 +216,9 @@ jobs:
       PLAN_ROLE_ARN: ${{ secrets.AWS_PLAN_ROLE_ARN }}
       STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
       ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      # 그룹 변수 값(import 블록 id, SSH 허용 CIDR 등 코드에 못 적는 값)을 담은 JSON 객체. 비어 있으면 쓰지 않음
+      # (docs/guides/import-procedure.md 1-1절). 그룹이 변수를 추가하면 STA 담당이 이 secret을 갱신함
+      CI_TFVARS_JSON: ${{ secrets.TF_CI_TFVARS_JSON }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -268,6 +271,10 @@ jobs:
 
           printf 'bucket = "%s"\nallowed_account_ids = ["%s"]\n' "${STATE_BUCKET}" "${ACCOUNT_ID}" > "${TF_DIR}/backend.hcl"
           printf 'expected_account_id = "%s"\n' "${ACCOUNT_ID}" > "${TF_DIR}/terraform.tfvars"
+          if [ -n "${CI_TFVARS_JSON}" ]; then
+            printf '%s' "${CI_TFVARS_JSON}" | python3 -m json.tool > "${TF_DIR}/ci.auto.tfvars.json" \
+              || { echo "::error::secret TF_CI_TFVARS_JSON이 올바른 JSON이 아닙니다."; echo "result=failure" >> "$GITHUB_OUTPUT"; exit 1; }
+          fi
 
           fail() {
             echo "::error::$1"
@@ -335,7 +342,7 @@ jobs:
 
       - name: plan 파일 정리
         if: always()
-        run: rm -rf "${RUNNER_TEMP}/tfplan" "${TF_DIR}/backend.hcl" "${TF_DIR}/terraform.tfvars" "${TF_DIR}/.terraform"
+        run: rm -rf "${RUNNER_TEMP}/tfplan" "${TF_DIR}/backend.hcl" "${TF_DIR}/terraform.tfvars" "${TF_DIR}/ci.auto.tfvars.json" "${TF_DIR}/.terraform"
 
   apply-ready:
     name: Apply Ready
