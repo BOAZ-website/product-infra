@@ -129,7 +129,7 @@
 | 2 | IAM | IAM | IAM-01, IAM-02 | `iam.tf` | STA-07 |
 | 2 | SSM 파라미터 | IAM | IAM-03, IAM-04 | `params.tf` | IAM-01 |
 | 3 | 스토리지 | STO | STO-01, STO-02 | `storage.tf` | STA-07 |
-| 4 | 컴퓨팅(EC2·EIP) | CMP | CMP-01 | `compute.tf` | SEA-01, IAM-02 |
+| 4 | 컴퓨팅(EC2·EIP) | CMP | CMP-01 | `compute.tf` | SEA-01, IAM-02, NET-01 |
 | 5 | DB | RDB | RDB-01 | `database.tf` | SEA-01, NET-01 |
 | 6 | 로드밸런싱(Target Group·ALB) | CMP | CMP-02, CMP-03 | `compute.tf`(CMP-01 담당이 이어서) | CMP-01 |
 | 7 | CDN·DNS·인증서 | CDN | CDN-01, CDN-02, CDN-03 | `cdn.tf` | STO-01(api 배포는 CMP-02) |
@@ -190,7 +190,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | IAM-04 | 앱 시크릿 잔여 항목 결정·적용 | IAM | 하루이틀 | IAM-03 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 대기 |
 | STO-01 | storage 그룹 import | STO | 한 주 | STA-07 | 관리 대상 버킷·레코드 | Phase 2 1차 | 예 | 대기 |
 | STO-02 | 관리 대상 외 버킷 확정 | STO | 하루이틀 | STO-01 | 관리 대상 버킷·레코드 | Phase 2 1차 | 예 | 대기 |
-| CMP-01 | EC2·EIP 그룹 import | CMP | 2~3주 | SEA-01, IAM-02 | EC2-A EIP 처리, EC2-B 제어 방식 | Phase 2 2차 | 예 | 대기 |
+| CMP-01 | EC2·EIP 그룹 import | CMP | 2~3주 | SEA-01, IAM-02, NET-01 | EC2-A EIP 처리, EC2-B 제어 방식 | Phase 2 2차 | 예 | 대기 |
 | CMP-02 | Target Group·ALB 그룹 import | CMP | 한 주 | CMP-01 | 없음 | Phase 2 2차 | 예 | 대기 |
 | CMP-03 | EC2-B 재배포 순서 게이트 | CMP | 하루이틀 | CMP-02, DEP-02 | 없음 | Phase 2 2차 | 예 | 대기 |
 | RDB-01 | RDS 그룹 import | RDB | 2~3주 | SEA-01, NET-01 | 없음 | Phase 2 2차 | 예 | 대기 |

@@ -72,7 +72,7 @@
 착수는 1차 시작 시. 아래는 선행 그룹 머지 후의 plan 맞추기·PR·apply 순서
 
 1. (SEA-01은 Phase 2 준비에서 완료)
-2. CMP-01 EC2·EIP 그룹 (SEA-01·IAM-02 이후)
+2. CMP-01 EC2·EIP 그룹 (SEA-01·IAM-02·NET-01 이후)
 3. RDB-01 RDS 그룹 (SEA-01·NET-01 이후, CMP-01과 동시 진행 가능)
 4. CMP-02 Target Group·ALB 그룹 (CMP-01 이후)
 5. CDN-01 cdn 모듈 작성 (STO-01 이후, CMP와 동시 진행 가능)
