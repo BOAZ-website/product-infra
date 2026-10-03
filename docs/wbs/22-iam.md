@@ -34,6 +34,7 @@
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조. 직전 재조사는 IAM-01-04로 대신함
 > 수정 파일: `modules/iam/`, `envs/prod/iam.tf`, `envs/prod/imports_iam.tf`
+> 그룹 값 키·테스트: 이 그룹은 그룹 값 키가 없음(이름 기반 import, 1-1-1절 표). import 블록을 쓰는 PR에서 `envs/prod/tests/season.tftest.hcl`에 import 대상 `override_resource`를 같은 PR에서 추가함(1-2절)
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -53,6 +54,7 @@
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/params/`, `envs/prod/params.tf`, `envs/prod/imports_params.tf`
+> 그룹 값 키·테스트: 이 그룹은 그룹 값 키가 없음(이름 기반 import, 1-1-1절 표). import 블록을 쓰는 PR에서 `envs/prod/tests/season.tftest.hcl`에 import 대상 `override_resource`를 같은 PR에서 추가함(1-2절)
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

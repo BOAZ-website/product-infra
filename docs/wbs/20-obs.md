@@ -21,6 +21,8 @@
 | --- | --- | --- | --- | --- | --- |
 | 한 주 | STA-01 | 없음 | Phase 2 1차 | 신규 | #13(R6) |
 
+> 그룹 값 키·테스트: 경보 수신 이메일은 1-1-1절 표의 `alert_emails` 키를 따름. 이 키를 쓰는 PR에서 `envs/prod/tests/season.tftest.hcl`의 obs 가짜 값을 같은 PR에서 추가함. import 블록이 없어 `override_resource`는 필요 없음(1-2절)
+
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | OBS-01-01 | EC2에 CloudWatch Agent 설치·설정(기존 IAM 롤 권한 사용) | `aws cloudwatch list-metrics`에 사용자 지정 지표 조회됨 |

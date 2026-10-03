@@ -31,6 +31,7 @@
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/deploy/`, `envs/prod/deploy.tf`, `envs/prod/imports_deploy.tf`. 서비스 롤은 iam, 번들 버킷은 storage 그룹 output을 참조
+> 그룹 값 키·테스트: 이 그룹은 그룹 값 키가 없음(이름 기반 import, 1-1-1절 표). import 블록을 쓰는 PR에서 `envs/prod/tests/season.tftest.hcl`에 import 대상 `override_resource`를 같은 PR에서 추가함(1-2절)
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

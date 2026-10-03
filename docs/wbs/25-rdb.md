@@ -19,6 +19,7 @@
 
 > 공통 절차 적용 → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/database/`, `envs/prod/database.tf`, `envs/prod/imports_database.tf`. 서브넷·보안 그룹 ID는 network 그룹 output을 참조
+> 그룹 값 키·테스트: 코드에 못 적는 값은 `docs/guides/import-procedure.md` 1-1-1절의 키 규칙·키 표를 따름. 새 키와 import 블록을 쓰는 PR에서 `envs/prod/tests/season.tftest.hcl`의 자기 그룹 가짜 값과 import 대상 `override_resource`를 같은 PR에서 추가함(1-2절)
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |

@@ -23,6 +23,7 @@
 
 > 공통 절차 적용(착수 선언·직전 재조사·plan "No changes" 확인·import-log 기록) → 공통 절차(`docs/guides/import-procedure.md`) 참조
 > 수정 파일: `modules/network/`, `envs/prod/network.tf`, `envs/prod/imports_network.tf`
+> 그룹 값 키·테스트: 코드에 못 적는 값은 `docs/guides/import-procedure.md` 1-1-1절의 키 규칙·키 표를 따름. 새 키와 import 블록을 쓰는 PR에서 `envs/prod/tests/season.tftest.hcl`의 자기 그룹 가짜 값과 import 대상 `override_resource`를 같은 PR에서 추가함(1-2절)
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
