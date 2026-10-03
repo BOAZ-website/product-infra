@@ -70,8 +70,39 @@ def test_G1_import_only_passes():
     assert plan_gate.evaluate(plan(change)) == []
 
 
-def test_G1_unprotected_delete_passes():
-    assert plan_gate.evaluate(plan(rc("aws_lb", ["delete"]), rc("aws_ec2_instance_state", ["delete"]))) == []
+def test_G1_unprotected_delete_is_not_G1():
+    assert plan_gate.check_protected(plan(rc("aws_lb", ["delete"]), rc("aws_ec2_instance_state", ["delete"]))) == []
+
+
+# ------------------------------------------------------------ G4
+
+
+UNPROTECTED = ["aws_security_group", "aws_subnet", "aws_iam_role", "aws_ssm_parameter", "aws_lb", "aws_lb_target_group_attachment"]
+
+
+@pytest.mark.parametrize("rtype", UNPROTECTED)
+@pytest.mark.parametrize("actions", [["delete"], ["delete", "create"], ["create", "delete"]])
+def test_G4_unprotected_delete_or_replace_is_blocked(rtype, actions):
+    assert rules(plan_gate.evaluate(plan(rc(rtype, actions)))) == ["G4"]
+
+
+def test_G4_reason_explains_missing_config():
+    change = rc("aws_security_group", ["delete"])
+    change["action_reason"] = "delete_because_no_resource_config"
+    (v,) = plan_gate.evaluate(plan(change))
+    assert "dev 최신" in v.reason
+
+
+@pytest.mark.parametrize("actions", [["forget"], ["no-op"], ["update"], ["create"], ["read"]])
+def test_G4_forget_and_non_delete_pass(actions):
+    # removed { lifecycle { destroy = false } }는 forget으로 나옴(state에서만 빠지고 실제 자원은 남음)
+    assert plan_gate.evaluate(plan(rc("aws_iam_role", actions))) == []
+
+
+def test_G4_moved_resource_passes():
+    change = rc("aws_security_group", ["no-op"])
+    change["previous_address"] = "module.old.aws_security_group.x"
+    assert plan_gate.evaluate(plan(change)) == []
 
 
 def test_G1_data_source_ignored():

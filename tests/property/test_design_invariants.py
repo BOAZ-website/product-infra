@@ -43,7 +43,9 @@ def test_P1_protected_resources_are_never_deleted_or_replaced(changes):
     violations = plan_gate.check_protected({"resource_changes": changes})
     assert sorted(v.address for v in violations) == expected
     assert all(v.rule == "G1" for v in violations)
-    assert (plan_gate.evaluate({"resource_changes": changes}) == []) == (expected == [])
+    # Phase 2 게이트 범위(G4): 보호 자원 밖 삭제·교체도 막으므로, 게이트 통과 = 어떤 자원에도 delete가 없음
+    any_delete = any("delete" in c["change"]["actions"] for c in changes)
+    assert (plan_gate.evaluate({"resource_changes": changes}) == []) == (not any_delete)
 
 
 # 시크릿 표본: 주소·규칙 문구와 겹치지 않도록 고정 접두어 + 임의 문자열

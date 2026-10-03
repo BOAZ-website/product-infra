@@ -17,6 +17,22 @@
 # |------------|-------------|------|
 # | ec2        | EC2-A       | 8080 |
 # | alb        | ALB         | 80   |
+
+# 그룹 값 (docs/guides/import-procedure.md 1-1절)
+# - 공개 저장소라 코드에 못 적는 값(data source로 못 찾는 import id, SSH 허용 CIDR 등)은 SSM String 파라미터 하나(JSON 객체)에 둠
+# - 키는 <그룹>.<키>, 코드는 local.group_vars.<그룹>.<키>로 참조함. 값은 관리자만 갱신함
+# - String 유형이라 KMS가 필요 없고 insecure_value가 sensitive로 표시되지 않음(SecureString이면 insecure_value가 null이라 postcondition으로 막음)
+data "aws_ssm_parameter" "group_vars" {
+  name = "/boaz/terraform/group-vars"
+
+  lifecycle {
+    postcondition {
+      condition     = self.type == "String"
+      error_message = "/boaz/terraform/group-vars는 String 유형이어야 합니다(SecureString이면 값을 읽지 않음)."
+    }
+  }
+}
+
 locals {
   season_capacity_model = {
     off = {
@@ -55,4 +71,8 @@ locals {
       api_origin = local.api_origin_model[var.api_origin]
     },
   )
+
+  # 그룹 값 객체. 그룹이 참조하기 전까지 미사용 경고를 무시함
+  # tflint-ignore: terraform_unused_declarations
+  group_vars = jsondecode(data.aws_ssm_parameter.group_vars.insecure_value)
 }

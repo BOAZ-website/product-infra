@@ -2,7 +2,22 @@
 #   terraform -chdir=envs/prod init -backend=false
 #   terraform -chdir=envs/prod test
 
-mock_provider "aws" {}
+mock_provider "aws" {
+  # 그룹 값 파라미터(locals.tf)를 가짜 JSON 객체로 대체함. 키 규칙·그룹별 키 표: docs/guides/import-procedure.md 1-1-1절
+  # - 그룹 담당은 자기 그룹 키를 아래 jsonencode 안에 같은 PR에서 추가함. 값은 실제 ID 형식을 흉내 내지 않고 fake- 로 시작하는 문자열을 씀
+  # - import 블록이 있는 그룹은 import 대상 자원마다 아래에 override_resource를 추가함(mock provider는 import를 지원하지 않음)
+  override_data {
+    target = data.aws_ssm_parameter.group_vars
+    values = {
+      type = "String"
+      insecure_value = jsonencode({
+        # <그룹> = { <키> = <값> }
+      })
+    }
+  }
+
+  # 그룹별 override_resource 구역(그룹마다 한 블록. target은 module.<그룹>.<자원 주소>)
+}
 
 mock_provider "aws" {
   alias = "us_east_1"
@@ -36,6 +51,10 @@ run "off_ec2_is_offseason" {
   assert {
     condition     = local.season.api_origin.target == "ec2_a" && local.season.api_origin.port == 8080
     error_message = "api_origin = ec2이면 origin은 EC2-A:8080이어야 합니다."
+  }
+  assert {
+    condition     = can(keys(local.group_vars))
+    error_message = "그룹 값 파라미터의 JSON이 객체로 읽혀야 합니다."
   }
 }
 

@@ -81,7 +81,7 @@
 
 **목적:** PR마다 형식·문법 검사와 plan을 자동 실행하고 결과를 PR에 남김
 
-> 진행: 코드 완료(#31), 운영 반영 대기.
+> 진행: 완료(#31). 2026-10-02 bootstrap apply·secret 3개 등록, 샘플 PR #45에서 plan 코멘트·`Apply Ready` 확인.
 > - `ci.yml`에 plan 작업(`Terraform Plan (envs/prod)`)과 집계 작업(`Apply Ready`) 추가. Apply Ready는 민감 정보·gitleaks·fmt·validate·tflint·plan이 모두 성공해야 초록(STA-05-02)
 > - plan 역할: `bootstrap/ci_plan_role.tf`. 기존 GitHub OIDC provider를 참조(IAM 그룹이 import 예정), 이 저장소 `pull_request` 토큰만 허용, ReadOnlyAccess + state 조회·`.tflock` 쓰기, S3 객체(state 제외)·복호화·시크릿·로그 읽기 명시 거부
 > - 공개 저장소라 plan 원문·plan JSON은 출력·업로드하지 않음. `scripts/plan_summary.py`가 개수와 자원 주소만 요약하고 오류 로그는 식별자를 가림(검사: `tests/static/test_plan_summary.py`)
@@ -136,6 +136,7 @@
 > - `scripts/plan_gate.py`: plan JSON 검사. G1 보호 자원(`aws_db_instance`·`aws_instance`·`aws_eip`·`aws_eip_association`·`aws_cloudfront_distribution`·`aws_route53_record`·`aws_route53_zone`·`aws_s3_bucket`) 삭제·교체, G2 RDS 비밀번호 설정·변경·SecureString/Secrets Manager 값을 state에 저장하는 설정·sensitive output, G3 `0.0.0.0/0`·`::/0`에 80·443 외 포트를 여는 inbound 규칙 추가·변경. import-only(no-op)와 그 외 변경은 통과. 출력에는 규칙·주소(마스킹)·사유만
 > - CI plan 작업에서 요약 뒤에 실행하고, 차단이면 plan 작업 실패 → `Apply Ready` 실패. PR 코멘트 제목이 "안전 게이트 차단"으로 바뀜
 > - 테스트: 고정 입력 `tests/static/test_plan_gate.py`(보호 자원 8종 × 삭제·교체 2순서, 통과 사례 포함), property `tests/property/test_design_invariants.py`의 P1·P6(각 100회). 규칙을 일부러 빼거나 약하게 바꾸면 테스트가 실패하는 것 확인
+> - 2026-10-03 G4 추가: Phase 2 동안 보호 자원 밖 자원의 삭제·교체도 차단(removed 블록의 forget은 통과). 관리자 로컬 apply 직전에도 같은 게이트 실행을 필수로 함(decisions.md "Phase 2 게이트 범위", import-procedure.md 2절). 테스트: 고정 입력 G4 사례, P1을 "게이트 통과 = 어떤 자원에도 delete 없음"으로 확장
 > - 승인된 예외(예: 보안 그룹 규칙 변경 승인)로 게이트를 넘기는 방법은 없음. 필요하면 STA-11(승인 후 apply)에서 GitHub Environment 승인과 함께 설계
 
 ## STA-08 그룹 간 연결 점검

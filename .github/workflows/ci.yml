@@ -291,7 +291,7 @@ jobs:
 
           python3 scripts/plan_summary.py summary "${work}/plan.json" > "${summary}"
 
-          # 안전 게이트(STA-07): 보호 자원 삭제·교체, 시크릿 노출, 과도한 보안 그룹 규칙이면 이 작업을 실패시킴(Apply Ready도 실패)
+          # 안전 게이트(STA-07): 보호 자원 삭제·교체, 시크릿 노출, 과도한 보안 그룹 규칙, 그 밖의 삭제·교체(Phase 2 G4)면 이 작업을 실패시킴(Apply Ready도 실패)
           python3 scripts/plan_gate.py "${work}/plan.json" > "${work}/gate.md"
           gate_rc=$?
           { echo; cat "${work}/gate.md"; } >> "${summary}"

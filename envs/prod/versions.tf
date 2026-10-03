@@ -10,5 +10,12 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 6.0.0, < 7.0.0"
     }
+
+    # OBS Discord 알림 Lambda 코드(저장소 소스)를 zip으로 만들 때 사용(docs/wbs/20-obs.md OBS-01-06). 쓰기 전까지 미사용 경고를 무시함
+    # tflint-ignore: terraform_unused_required_providers
+    archive = {
+      source  = "hashicorp/archive"
+      version = ">= 2.0.0, < 3.0.0"
+    }
   }
 }

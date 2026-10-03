@@ -43,7 +43,7 @@
 | --- | --- | --- |
 | IAM-02-01 | GitHub OIDC provider, backend·frontend 배포 롤, CodeDeploy 서비스 롤, EC2 인스턴스 프로파일 import | `terraform state list`에 각 주소 존재 |
 | IAM-02-02 | 롤에 붙은 정책 연결과 인라인 정책도 함께 import | plan에 정책 연결 삭제 없음 |
-| IAM-02-03 | Terraform plan용 롤과 apply용 롤은 bootstrap에서 관리자 권한으로 먼저 만들고, 신뢰 조건을 운영 환경(`environment:production`)으로 제한 | 두 롤이 서로 다른 ARN, 코드에 액세스 키 없음 |
+| IAM-02-03 | CI용 plan 역할은 bootstrap에서 이미 관리함(신뢰 조건 `pull_request`). apply 역할은 STA-11(Phase 3) 범위임. 이 티켓에서는 두 역할을 만들거나 import하지 않음. 이유는 같은 자원의 이중 관리 방지임 | envs/prod 코드에 CI 역할 없음, 코드에 액세스 키 없음 |
 | IAM-02-04 | EC2 롤에 현재 연결된 권한을 그대로 import: 관리형 정책 5개(S3 읽기, Session Manager, CloudWatch Agent 전송 — OBS-01에 필요, 아카이빙·지원서 버킷 접근 2개)와 인라인 정책 3개(CodeDeploy 읽기, SSM 파라미터 읽기, CloudWatch 지표 조회). 권한 축소는 plan "No changes" 확인 뒤 별도 PR | plan에 정책 연결 변경 없음, 조사 기록(`docs/records/inventory.md`)의 관리형 5개·인라인 3개와 일치 |
 | IAM-02-05 | EC2 인스턴스 프로파일은 iam 그룹이 관리하고 compute 그룹에 output으로 제공 | compute 코드가 iam output을 참조 |
 
@@ -67,7 +67,7 @@
 > - `aws_ssm_parameter` resource로 import: plan이 값을 복호화해 읽음. PR CI plan 역할은 `kms:Decrypt`를 거부해 plan이 실패하고, 값이 state에 들어가 안전 게이트 G2도 차단함(STA-05·STA-07)
 > - `data "aws_ssm_parameter"`: 기본이 복호화 조회이고, `with_decryption = false`여도 암호문이 state에 남음
 > - `aws ssm get-parameter --with-decryption`(CLAUDE.md "시크릿은 조회 자체를 하지 않는다")
-| IAM-03-03 | P7 테스트: 파라미터 값은 직접 입력하지 않고 관리 자원의 속성에서 가져옴 | `pytest -k P7` 통과 |
+| IAM-03-03 | P7 테스트: 파라미터 값은 직접 입력하지 않고 관리 자원의 속성에서 가져옴. 값의 출처에 2차 그룹(compute·database·cdn·deploy)이 포함됨. 이 티켓은 import와 개수 검사까지 함. P7 테스트는 Phase 2 2차 머지 뒤 별도 PR(STA-08)에서 진행함 | 2차 뒤 `pytest -k P7` 통과 |
 | IAM-03-04 | 기존 `register-ssm-params.sh`를 실행 경로에서 참조하지 않음 | 검사 결과 참조 0건 |
 
 ## IAM-04 앱 시크릿 잔여 항목 결정·적용
@@ -81,11 +81,11 @@
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
 | IAM-04-01 | DB 접속 주소·DB 사용자명 파라미터의 전환 여부를 운영진 승인으로 확정 | decisions.md 상태 "결정 완료" |
-| IAM-04-02 | 승인 시 전환 계획·되돌리기 절차 작성 후 적용 | 적용 후 파라미터 타입이 SecureString |
+| IAM-04-02 | 2026-10-03 "현행 유지, 후속 이슈로 분리"로 결정됨. 전환은 Phase 2 밖 후속 이슈에서 진행함. 후속 이슈의 선행 확인 항목은 백엔드 `load-ssm-env.sh` 영향과 EC2 역할 KMS 권한임 | 후속 이슈 생성, 이 티켓은 결정 기록 확인으로 종료 |
 
 ---
 
 ## 확인 필요 사항
 
 - 전환하면 백엔드 `load-ssm-env.sh` 동작에 영향이 있는지 [확인 필요: 백엔드 리드]
-- Terraform 실행 자격 증명이 장기 액세스 키인지 [확인 필요]
+- Terraform 실행 자격 증명: 로컬은 `aws login` 세션(장기 액세스 키 아님), CI는 GitHub OIDC plan 역할로 확정(2026-10-02, decisions.md "Terraform 실행 자격 증명")

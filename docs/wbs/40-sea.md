@@ -43,6 +43,7 @@
 | SEA-02-01 | EC2-B 기동·재배포 → `season_capacity = on` apply(ALB·listener·Target Group 등록) → 대상 정상 확인 → `api_origin = alb` apply 순서를 런북과 사전 조건으로 표현 | 런북 순서와 사전 조건(`api_origin = alb`는 `season_capacity = on`에서만) 확인 |
 | SEA-02-02 | `describe-target-health`를 15초마다 확인해 최대 900초(60회) 대기. 모든 대상이 healthy가 되지 않으면 origin 교체 중단(`aws elbv2 wait target-in-service` 기본값은 약 600초라 그대로 쓰지 않음) | 비정상 상태를 만들면 900초 뒤 중단되고 origin이 바뀌지 않음 |
 | SEA-02-03 | P4 테스트: 시즌 시작 순서와 대기 조건 | `pytest tests/integration/test_season_on_gate.py` 통과 |
+| SEA-02-04 | 런북 1단계(CLI로 EC2-B에 `app=boaz-api` 태그 부착·기동·재배포)와 2단계(`season_capacity = on` apply)를 분리하고, 1단계 동안 Terraform 목표값이 `off`임을 명시. 그 사이 `season_capacity = off` apply 시 태그 제거·EC2-B 중지로 되돌아가므로 전환 중 apply 금지를 런북 경고로 둠 | 런북에 1·2단계 분리와 전환 중 apply 금지 경고 존재 |
 
 ## SEA-03 시즌 종료(off) 2단계 apply + P5
 
@@ -56,7 +57,8 @@
 | --- | --- | --- |
 | SEA-03-01 | 1단계 apply(origin을 EC2-A로 복귀)와 2단계 apply(CloudFront `Deployed` 확인 후 ALB 삭제) 분리 | `Deployed` 전에 2단계를 시도하면 차단 |
 | SEA-03-02 | 최종 off 상태: EC2-B stopped·기능 태그 없음, EC2-A만 대상, Multi-AZ 꺼짐 | off plan 결과가 SEA-01 모델과 일치 |
-| SEA-03-03 | P5 테스트: 시즌 종료 2단계 순서 | `pytest tests/integration/test_season_off_gate.py` 통과 |
+| SEA-03-03 | EC2-B 중지는 `season-down.sh`와 같은 순서(Target Group 등록 해제 → `app=boaz-api` 태그 제거 → EC2-B 중지)로 적용하고 `depends_on`으로 강제(CMP-01-06에서 2026-10-03 이관) | off plan에서 중지가 태그 제거·등록 해제 뒤에 옴 |
+| SEA-03-04 | P5 테스트: 시즌 종료 2단계 순서 | `pytest tests/integration/test_season_off_gate.py` 통과 |
 
 ## SEA-04 시즌 상태 매핑 테스트 P3
 

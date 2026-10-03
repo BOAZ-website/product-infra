@@ -1,7 +1,7 @@
 ## 💡 개요
 
 * Issue Number: #
-* import 그룹: <!-- network / iam / params / storage / compute / database / cdn / deploy / 해당 없음 -->
+* import 그룹: <!-- network / iam / params / storage / compute / database / cdn / deploy / obs / 해당 없음 -->
 
 ## 🪐 주요 변경 사항
 -
@@ -25,10 +25,10 @@
 
 - [ ] 수정 파일이 자기 그룹 파일(`modules/<그룹>/`, `envs/prod/<그룹>.tf`, `envs/prod/imports_<그룹>.tf`)뿐이다
 - [ ] 착수 전 해당 그룹 자원을 다시 조사해 `docs/records/inventory.md`를 갱신했다
-- [ ] plan 결과에 변경·교체·삭제가 0건이다(import만 있음)
+- [ ] plan 결과에 교체·삭제가 0건이다(import 그룹은 import만, obs는 create만, CDN-03은 명세서의 update만)
 - [ ] 보호 대상 자원에 `prevent_destroy`가 있다
 - [ ] plan 출력과 코드에 시크릿 값, 계정 ID, 개인 IP가 없다
-- [ ] `docs/records/import-log.md`에 그룹 상태와 결과를 기록했다
+- [ ] `docs/records/import-log.md`는 이 PR에 포함하지 않았다(착수·완료 기록은 별도 작은 PR)
 
 ## 🔒 보안 정보 확인
 

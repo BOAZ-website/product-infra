@@ -6,8 +6,9 @@
   G1 보호 자원 삭제·교체: RDS·EC2·EIP와 연결·CloudFront·Route53 레코드·영역·S3 버킷    (STA-07-01, P1)
   G2 시크릿 노출: RDS 비밀번호 변경, 시크릿 값을 state에 저장하는 설정, sensitive output  (STA-07-02, P6)
   G3 과도한 보안 그룹 규칙: 0.0.0.0/0·::/0에서 80·443 외 포트를 여는 inbound 규칙 추가·변경 (STA-07-03)
+  G4 보호 자원 밖 삭제·교체: Phase 2 동안 모든 자원의 삭제·교체 0건 (decisions.md "Phase 2 게이트 범위")
 
-그 외 변경(태그·설정 update, 신규 자원 create, import)은 통과시킨다. 판정은 plan 안의
+그 외 변경(태그·설정 update, 신규 자원 create, import, removed 블록의 forget)은 통과시킨다. 판정은 plan 안의
 값을 쓰지만, 출력에는 규칙·자원 주소·사유만 쓰고 값은 쓰지 않는다(공개 저장소, P6).
 
   python3 scripts/plan_gate.py plan.json   # 마크다운 결과 출력, 위반 있으면 exit 1, 입력 오류 exit 2
@@ -200,21 +201,47 @@ def check_security_groups(plan: dict) -> list[Violation]:
     return out
 
 
+# ---------------------------------------------------------------- G4 보호 자원 밖 삭제·교체
+
+
+# Phase 2(import 단계) 동안은 모든 자원의 삭제·교체가 0건이어야 함(docs/records/decisions.md "Phase 2 게이트 범위").
+# 해제·예외(시즌 ALB 삭제 등)는 SEA-03·STA-11에서 다시 정함
+# removed 블록(destroy = false)은 actions가 ["forget"]이라 delete가 없어 통과함
+_DELETE_REASONS = {
+    "delete_because_no_resource_config": "코드에 없는 자원(다른 그룹 자원이면 dev 최신 기준으로 다시 plan)",
+    "delete_because_count_index": "count 감소",
+    "delete_because_each_key": "for_each 키 제거",
+}
+
+
+def check_unprotected_delete(plan: dict) -> list[Violation]:
+    out = []
+    for rc in _managed(plan):
+        if rc.get("type") in PROTECTED_TYPES:
+            continue  # G1이 판정
+        actions = _actions(rc)
+        if "delete" in actions:
+            kind = "교체" if "create" in actions else "삭제"
+            why = _DELETE_REASONS.get(rc.get("action_reason", ""), "")
+            out.append(Violation("G4", rc.get("address", "?"), f"{kind} 계획(Phase 2는 0건 원칙)" + (f": {why}" if why else "")))
+    return out
+
+
 # ---------------------------------------------------------------- 실행
 
 
 def evaluate(plan: dict) -> list[Violation]:
     if not isinstance(plan, dict):
         raise ValueError("plan JSON 최상위가 객체가 아님")
-    return check_protected(plan) + check_secrets(plan) + check_security_groups(plan)
+    return check_protected(plan) + check_secrets(plan) + check_security_groups(plan) + check_unprotected_delete(plan)
 
 
 def render(violations: list[Violation]) -> str:
     if not violations:
-        return "#### 안전 게이트: ✅ 통과\n\n보호 자원 삭제·교체, 시크릿 노출, 과도한 보안 그룹 규칙 없음"
+        return "#### 안전 게이트: ✅ 통과\n\n보호 자원 삭제·교체, 시크릿 노출, 과도한 보안 그룹 규칙, 그 밖의 삭제·교체 없음"
     lines = [f"#### 안전 게이트: ❌ 차단 ({len(violations)}건)", ""]
     lines += [v.render() for v in violations]
-    lines += ["", "규칙: G1 보호 자원 삭제·교체, G2 시크릿 노출, G3 과도한 보안 그룹 규칙. apply하지 않습니다."]
+    lines += ["", "규칙: G1 보호 자원 삭제·교체, G2 시크릿 노출, G3 과도한 보안 그룹 규칙, G4 그 밖의 삭제·교체(Phase 2). apply하지 않습니다."]
     return "\n".join(lines)
 
 

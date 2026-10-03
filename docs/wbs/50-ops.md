@@ -120,6 +120,9 @@
 | --- | --- | --- |
 | OPS-08-01 | `backend/infra/scripts/README.md`에 이관 안내와 deprecated 표기(`season-up.sh`, `season-down.sh`, `cf_set_origin.py`, `register-ssm-params.sh`) | README 변경 내용에 안내 문구 |
 | OPS-08-02 | 삭제 조건(DoD 충족 + 별도 승인)만 적고 파일은 남김 | 스크립트 파일 존재, README에만 표기 |
+| OPS-08-03 | 구 스크립트를 product-infra로 백업 이관할지 결정하고, 이관 시 자원 ID·계정 ID·개인 IP 제거 후 `scripts/check-sensitive.sh` 통과 확인(결정 레지스터 "구 스크립트 백업 이관") | 이관 여부 결정 기록, 이관 시 민감 정보 검사 통과 |
+
+> 백엔드 리드가 backend 저장소 README 수정에 동의함(2026-10-02).
 
 ## OPS-09 런북 인수 테스트 P10
 
