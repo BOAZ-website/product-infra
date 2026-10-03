@@ -35,7 +35,7 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | Terraform 실행 자격 증명 | 확인 | 완료 | 장기 액세스 키인지 여부 | 인프라 담당 | 2026-10-09 | STA-05 | 2026-09-27 확인: 로컬은 `aws login` 세션·MFA, 장기 액세스 키 없음. CI는 GitHub OIDC plan 역할(`bootstrap/ci_plan_role.tf`) (#31) |
 | PR plan 결과 공개 범위 | 결정 | 완료 | PR 코멘트·로그에는 action별 개수와 자원 주소만, plan 원문·plan JSON은 출력·업로드 안 함 | 인프라 담당 | Phase 2 준비 | STA-05 | 공개 저장소라 Actions 로그·artifact·코멘트를 누구나 봄. plan JSON에는 sensitive 값도 평문으로 들어감 (#31) |
 | dev 프론트 배포 워크플로 | 확인 | 대기 | 최근 실행 성공 여부 | 인프라 담당 | 2026-10-09 | OPS-06 | 연결된 CloudFront 배포가 삭제된 상태 |
-| 경보 수신 이메일·임계값 | 확인 | 대기 | SNS 수신 주소, RDS 여유 메모리 기준값 | 운영진 | Phase 2 준비 전 | OBS-01 | |
+| 경보 수신 이메일·임계값 | 확인 | 완료 | SNS 수신 주소, RDS 여유 메모리 기준값 | 운영진 | Phase 2 준비 전 | OBS-01 | 2026-10-02 결정. 수신은 이메일(SNS 직접, GitHub 알림 주소)과 Discord(SNS→Lambda→웹훅) 둘 다. SNS·Lambda 모두 이 양에서는 무료 범위. RDS 여유 메모리 경보 초기 임계값은 50MB(FreeableMemory, 최근 14일 최소 75.6MB·평균 107.9MB·과거 저점 약 25MB 근거), OBS-01 구축 중 알림 빈도 보고 조정 |
 | 레거시 버킷 소유자·사용 여부 | 확인 | 대기 | 소유자, 계속 쓰는지, 아카이빙 버킷 버전 관리 필요 여부 | 운영진 | STO-02 전 | STO-02 | |
 | RDS 암호화 키·파라미터 값 | 확인 | 완료 | 암호화 키 종류(AWS 관리형/직접 생성), 파라미터 그룹 실제 값 | 인프라 담당 | RDB-01 전 | RDB-01 | 2026-10-02 조사. 암호화 켜짐, 키는 AWS 관리형 기본 RDS 키(`alias/aws/rds`, 고객 생성 키 아님)라 Terraform 키 관리 불필요. 파라미터 그룹 `boaz-prod-mysql84`에서 기본값과 다른 값은 `time_zone = Asia/Seoul`(immediate) 하나뿐. 엔진 MySQL 8.4.11. import 시 조사값 그대로 맞춰 교체 방지 |
 | EC2-B 사전 점검 | 확인 | 대기 | 12월 시즌 전 기동·패치·에이전트 점검 날짜, 공인 IPv4 과금 비용표 반영 | 인프라 담당 | Phase 2 2차 중 | CMP-03 | |
