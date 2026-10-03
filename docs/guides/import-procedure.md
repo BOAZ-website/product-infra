@@ -128,7 +128,7 @@
 
 - 그룹 코드 PR에 함께 넣을 수 있는 문서: `docs/records/inventory.md`의 자기 그룹 부분(3절 2단계)
 - `docs/records/import-log.md`는 코드 PR에 넣지 않고 작은 PR로 따로 올림(3절 1·9단계). 여러 그룹이 같은 표를 고쳐 충돌이 나기 때문임
-- 공통 파일(STA 담당만 수정): `envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `locals.tf`, `season.auto.tfvars`, `.terraform.lock.hcl`, `tests/`
+- 공통 파일(STA 담당만 수정): `envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `locals.tf`, `season.auto.tfvars`, `.terraform.lock.hcl`, `tests/`. 단 `tests/season.tftest.hcl`의 그룹 값·`override_resource` 구역은 그룹 담당이 자기 그룹 부분만 같은 PR에서 수정함(1-1-1절)
 - import 블록 파일은 `envs/prod/` 바로 아래 평면 파일임. Terraform은 root 디렉터리 바로 아래 `.tf`만 읽으므로 하위 폴더에 두면 무시됨
 - 시즌에 따라 상태가 달라지는 자원(compute·database·cdn)은 `var.season_capacity`·`var.api_origin`을 직접 쓰지 않고 `local.season`을 모듈 입력으로 받음. 시즌 값은 `season.auto.tfvars`가 자동으로 넘김
 - 그룹 사이 값 전달은 상대 그룹 모듈의 output을 참조함(예시 B). 필요한 output이 없으면 그 그룹 담당에게 추가를 요청함
@@ -163,7 +163,7 @@ product-infra/
 │   ├── network.tf                그룹 담당 (module "network" 호출)
 │   ├── imports_network.tf        그룹 담당 (import 블록)
 │   ├── versions.tf, providers.tf, backend.tf, variables.tf, locals.tf,
-│   │   season.auto.tfvars, .terraform.lock.hcl, tests/   STA 담당
+│   │   season.auto.tfvars, .terraform.lock.hcl, tests/   STA 담당 (tests/season.tftest.hcl의 자기 그룹 구역은 그룹 담당)
 │   ├── backend.hcl, terraform.tfvars                      커밋 금지 (gitignore)
 │   └── generated.tf, plan.bin                             커밋 금지 (작업 중 임시 파일)
 └── /tmp/plan.json                저장소 밖. 값이 평문이라 확인 뒤 삭제
@@ -474,6 +474,48 @@ module "cdn" {
 
 - `check-sensitive.sh`가 잡는 것은 계정 ID·IP·키 형태뿐임. 자원 ID 대부분은 걸리지 않으므로 PR 리뷰에서 직접 확인함(5절)
 
+### 1-1-1. 그룹 값 키 이름 규칙과 키 표
+
+**이름 규칙**
+
+| 항목 | 규칙 |
+| --- | --- |
+| 표기 | 키는 snake_case, 그룹 키는 소문자 그룹명(`network`, `cdn` 등) |
+| 단일 값 | `<대상>_id`, `<대상>_arn`. 예: `vpc_id`, `kms_key_arn` |
+| 여러 개 | 항상 맵(`map(string)`)이며 이름은 복수형에 종류 접미사. 예: `private_subnet_ids`, `web_acl_arns`, `ssh_allowed_cidrs`. 목록은 순서가 바뀌면 `for_each` 자원 주소가 바뀌므로 쓰지 않음 |
+| 맵의 키 | 역할 이름(`a`, `c`, `ssh`, `ops_1`, `www`, `admin`). ID·IP를 키로 쓰지 않음(1-0-1절) |
+| 같은 자원군 | 키 집합이 같아야 함. 예: `ssh_rule_ids`와 `ssh_allowed_cidrs`. 모듈 `for_each` 키, import 맵 키와도 같음 |
+| 설정 값 | import `id`가 아닌 값(CIDR, 이메일 등)은 용도 이름으로 씀. 시크릿은 넣지 않음 |
+| 다른 그룹 값 | 모듈 output 참조가 우선임(예시 B). 순환 참조라 data source로 조회하는 경우에만 읽는 쪽 그룹이 자기 키로 둠. 다른 그룹의 키를 참조하지 않음 |
+| 이름 기반 import | 자원 이름이 import `id`이고 이름이 공개돼도 되면 그룹 값 키를 만들지 않고 코드에 적음 |
+
+**그룹별 키 표(초안)**. 그룹 담당이 재조사해 키가 달라지면 이 표를 같은 PR에서 고침. 타입은 모듈 `variable "group_vars"` 선언과 같아야 함
+
+| 그룹 | 키 | 타입 | 용도 |
+| --- | --- | --- | --- |
+| network | `vpc_id` | string | VPC import |
+| network | `internet_gateway_id` | string | 인터넷 게이트웨이 import |
+| network | `public_subnet_ids`, `private_subnet_ids` | map(string), 키 `a`·`c` | 서브넷 import |
+| network | `route_table_ids` | map(string), 키 `main`·`public`·`private` | 라우트 테이블 import |
+| network | `security_group_ids` | map(string), 키는 보안 그룹 역할 | 보안 그룹 import |
+| network | `ssh_rule_ids`, `<보안 그룹 역할>_rule_ids` | map(string) | 규칙별 import |
+| network | `ssh_allowed_cidrs` | map(string), 키 `ops_1`·`ops_2` | SSH 허용 CIDR |
+| iam | 없음 | - | 이름 기반 import. 계정 ID가 들어간 ARN이 필요하면 `oidc_provider_arn`(string)을 추가함 |
+| params | 없음 | - | 파라미터 이름이 import `id` |
+| storage | `frontend_distribution_ids` | map(string), 키 `www`·`admin` | 버킷 정책용 CloudFront 배포 조회(STO-01-05) |
+| compute | `instance_ids` | map(string), 키 `ec2_a`·`ec2_b` | 인스턴스 import |
+| compute | `eip_allocation_id`, `eip_association_id` | string | EIP import |
+| compute | `target_group_arn` | string | 대상 그룹 import |
+| database | `kms_key_arn` | string | 암호화 키(data source로 대체되면 삭제) |
+| cdn | `distribution_ids` | map(string), 키 `api`·`www`·`admin` | 배포 import |
+| cdn | `oac_ids` | map(string), 키 `www`·`admin` | OAC import |
+| cdn | `web_acl_arns` | map(string), 키 `api`·`www`·`admin` | 연결된 웹 ACL 지정 |
+| deploy | 없음 | - | 이름 기반 import |
+| obs | `alert_emails` | map(string), 키 `ops_1` 등 | 경보 수신 이메일(웹훅 URL은 시크릿이라 키 없음) |
+
+- data source(`aws_route53_zone`, `aws_acm_certificate` 등)로 조회할 수 있는 값은 키를 만들지 않음(1-1절 2번)
+- 키 이름 변경·삭제는 그 키를 쓰는 코드가 없을 때만 하고, 파라미터 갱신은 관리자가 함
+
 ### 1-2. 그룹 값을 plan 때 읽어 오는 원리
 
 1-1절 3번의 그룹 값은 data source로 읽음. data source는 state에 저장되지 않고 plan마다 AWS에서 새로 조회됨. 관리자가 파라미터를 고치면 다음 plan부터 로컬·PR CI 모두에 반영됨
@@ -499,10 +541,13 @@ locals {
 | 6 | 값이 채워진 설정을 state·실제 AWS와 비교해 plan 결과를 출력함 |
 
 - `insecure_value`를 쓰는 이유: `value`는 sensitive로 표시되어 import `id`·`cidr_blocks`까지 sensitive가 전파됨. 이 파라미터는 시크릿이 아닌 String 유형임. SecureString이면 `insecure_value`가 비어 `locals.tf`의 검사(postcondition)가 "String 유형이어야 함" 오류로 plan을 중단함
-- 테스트(`envs/prod/tests/season.tftest.hcl`)는 AWS에 요청하지 않는 mock provider로 실행되며 이 data source 값을 `{}`로 지정함
-- **그룹 담당이 할 일**: PR CI의 Terraform Validate 작업이 `terraform test`(`season.tftest.hcl`)에서 실패하면 테스트 파일을 고치지 않고 STA 담당에게 요청함
-  - 원인: 테스트는 그룹 값을 `{}`로 지정함. 첫 그룹이 그룹 값 키나 import 블록을 추가하면 키가 없어 실패함
-  - STA 담당이 `season.tftest.hcl`에 자리 표시 키와 `override_resource`를 추가함
+- 테스트(`envs/prod/tests/season.tftest.hcl`)는 AWS에 요청하지 않는 mock provider로 실행되며 이 data source 값을 가짜 JSON 객체로 지정함
+- **그룹 담당이 할 일**: 그룹 값 키를 처음 쓰는 PR에서 `envs/prod/tests/season.tftest.hcl`의 자기 그룹 부분을 같은 PR에서 수정함
+  1. `override_data`의 `jsonencode({ ... })` 안에 자기 그룹 키와 가짜 값을 추가함. 타입(맵·문자열)은 1-1-1절 표와 같게 하고, 값은 실제 ID 형식을 흉내 내지 않고 `fake-`로 시작하게 씀
+  2. import 블록이 있으면 import 대상 자원마다 `override_resource`를 추가함. `target`은 `module.<그룹>.<자원 주소>`임. `for_each` 자원은 자원 한 개당 한 블록이면 됨. 주소를 잘못 적으면 경고만 나고 통과하므로 자원 주소를 정확히 적음
+  3. 로컬에서 `terraform -chdir=envs/prod init -backend=false -lockfile=readonly` 뒤 `terraform -chdir=envs/prod test`로 통과를 확인함(부록 A-3)
+  - 원인: 테스트는 AWS에 요청하지 않는 mock provider를 쓰고 그룹 값도 가짜 값으로 지정함. 그룹 코드가 가짜 값에 없는 키를 참조하면 "Unsupported attribute"로, mock provider에서 import 블록을 평가하면 import 불가 오류로 실패함
+  - `season.tftest.hcl`의 시즌 `run` 블록과 다른 그룹 구역은 수정하지 않음. 그 외 테스트가 실패하면 STA 담당에게 요청함
 
 ## 2. apply 순서 규칙
 
@@ -571,7 +616,7 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
 | --- | --- |
 | Sensitive Info Check, Gitleaks | 값을 지우고 커밋을 다시 만듦. 우회하지 않음 |
 | Terraform Format | `terraform fmt -recursive` 후 커밋 |
-| Terraform Validate | 로컬 validate·test 재현(부록 A-3). 테스트 mock 문제면 STA 담당에게 요청(1-2절) |
+| Terraform Validate | 로컬 validate·test 재현(부록 A-3). 테스트 mock 문제면 자기 그룹의 가짜 값·`override_resource`를 추가함(1-2절) |
 | TFLint | 부록 A-3 명령으로 재현해 수정 |
 | Python Tests | 부록 A-3 명령으로 재현 |
 | Terraform Plan (envs/prod) | PR 코멘트의 사유 확인. 게이트 차단이면 4절 |
@@ -601,7 +646,7 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
 - [ ] 보호 대상 자원에 `prevent_destroy`가 있음
 - [ ] 코드에 시크릿 값, 계정 ID, 개인 IP, 자원 ID(`vpc-`·`subnet-`·`sg-`·`sgr-`·`i-`·`ami-`·CloudFront 배포 ID·Route53 영역 ID 등)가 없음. 자원 이름·`for_each` 키에도 없음
 - [ ] PR 본문에 plan 원문이 붙어 있지 않음
-- [ ] 새 그룹 값 키가 있으면 본문에 키 이름이 있고 파라미터가 갱신됨(1-1절 3번)
+- [ ] 새 그룹 값 키가 있으면 본문에 키 이름이 있고 파라미터가 갱신됨(1-1절 3번). 키 이름이 규칙(1-1-1절)을 따르고 키 표·`season.tftest.hcl`(가짜 값·`override_resource`)이 같은 PR에서 갱신됨
 - [ ] 명세서의 그룹 고유 기능이 모두 반영됨
 
 ---
@@ -701,6 +746,6 @@ HYPOTHESIS_PROFILE=ci ~/.venvs/boaz-infra/bin/python -m pytest
 | CI plan에만 다른 그룹 자원이 나옴 | `dev`에 다른 그룹 머지가 들어온 뒤 apply 전일 수 있음. 관리자에게 확인하고 workflow를 다시 실행함 |
 | plan이 "Unsupported attribute"로 멈춤 | 그룹 값 파라미터에 키가 없음. 1-1절 3번 절차로 요청함 |
 | init이 잠금 파일 때문에 실패함 | 새 provider가 필요한 경우임. STA 담당에게 잠금 파일 갱신을 요청함(1-0-1절) |
-| Terraform Validate의 `terraform test`만 실패함 | 그룹 값 mock 문제일 수 있음. STA 담당에게 요청함(1-2절) |
+| Terraform Validate의 `terraform test`만 실패함 | 그룹 값 mock 문제일 수 있음. 자기 그룹의 가짜 값·`override_resource`를 `season.tftest.hcl`에 추가함(1-2절) |
 | plan이 잠금을 못 얻음 | `-lock-timeout=5m`으로 다시 실행함. 계속되면 2절 순서로 관리자에게 요청함 |
 | `aws login`이 안 됨 | 읽기 전용 그룹에는 권한이 없음. 액세스 키 방식(0-1절)을 씀 |
