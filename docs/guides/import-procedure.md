@@ -83,6 +83,41 @@
 
 - `check-sensitive.sh`가 잡는 것은 계정 ID·IP·키 형태뿐임. 자원 ID 대부분은 걸리지 않으므로 PR 리뷰에서 직접 확인함(5절 체크리스트)
 
+### 1-2. 그룹 값을 plan 때 읽어 오는 원리
+
+1-1절 3번의 그룹 값은 Terraform의 data source로 읽음. data source는 state에 저장되는 값이 아니며 plan 실행마다 AWS에서 새로 조회하는 값임. 관리자가 파라미터를 수정하면 다음 plan부터 로컬·PR CI 전체에 반영됨
+
+```hcl
+# envs/prod/locals.tf (요약)
+data "aws_ssm_parameter" "group_vars" {
+  name = "/boaz/terraform/group-vars"
+}
+
+locals {
+  group_vars = jsondecode(data.aws_ssm_parameter.group_vars.insecure_value)
+}
+
+# 그룹 코드에서 사용(예)
+#   cidr_blocks = local.group_vars.network.ssh_allowed_cidrs
+```
+
+`terraform plan` 실행 시 순서
+
+| 순서 | 일어나는 일 |
+| --- | --- |
+| 1 | `envs/prod/`의 모든 `.tf` 파일을 읽음. `locals.tf`의 data 블록도 포함 |
+| 2 | AWS provider가 요청에 쓸 자격 증명을 정함. 로컬은 0-1절 프로필(`AWS_PROFILE`), PR CI는 OIDC로 받은 plan 역할 |
+| 3 | provider가 AWS API `ssm:GetParameter`로 `/boaz/terraform/group-vars` 값을 가져옴. `aws ssm get-parameter`와 같은 요청을 Terraform이 대신 보냄 |
+| 4 | 가져온 JSON 문자열을 `jsondecode`로 객체로 바꿔 `local.group_vars`에 둠 |
+| 5 | 그룹 코드의 `local.group_vars.<그룹>.<키>` 자리에 실제 값이 들어감 |
+| 6 | 이 값을 넣은 설정을 state·실제 AWS와 비교해 plan 결과를 냄 |
+
+- `insecure_value`를 쓰는 이유: `value`는 sensitive로 표시되어 import 블록 `id`·`cidr_blocks`까지 sensitive가 전파됨. 이 파라미터는 시크릿이 아닌 String 유형이므로 `insecure_value`로 읽음. 파라미터가 SecureString이면 `insecure_value`가 비어 있음. 이 경우 `locals.tf`의 검사(postcondition)가 "String 유형이어야 함" 오류를 내고 plan을 중단함
+- 키가 파라미터에 없으면 그 키를 쓰는 코드의 plan이 오류로 중단됨. 키를 먼저 추가하고 코드를 나중에 머지함(1-1절 3번)
+- 테스트(`envs/prod/tests/season.tftest.hcl`)는 AWS에 요청하지 않는 모의(mock) provider로 실행됨. 이 data source 값은 `{}`로 지정함
+- 같은 원리를 쓰는 기존 사례: 버킷 정책의 CloudFront 배포 ARN 조회(STO-01-05), AMI 이름 조회
+- 그룹 값은 이 원리를 "코드에 적을 수 없고 이름으로 찾을 수도 없는 값"에 적용한 사례임
+
 ## 2. apply 순서 규칙
 
 state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
