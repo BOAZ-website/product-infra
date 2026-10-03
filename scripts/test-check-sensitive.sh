@@ -26,6 +26,8 @@ must_fail=(
   "pass""word = \"Correct Horse Battery Staple\""
   "pass""word = 'Correct Horse Battery Staple'"
   "sec""ret=QWxhZGRpbjpvcGVuIHNlc2FtZQ=="
+  # IAM 사용자명 규칙(admin_ + 소문자 이름). 실제 이름이 아닌 가짜 값으로 검사
+  "관리자(admin""_sample, Admin 그룹)" "admin""_sample·admin""_other"
   # 해시 제외 규칙이 같은 줄의 계정 ID까지 지우면 안 됨
   "--hash=sha256:$(printf 'a%.0s' {1..64}) 계정 1234567""89012"
 )
@@ -37,6 +39,8 @@ must_pass=(
   "pass""word = \"xxxxxxxx\""
   "- RDS pass""word: Terraform 값 관리 대상이 아니며"
   "사설 대역 10.0.0.0/16"
+  # 앞에 식별자가 붙은 admin_ 이름은 사용자명이 아님(출력 이름 등)
+  "frontend_admin""_distribution_id" "관리자(Admin 그룹, 운영진 3명)"
   # sha256 해시 안의 12자리 숫자 구간은 계정 ID가 아님(tests/requirements.txt, .terraform.lock.hcl)
   "    --hash=sha256:ab1234567""89012cd$(printf 'e%.0s' {1..48})"
   "    \"zh:1234567""89012$(printf 'f%.0s' {1..52})\","

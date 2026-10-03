@@ -63,6 +63,11 @@ while IFS= read -r -d '' f; do
   printf '%s\n' "$content" | grep -nE 'AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}' | while IFS=: read -r line _; do echo "  $f:$line: AWS 액세스 키 형식"; done | grep . && fail=1
   printf '%s\n' "$content" | grep -nE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' | while IFS=: read -r line _; do echo "  $f:$line: 개인 키"; done | grep . && fail=1
 
+  # IAM 사용자명: 이 계정의 사용자명 규칙(admin_ + 소문자 이름). 이름 목록은 스크립트에 넣지 않고 규칙으로만 잡음
+  # 앞에 영문·숫자·_가 붙은 식별자(frontend_admin_…)는 \b가 걸러내 제외됨. 역할명(관리자 N명, 읽기 전용 팀원)으로 적음
+  printf '%s\n' "$content" | grep -nE '\badmin_[a-z]{3,}\b' \
+    | while IFS=: read -r line _; do echo "  $f:$line: IAM 사용자명(admin_ 규칙). 역할명으로 적음"; done | grep . && fail=1
+
   # 일반 자격 증명: 키=값 형태의 비밀번호·토큰·시크릿
   #   값 전체가 변수 참조·자리표시자일 때만 제외: var.·local.·env.·secrets.·aws_* 참조, example, xxx, *** 등
   #   ${...}, <...> 형태는 값 문자 범위에 들지 않아 처음부터 잡히지 않는다
