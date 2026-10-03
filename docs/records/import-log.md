@@ -42,10 +42,11 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 
 ## 그룹별 진행 상태
 
-그룹 import를 시작하는 사람이 상태를 `진행 중`으로 바꾸고 담당자·시작 시각을 적음. `진행 중`인 그룹은 한 번에 1개만 둠(apply 순서 규칙, `docs/guides/import-procedure.md` 2절). 실제 식별자는 `docs/records/inventory.md` 참조
+상태는 `대기` → `작업 중` → `apply 중` → `완료`. 착수 시 `작업 중`으로 바꾸고 담당자·시작 시각을 적음(여러 그룹 동시 가능). PR 승인 뒤 apply 직전에 `apply 중`으로 바꾸며, `apply 중`인 그룹은 한 번에 1개만 둠(apply 순서 규칙, `docs/guides/import-procedure.md` 2절). 담당자는 역할·그룹명으로 적음. 실제 식별자는 `docs/records/inventory.md` 참조
 
 | 순서 | group | 주요 대상 | 담당자 | 시작 시각(KST) | 상태 |
 |---|---|---|---|---|---|
+| 0 | obs | SNS 주제·구독, CloudWatch 경보(RDS 여유 메모리 등), Discord 알림 Lambda(신규 생성, import 아님) | | | 대기 |
 | 1 | network | VPC, Subnet 4개, Route Table 3개(+association), IGW, SG 6개와 규칙, prefix list(data_source) | | | 대기 |
 | 2 | iam | OIDC provider, role 4개, role별 정책 연결·인라인 정책, EC2 instance profile | | | 대기 |
 | 3 | params | `/boaz/infra/*` 12개, 앱 시크릿 존재·타입 확인(값 제외) | | | 대기 |

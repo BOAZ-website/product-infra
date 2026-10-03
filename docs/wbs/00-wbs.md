@@ -124,7 +124,7 @@
 
 | 순서 | 계획서 그룹 | 명세서 | 티켓 | 수정 파일(`envs/prod/`) | 선행 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 모니터링·경보 | OBS | OBS-01 | 신규 자원(그룹 import 아님) | STA-01 |
+| 1 | 모니터링·경보 | OBS | OBS-01 | `obs.tf`(신규 자원, import 블록 없음) | STA-01 |
 | 1 | 네트워크 | NET | NET-01 | `network.tf` | STA-07 |
 | 2 | IAM | IAM | IAM-01, IAM-02 | `iam.tf` | STA-07 |
 | 2 | SSM 파라미터 | IAM | IAM-03, IAM-04 | `params.tf` | IAM-01 |

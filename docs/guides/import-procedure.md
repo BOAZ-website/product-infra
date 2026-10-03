@@ -37,6 +37,8 @@
 - workspace는 쓰지 않음(`terraform workspace new` 금지). workspace를 쓰면 state가 `env:/` 경로로 갈라짐
 - plan·apply에는 항상 `-input=false`를 붙임. 변수 파일이 없을 때 입력을 기다리지 않고 바로 실패함
 - state 잠금 파일(`.tflock`)은 읽기 전용 권한으로도 쓸 수 있음. `-lock=false`로 잠금을 피하지 않음(동시 작업 충돌 위험)
+- CI와 같은 자격 증명 없는 검증(`init -backend=false` → `validate`)을 로컬에서 돌릴 때, 이미 S3 backend로 init한 `.terraform/`이 있으면 계정 가드에 걸려 실패함. 데이터 디렉터리를 바꿔 실행함: `TF_DATA_DIR=/tmp/tf-validate terraform -chdir=envs/prod init -backend=false -input=false -lockfile=readonly`
+- `tests/`의 Python 테스트는 시스템 Python으로 돌리면 `hypothesis`가 없어 실패함. `python3 -m venv .venv && .venv/bin/pip install -r tests/requirements.txt` 뒤 `.venv/bin/pytest tests/`로 실행함(`.venv/`는 커밋하지 않음)
 
 ## 1. 파일 규칙
 
@@ -44,6 +46,7 @@
 
 | 그룹 | 모듈 폴더 | envs/prod 파일 | import 블록 파일 | 명세서 |
 | --- | --- | --- | --- | --- |
+| obs | `modules/obs/` | `envs/prod/obs.tf` | 없음(기존 자원 import 없이 새로 만듦) | OBS |
 | network | `modules/network/` | `envs/prod/network.tf` | `envs/prod/imports_network.tf` | NET |
 | iam | `modules/iam/` | `envs/prod/iam.tf` | `envs/prod/imports_iam.tf` | IAM |
 | params | `modules/params/` | `envs/prod/params.tf` | `envs/prod/imports_params.tf` | IAM |
@@ -60,14 +63,31 @@
 - 그룹 간 값 전달(예: network의 서브넷 ID를 database가 사용)은 상대 그룹 모듈의 output을 참조함. 필요한 output이 없으면 해당 그룹 담당자에게 추가를 요청함
 - 두 그룹이 서로의 output을 참조하면 순환 참조가 됨. 한쪽은 data source로 조회함(예: storage 버킷 정책의 CloudFront 배포 ARN, `23-sto.md` STO-01-05)
 - import가 끝나 state에 등록된 뒤에는 `envs/prod/imports_<그룹>.tf`의 import 블록을 지워도 됨. 지우는 것은 plan "No changes" 확인 후 별도 커밋으로 함
+- us-east-1 자원(ACM 인증서, WAF WebACL 조회)을 다루는 모듈(cdn)은 모듈 안에서 `terraform { required_providers { aws = { source = "hashicorp/aws", configuration_aliases = [aws.us_east_1] } } }`로 별칭을 선언함. 그룹 파일의 `module "cdn"` 호출에는 `providers = { aws = aws, aws.us_east_1 = aws.us_east_1 }`를 넘김. 별칭 provider 자체는 `providers.tf`에 이미 있음
+
+### 1-1. 자원 ID·IP를 코드 밖으로 빼는 규칙
+
+공개 저장소이므로 자원 ID(VPC·서브넷·보안 그룹·인스턴스·CloudFront 배포·Route53 영역·AMI 등), 계정 ID가 들어간 ARN, 개인 IP는 `.tf` 파일에 적지 않음. `terraform plan -generate-config-out` 초안에는 이 값이 그대로 들어가므로 아래 순서로 바꾼 뒤 옮김
+
+1. **다른 자원 참조**: 같은 state에 있는 자원의 속성을 참조함. 예: 서브넷의 `vpc_id`는 `aws_vpc.main.id`, 다른 그룹 자원은 그 그룹 모듈의 output
+2. **data source 조회**: 참조할 자원이 없으면 이름·태그 기준 data source로 조회함. 예: 버킷 정책의 CloudFront 배포 ARN(`23-sto.md` STO-01-05), AMI는 `data "aws_ami"`에 이름 필터
+3. **그룹 변수**: 위 두 가지로 없앨 수 없는 값(import 블록의 `id`, SSH 허용 CIDR 등)은 기본값 없는 변수로 받음. 선언은 `envs/prod/<그룹>.tf`, 값은 아래 두 곳에 둠
+   - 로컬: `envs/prod/<그룹>.auto.tfvars`(gitignore `*.tfvars` 대상, 커밋되지 않음). 실제 값은 `docs/records/inventory.md`에서 가져옴
+   - PR CI: 저장소 secret `TF_CI_TFVARS_JSON`(모든 그룹 변수를 담은 JSON 객체 하나). plan 단계가 이 값을 `envs/prod/ci.auto.tfvars.json`으로 써서 plan한 뒤 지움. **변수를 새로 만들거나 이름을 바꾼 PR은 secret 갱신이 먼저 필요함.** PR 본문에 추가한 변수 이름과 inventory.md의 참조 위치를 적고 STA 담당에게 갱신을 요청함. 갱신 전까지 CI plan은 변수 누락으로 실패함
+
+- 변수 파일 예시는 `envs/prod/<그룹>.auto.tfvars.example`로 커밋해도 됨(값 자리는 `<...>`로 비움, 예시 파일만 gitignore 예외)
+- `check-sensitive.sh`가 잡는 것은 계정 ID·IP·키 형태뿐임. 자원 ID 대부분은 걸리지 않으므로 PR 리뷰에서 직접 확인함(5절 체크리스트)
 
 ## 2. apply 순서 규칙
 
 state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 
-- `import-log.md`의 그룹 상태를 `대기` → `진행 중` → `완료`로 적음
-- apply는 `진행 중`으로 먼저 적은 사람이 함. 동시에 `진행 중`인 그룹은 최대 1개
-- apply 대기가 겹치면 12월 전 마감이 걸린 두 작업 줄을 먼저 apply함: ① STO-01 → CDN-02 1단계 → CDN-03(관리자 페이지 오픈), ② IAM-02 → CMP-01 → CMP-02(시즌 전환). 나머지 그룹(OBS·NET·IAM-03·RDB·DEP 등)은 그 사이에 apply함
+- `import-log.md`의 그룹 상태는 `대기` → `작업 중` → `apply 중` → `완료` 네 단계임
+  - `작업 중`: 재조사·코드 작성·plan 맞추기·PR 리뷰. 여러 그룹이 동시에 있어도 됨(1차 시작 시 8개 파트 동시 착수)
+  - `apply 중`: PR 승인 뒤 관리자가 apply를 실행하는 동안. **동시에 `apply 중`인 그룹은 최대 1개**
+- apply는 `apply 중`으로 먼저 적은 그룹부터 함. 읽기 전용 팀원은 apply 권한이 없으므로 관리자(인프라 리드)에게 요청함
+- **apply 직전 rebase 규칙**: apply할 브랜치를 `dev` 최신으로 rebase(또는 merge)한 뒤 다시 plan함. 다른 그룹이 먼저 apply한 자원이 해당 브랜치 코드에 없으면 그 자원이 plan에 삭제(destroy)로 나옴. plan에 **해당 그룹의 import와 변경만** 있을 때만 apply함. 다른 그룹 자원의 삭제·변경이 하나라도 보이면 멈추고 rebase부터 다시 함
+- apply 대기가 겹치면 12월 전 마감이 걸린 두 선행 순서를 먼저 apply함: ① STO-01 → CDN-02 1단계 → CDN-03(관리자 페이지 오픈), ② IAM-02 → CMP-01 → CMP-02(시즌 전환). 나머지 그룹(OBS·NET·IAM-03·RDB·DEP 등)은 그 사이에 apply함
 - 기다리는 사람은 `terraform plan`만 실행하며 코드를 맞춤. plan도 state 잠금을 잡으므로 동시에 실행하면 한쪽이 잠금을 못 얻어 실패할 수 있음. `terraform plan -lock-timeout=5m`처럼 잠금 대기 시간을 주고, 잠금을 끄는 옵션(`-lock=false`)은 쓰지 않음
 - 잠금이 오래 풀리지 않으면 강제 해제(`force-unlock`)하지 말고 잠금을 잡은 사람에게 먼저 확인함
 - 강제 해제가 꼭 필요할 때만 아래 순서를 따름
@@ -81,15 +101,15 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 
 | 단계 | 할 일 | 완료 확인 방법 |
 | --- | --- | --- |
-| 1. 착수 선언 | `import-log.md`에 그룹 상태 `진행 중`, 담당자, 시작 시각 기록. 브랜치 `feat/import-<그룹>` 생성 | import-log.md 해당 행 갱신 |
+| 1. 착수 선언 | `import-log.md`에 그룹 상태 `작업 중`, 담당자, 시작 시각 기록(이 갱신은 작은 PR로 따로 올림. 여러 그룹이 같은 표를 고치므로 코드 PR에 섞으면 충돌이 생김). 브랜치 `feat/import-<그룹>` 생성. 커밋 메시지는 `type: 설명 (#해당 티켓 이슈 번호)` 형식이어야 훅을 통과함 | import-log.md 해당 행 갱신 |
 | 2. 직전 재조사 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사해 inventory.md 갱신. 시크릿 값은 조회하지 않음 | inventory 갱신 시각이 착수 이후 |
-| 3. 코드 작성 | import 블록을 root 주소(예: `aws_vpc.main`)로 먼저 쓰고 `terraform plan -generate-config-out=generated.tf`로 코드 초안 생성(초안 생성은 root 주소만 지원). 초안을 `modules/<그룹>/`으로 옮긴 뒤 import 블록의 `to`를 `module.<그룹>.<자원>`으로 바꿈. `generated.tf`는 커밋하지 않고 삭제 | `terraform validate` 통과 |
+| 3. 코드 작성 | import 블록을 root 주소(예: `aws_vpc.main`)로 먼저 쓰고 `terraform plan -generate-config-out=generated.tf`로 코드 초안 생성(초안 생성은 root 주소만 지원). 초안의 자원 ID·ARN·IP를 1-1절 규칙대로 참조·data source·변수로 바꾸고 `modules/<그룹>/`으로 옮긴 뒤, import 블록의 `to`를 `module.<그룹>.<자원>`으로 바꿈. `generated.tf`는 커밋하지 않고 삭제 | `terraform validate` 통과, `.tf`에 자원 ID·IP 없음 |
 | 4. 보호 설정 | 보호 대상 자원에 `prevent_destroy` 추가. 재생성을 일으키는 속성은 실제 값과 똑같이 맞춤 | 코드에 `prevent_destroy` 존재 |
 | 5. plan 맞추기 | `terraform plan`에서 차이가 0이 될 때까지 코드 수정. 교체·삭제가 나오면 즉시 멈추고 리뷰 요청 | plan 결과에 import만 있고 변경·교체·삭제 0건 |
-| 6. PR | PR 템플릿 작성, plan 결과 첨부, 리뷰 1명 이상 승인 | PR에 승인 1건 이상 |
-| 7. apply | 승인된 PR의 plan 파일로 apply(state 등록만 일어남) | apply 로그에 `import`만 존재 |
+| 6. PR | PR 템플릿 작성. plan 결과는 PR CI가 다는 요약 코멘트로 대체함. **plan 원문은 붙이지 않음**(자원 ID·IP가 들어 있음). 새 변수를 만들었으면 본문에 적고 STA 담당에게 CI secret 갱신 요청(1-1절). 리뷰 1명 이상 승인 | PR에 승인 1건 이상, `Apply Ready` 통과 |
+| 7. apply | `dev` 최신으로 rebase 후 다시 plan(2절 rebase 규칙). 해당 그룹 변경만 있으면 `import-log.md` 상태를 `apply 중`으로 바꾸고 관리자에게 apply 요청. 관리자가 그 plan 파일로 apply(state 등록만 일어남) | apply 로그에 `import`만 존재 |
 | 8. 최종 확인 | 같은 커밋에서 다시 `terraform plan` | 출력에 "No changes." 문구 |
-| 9. 기록 | `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 그룹 상태 `완료` | import-log.md 해당 행 갱신 |
+| 9. 기록 | PR 머지. `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 그룹 상태 `완료` | import-log.md 해당 행 갱신 |
 
 ## 4. 멈춰야 하는 경우
 
@@ -105,8 +125,8 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 리뷰어는 아래 항목을 모두 확인한 뒤 승인함
 
 - [ ] 수정 파일이 자기 그룹 파일(1절 표)뿐
-- [ ] plan 결과에 변경·교체·삭제가 0건
+- [ ] plan 결과에 변경·교체·삭제가 0건. 다른 그룹 자원이 plan에 나오지 않음(나오면 rebase 요청)
 - [ ] 보호 대상 자원에 `prevent_destroy`가 있음
-- [ ] plan 출력과 코드에 시크릿 값, 계정 ID, 개인 IP가 없음
+- [ ] 코드에 시크릿 값, 계정 ID, 개인 IP, 자원 ID(`vpc-`·`subnet-`·`sg-`·`i-`·`ami-`·CloudFront 배포 ID·Route53 영역 ID 등)가 없음. PR 본문에 plan 원문이 붙어 있지 않음
 - [ ] 명세서의 그룹 고유 기능이 모두 반영됨
 - [ ] `import-log.md`가 갱신됨
