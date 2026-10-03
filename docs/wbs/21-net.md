@@ -38,4 +38,5 @@
 
 ## 확인 필요 사항
 
-- Network ACL을 관리 대상에 넣을지(기본안: 현행 그대로 import) [확인 필요]
+- Network ACL: 현행 그대로 import(`aws_default_network_acl`)로 확정(2026-10-02, decisions.md "Network ACL 관리 방식"). 기본 NACL 1개뿐이라 규칙 변경 없이 편입
+- SSH 접근: 현행 유지(pem key SSH + 개인 IP 2개 허용 SG)로 import 확정(2026-10-02, decisions.md "SSH 접근 방식"). Session Manager 전환은 별도 PR
