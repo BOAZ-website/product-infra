@@ -122,7 +122,6 @@ data "aws_iam_policy_document" "terraform_plan" {
       "dynamodb:BatchGetItem",
       "dynamodb:Query",
       "dynamodb:Scan",
-      "lambda:GetFunction",
     ]
     resources = ["*"]
   }
