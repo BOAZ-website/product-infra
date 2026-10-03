@@ -74,6 +74,7 @@
 3. **그룹 변수**: 위 두 가지로 없앨 수 없는 값(import 블록의 `id`, SSH 허용 CIDR 등)은 기본값 없는 변수로 받음. 선언은 `envs/prod/<그룹>.tf`, 값은 아래 두 곳에 둠
    - 로컬: `envs/prod/<그룹>.auto.tfvars`(gitignore `*.tfvars` 대상, 커밋되지 않음). 실제 값은 `docs/records/inventory.md`에서 가져옴
    - PR CI: 저장소 secret `TF_CI_TFVARS_JSON`(모든 그룹 변수를 담은 JSON 객체 하나). plan 단계가 이 값을 `envs/prod/ci.auto.tfvars.json`으로 써서 plan한 뒤 지움. **변수를 새로 만들거나 이름을 바꾼 PR은 secret 갱신이 먼저 필요함.** PR 본문에 추가한 변수 이름과 inventory.md의 참조 위치를 적고 STA 담당에게 갱신을 요청함. 갱신 전까지 CI plan은 변수 누락으로 실패함
+   - STA 담당의 secret 갱신: GitHub secret은 값을 다시 읽을 수 없으므로 JSON 원본을 저장소 밖 비공개 파일(권한 600)로 보관하고, 그 파일에 항목을 추가한 뒤 `gh secret set TF_CI_TFVARS_JSON < <원본 파일>`로 전체를 다시 등록함. 아직 선언되지 않은 변수 값이 들어 있어도 plan은 경고만 내므로 값을 먼저 넣어 둬도 됨. 2026-10-03 `{}`로 최초 등록
 
 - 변수 파일 예시는 `envs/prod/<그룹>.auto.tfvars.example`로 커밋해도 됨(값 자리는 `<...>`로 비움, 예시 파일만 gitignore 예외)
 - `check-sensitive.sh`가 잡는 것은 계정 ID·IP·키 형태뿐임. 자원 ID 대부분은 걸리지 않으므로 PR 리뷰에서 직접 확인함(5절 체크리스트)
