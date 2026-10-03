@@ -86,7 +86,9 @@
 > - plan 역할: `bootstrap/ci_plan_role.tf`. 기존 GitHub OIDC provider를 참조(IAM 그룹이 import 예정), 이 저장소 `pull_request` 토큰만 허용, ReadOnlyAccess + state 조회·`.tflock` 쓰기, S3 객체(state 제외)·복호화·시크릿·로그 읽기 명시 거부
 > - 공개 저장소라 plan 원문·plan JSON은 출력·업로드하지 않음. `scripts/plan_summary.py`가 개수와 자원 주소만 요약하고 오류 로그는 식별자를 가림(검사: `tests/static/test_plan_summary.py`)
 > - 모든 workflow의 `uses:`를 커밋 SHA로 고정. `pull_request_target`은 plan workflow에서 쓰지 않음. 기존 제목·base 검사·자동 라벨 workflow는 코드를 checkout하지 않는 github-script만 실행해 유지
-> - 남은 것: bootstrap apply(운영 승인), 저장소 secret 3개(`AWS_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `AWS_ACCOUNT_ID`) 등록, 샘플 PR에서 코멘트·Apply Ready 확인. 그 전까지 plan은 건너뛰고 Apply Ready는 skipped
+> - 운영 반영 완료(2026-10-02): bootstrap apply(plan 역할·정책 생성 3건, 기존 자원 변경 0), 저장소 secret 3개(`AWS_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `AWS_ACCOUNT_ID`) 등록, 샘플 PR #45에서 OIDC plan·"No changes" 코멘트·안전 게이트 통과·`Apply Ready` 성공 확인
+> - `Apply Ready`는 모든 PR에서 실행하고 skip하지 않음. job이 `if:`로 skip되면 GitHub가 필수 검사를 Success로 처리하기 때문. plan이 돌지 않은 PR(포크 PR, secret 미구성)은 실패로 판정함
+> - 남은 것: `dev` 브랜치 보호(필수 검사 `Apply Ready` 하나, PR 필수, 승인 1명). 인프라 리드 기초 작업이 끝나고 팀원 착수 직전에 적용(CodeRabbit은 리뷰 한도 때문에 필수로 걸지 않음)
 > - plan 역할은 `kms:Decrypt`를 거부함. 설계상 앱 시크릿(SecureString)은 값 관리 대상이 아니고(requirements.md Secret_Parameter, design.md "값 소유 resource로 만들지 않는다"), IAM-03이 import하는 `/boaz/infra/*` 12개는 String이라 복호화가 필요 없음. 앱 시크릿을 `aws_ssm_parameter`로 import하면 plan이 권한 오류로 실패하고 안전 게이트(G2)도 막음. 존재·타입 확인 방법은 `docs/wbs/22-iam.md` IAM-03 참고
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
@@ -130,7 +132,7 @@
 | STA-07-04 | P1 테스트: 보호 자원은 교체되지 않음 | `pytest -k P1` 통과 |
 | STA-07-05 | P6 테스트: 시크릿 값이 출력되지 않음 | `pytest -k P6` 통과 |
 
-> 진행: 완료(#33). 2026-10-02 PR CI 실제 plan 연동 확인(PR #45·#47).
+> 진행: 완료(#33). 샘플 PR #45의 실제 CI plan에서 게이트가 돌아 통과("No changes")하는 것 확인. 차단 경로는 아직 관리 자원이 없어 실제 plan으로는 확인하지 못했고, 고정 입력·property 테스트와 로컬 `terraform show -json` 결과로 확인함.
 > - `scripts/plan_gate.py`: plan JSON 검사. G1 보호 자원(`aws_db_instance`·`aws_instance`·`aws_eip`·`aws_eip_association`·`aws_cloudfront_distribution`·`aws_route53_record`·`aws_route53_zone`·`aws_s3_bucket`) 삭제·교체, G2 RDS 비밀번호 설정·변경·SecureString/Secrets Manager 값을 state에 저장하는 설정·sensitive output, G3 `0.0.0.0/0`·`::/0`에 80·443 외 포트를 여는 inbound 규칙 추가·변경. import-only(no-op)와 그 외 변경은 통과. 출력에는 규칙·주소(마스킹)·사유만
 > - CI plan 작업에서 요약 뒤에 실행하고, 차단이면 plan 작업 실패 → `Apply Ready` 실패. PR 코멘트 제목이 "안전 게이트 차단"으로 바뀜
 > - 테스트: 고정 입력 `tests/static/test_plan_gate.py`(보호 자원 8종 × 삭제·교체 2순서, 통과 사례 포함), property `tests/property/test_design_invariants.py`의 P1·P6(각 100회). 규칙을 일부러 빼거나 약하게 바꾸면 테스트가 실패하는 것 확인
@@ -224,3 +226,4 @@
 - property 테스트 범위: 설계대로 hypothesis 테스트 유지 vs plan 검사 스크립트와 고정 입력 테스트 몇 개로 축소 [확인 필요]
 - AWS provider 6.x 사용 여부: 6.x로 확정(결정 레지스터 "AWS provider 버전", #24)
 - apply 승인자 1~2명 [확인 필요]
+- 안전 게이트 차단 경로의 실제 plan 확인(STA-07): 첫 그룹 import PR의 CI plan에서 게이트가 동작하는지 확인 [확인 필요]

@@ -339,18 +339,25 @@ jobs:
 
   apply-ready:
     name: Apply Ready
-    # plan이 구성된 PR에서만 판정. 미구성·포크 PR에서는 skipped(apply 대상 아님)
+    # 모든 PR에서 반드시 실행하고 skip하지 않음. job이 if 조건으로 skip되면 GitHub는 필수 검사를 "Success"로 처리하므로,
+    # plan이 돌지 않은 PR(포크 PR: plan skipped, secret 미구성: configured=false)은 여기서 실패시켜 머지를 막음
     needs: [sensitive, gitleaks, fmt, validate, tflint, python-tests, plan]
-    if: always() && github.event_name == 'pull_request' && needs.plan.outputs.configured == 'true'
+    if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
       - name: 모든 검사 성공 확인
         env:
           RESULTS: ${{ toJSON(needs.*.result) }}
+          PLAN_CONFIGURED: ${{ needs.plan.outputs.configured }}
         run: |
           echo "검사 결과: ${RESULTS}"
           if ! echo "${RESULTS}" | jq -e 'length > 0 and all(. == "success")' > /dev/null; then
-            echo "::error::fmt·validate·plan 등 검사 중 성공하지 않은 항목이 있어 apply 대상이 아닙니다."
+            echo "::error::fmt·validate·plan 등 검사 중 성공하지 않은 항목이 있어 apply 대상이 아닙니다. 포크 PR은 plan이 돌지 않으므로 저장소 브랜치로 다시 올립니다."
+            exit 1
+          fi
+          # plan 작업은 secret이 없으면 단계만 건너뛰고 success로 끝나므로 실제 실행 여부를 따로 확인
+          if [ "${PLAN_CONFIGURED}" != "true" ]; then
+            echo "::error::plan이 실행되지 않았습니다(secret AWS_PLAN_ROLE_ARN·TF_STATE_BUCKET·AWS_ACCOUNT_ID 미구성). apply 대상이 아닙니다."
             exit 1
           fi
           echo "모든 검사 성공: apply 대상"
