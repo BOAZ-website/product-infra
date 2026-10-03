@@ -172,9 +172,9 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | STA-02 | 버전·provider 규칙 | STA | 하루이틀 | STA-01 | 없음 | Phase 1 | 예 | 완료(#24) |
 | STA-03 | state 버킷 구현 | STA | 한 주 | STA-02 | state 버킷·키 | Phase 1 | 예 | 완료(#25) |
 | STA-04 | envs/prod backend 초기화 | STA | 하루이틀 | STA-03 | state 버킷·키 | Phase 1 | 예 | 완료(#26) |
-| STA-05 | PR CI(fmt·validate·plan) | STA | 한 주 | STA-02 | 없음 | Phase 2 준비 | 예 | 코드 완료(#31), bootstrap apply·secret 등록 대기 |
+| STA-05 | PR CI(fmt·validate·plan) | STA | 한 주 | STA-02 | 없음 | Phase 2 준비 | 예 | 완료(#31, 2026-10-02 bootstrap apply·secret 등록, 샘플 PR #45 확인) |
 | STA-06 | property 테스트 실행 환경 | STA | 한 주 | STA-01 | 없음 | Phase 2 준비 | 예 | 완료(#32) |
-| STA-07 | 안전 게이트 + P1·P6 | STA | 2~3주 | STA-04, STA-06 | 없음 | Phase 2 준비 | 예 | 코드 완료(#33), 실제 plan 연동 확인 대기 |
+| STA-07 | 안전 게이트 + P1·P6 | STA | 2~3주 | STA-04, STA-06 | 없음 | Phase 2 준비 | 예 | 완료(#33, 2026-10-03 G4 추가, PR CI 실제 plan 연동 확인) |
 | STA-08 | 그룹 간 연결 점검 | STA | 하루이틀 | CMP-03, RDB-01, CDN-03, DEP-02 | 없음 | Phase 2 마무리 | 예 | 대기 |
 | STA-09 | 최종 일치 확인 + P2 | STA | 한 주 | STA-08 | 없음 | Phase 2 마무리 | 예 | 대기 |
 | STA-10 | 배포 workflow 계약 검사 + P8 | STA | 하루이틀 | STA-08, DEP-02 | 없음 | Phase 3 | 아니오 | 대기 |

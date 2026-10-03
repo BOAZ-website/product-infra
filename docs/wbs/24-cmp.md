@@ -31,7 +31,7 @@
 | CMP-01-03 | AMI·`user_data`는 항상 변경 무시 목록(`ignore_changes`)에 넣음. 기능 태그(`app=boaz-api`)·인스턴스 상태는 넣지 않음 | 기능 태그를 바꾸면 plan에 변경이 나옴 |
 | CMP-01-04 | EC2-A/B 모두 `prevent_destroy` 적용 | 삭제하는 plan이 오류로 차단 |
 | CMP-01-05 | EC2-B 켜기·끄기는 `aws_ec2_instance_state`로 하고 ASG로 바꾸지 않은 이유를 기록 | decisions.md에 두 방식 비교와 선택 이유 존재 |
-| CMP-01-06 | `off` 적용 시 `season-down.sh`와 같은 순서(Target Group 등록 해제 → `app=boaz-api` 태그 제거 → EC2-B 중지)를 `depends_on`으로 강제. `aws_ec2_instance_state`만으로는 순서가 보장되지 않음 | 모듈에 `depends_on`으로 세 단계 순서가 표현되고, off plan에서 중지가 태그 제거·등록 해제 뒤에 옴 |
+| CMP-01-06 | (SEA-03-03으로 이관, 2026-10-03) off 전환 순서 강제는 Phase 4에서 함. Phase 2에서는 off로 되돌리는 삭제가 G4에 막힘. 이 때문에 plan으로 순서를 확인할 수 없음 | 이 티켓은 off 상태 plan "No changes"까지 |
 
 ## CMP-02 Target Group·ALB 그룹 import
 
@@ -46,7 +46,7 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| CMP-02-01 | Target Group의 등록 대상·상태 확인 설정·포트·보안 그룹·서브넷 import | `terraform state list`에 Target Group 존재 |
+| CMP-02-01 | Target Group(상태 확인 설정·포트)과 EC2-A 등록(`aws_lb_target_group_attachment`) import. ALB 보안 그룹·퍼블릭 서브넷은 network output으로 받음. 이 값은 시즌 on일 때만 만드는 ALB에 씀 | `terraform state list`에 Target Group·EC2-A 등록 존재 |
 | CMP-02-02 | `season_capacity = off`면 ALB·listener 없음, `on`이면 있음 | off·on 각각의 plan에서 존재 여부가 모델과 일치 |
 | CMP-02-03 | origin 교체는 `api_origin` 별도 apply로만 하고, 그 전에 실제 대상 상태를 확인하는 단계를 둠(Terraform 의존 관계는 상태 검사 통과를 기다리지 않음). 확인 방법은 SEA-02와 같음 | `api_origin = alb` apply 직전 `aws elbv2 describe-target-health` 결과에서 모든 대상이 healthy |
 

@@ -57,7 +57,7 @@
 | --- | --- | --- |
 | SEA-03-01 | 1단계 apply(origin을 EC2-A로 복귀)와 2단계 apply(CloudFront `Deployed` 확인 후 ALB 삭제) 분리 | `Deployed` 전에 2단계를 시도하면 차단 |
 | SEA-03-02 | 최종 off 상태: EC2-B stopped·기능 태그 없음, EC2-A만 대상, Multi-AZ 꺼짐 | off plan 결과가 SEA-01 모델과 일치 |
-| SEA-03-03 | EC2-B 중지는 `season-down.sh`와 같은 순서(Target Group 등록 해제 → `app=boaz-api` 태그 제거 → EC2-B 중지)로 적용하고 `depends_on`으로 강제(CMP-01-06과 같은 요구) | off plan에서 중지가 태그 제거·등록 해제 뒤에 옴 |
+| SEA-03-03 | EC2-B 중지는 `season-down.sh`와 같은 순서(Target Group 등록 해제 → `app=boaz-api` 태그 제거 → EC2-B 중지)로 적용하고 `depends_on`으로 강제(CMP-01-06에서 2026-10-03 이관) | off plan에서 중지가 태그 제거·등록 해제 뒤에 옴 |
 | SEA-03-04 | P5 테스트: 시즌 종료 2단계 순서 | `pytest tests/integration/test_season_off_gate.py` 통과 |
 
 ## SEA-04 시즌 상태 매핑 테스트 P3

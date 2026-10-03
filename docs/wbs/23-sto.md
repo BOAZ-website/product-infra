@@ -26,11 +26,11 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| STO-01-01 | 버킷마다 버전 관리·암호화·퍼블릭 차단·수명 주기·정책을 별도 리소스로 정의 | 코드에서 5종 리소스 분리 확인 |
+| STO-01-01 | 버전 관리·암호화·퍼블릭 차단·수명 주기·정책을 `aws_s3_bucket`과 분리된 별도 리소스로 정의함. 실제로 설정이 있는 것만 씀. 없는 설정을 쓰면 plan에 create가 생김 | 코드에 인라인 인자 없음, plan "No changes" |
 | STO-01-02 | 지원서 버킷의 30일 만료 수명 주기를 코드에 그대로 반영 | plan에 수명 주기 삭제 없음 |
 | STO-01-03 | 아카이빙 버킷의 공개 읽기 정책은 의도 확인 후 그대로 반영, 변경은 별도 PR | decisions.md에 유지 결정 기록, plan에 정책 변경 없음 |
 | STO-01-04 | 프론트엔드 버킷 퍼블릭 차단 적용은 이번 PR에서 하지 않고 별도 승인 대상으로 분리 | decisions.md에 "승인 대기" 기록, plan에 해당 변경 없음 |
-| STO-01-05 | 프론트엔드 버킷 2개(www·admin)의 정책에 들어가는 CloudFront 배포 ARN은 cdn 그룹 output을 쓰지 않고 data source(`aws_cloudfront_distribution`)로 조회함. cdn 그룹이 storage output을 참조하므로 반대 방향 참조는 순환 참조가 됨. 배포 ID는 코드에 적지 않음. 별칭(도메인) 등으로 조회할 수 없으면 SSM 그룹 값(`local.group_vars.storage.<키>`, import-procedure.md 1-1절)으로 받음 | 코드에 cdn 모듈 output 참조 없음, plan에 정책 변경 없음 |
+| STO-01-05 | 프론트엔드 버킷 2개(www·admin)의 정책에 들어가는 CloudFront 배포 ARN은 cdn 그룹 output을 쓰지 않고 data source(`aws_cloudfront_distribution`)로 조회함. cdn 그룹이 storage output을 참조하므로 반대 방향 참조는 순환 참조가 됨. 이 data source는 배포 ID로만 조회됨. 배포 ID는 코드에 적지 않고 SSM 그룹 값(`local.group_vars.storage.<키>`, import-procedure.md 1-1절)으로 받음 | 코드에 cdn 모듈 output 참조 없음, plan에 정책 변경 없음 |
 
 ## STO-02 관리 대상 외 버킷 확정
 

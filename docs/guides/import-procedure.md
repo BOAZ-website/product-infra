@@ -110,7 +110,7 @@ locals {
 | 3 | provider가 AWS API `ssm:GetParameter`로 `/boaz/terraform/group-vars` 값을 가져옴. `aws ssm get-parameter`와 같은 요청을 Terraform이 대신 보냄 |
 | 4 | 가져온 JSON 문자열을 `jsondecode`로 객체로 바꿔 `local.group_vars`에 둠 |
 | 5 | 그룹 코드의 `local.group_vars.<그룹>.<키>` 자리에 실제 값이 들어감 |
-| 6 | 이 값을 넣은 설정을 state·실제 AWS와 비교해 plan 결과를 냄 |
+| 6 | 값이 채워진 설정을 state·실제 AWS와 비교해 plan 결과를 출력함 |
 
 - `insecure_value`를 쓰는 이유: `value`는 sensitive로 표시되어 import 블록 `id`·`cidr_blocks`까지 sensitive가 전파됨. 이 파라미터는 시크릿이 아닌 String 유형이므로 `insecure_value`로 읽음. 파라미터가 SecureString이면 `insecure_value`가 비어 있음. 이 경우 `locals.tf`의 검사(postcondition)가 "String 유형이어야 함" 오류를 내고 plan을 중단함
 - 키가 파라미터에 없으면 그 키를 쓰는 코드의 plan이 오류로 중단됨. 키를 먼저 추가하고 코드를 나중에 머지함(1-1절 3번)
@@ -148,7 +148,7 @@ state 파일은 하나라서 한 번에 한 사람만 apply할 수 있음
 | 3. 코드 작성 | import 블록을 root 주소(예: `aws_vpc.main`)로 먼저 쓰고 `terraform plan -generate-config-out=generated.tf`로 코드 초안 생성(초안 생성은 root 주소만 지원). 초안의 자원 ID·ARN·IP를 1-1절 규칙대로 참조·data source·변수로 바꾸고 `modules/<그룹>/`으로 옮긴 뒤, import 블록의 `to`를 `module.<그룹>.<자원>`으로 바꿈. `generated.tf`는 커밋하지 않고 삭제 | `terraform validate` 통과, `.tf`에 자원 ID·IP 없음 |
 | 4. 보호 설정 | 보호 대상 자원에 `prevent_destroy` 추가. 재생성을 일으키는 속성은 실제 값과 똑같이 맞춤 | 코드에 `prevent_destroy` 존재 |
 | 5. plan 맞추기 | `terraform plan`에서 차이가 0이 될 때까지 코드 수정. 교체·삭제가 나오면 즉시 멈추고 리뷰 요청 | plan 결과에 import만 있고 변경·교체·삭제 0건 |
-| 6. PR | PR 템플릿 작성. plan 결과는 PR CI가 다는 요약 코멘트로 대체함. **plan 원문은 붙이지 않음**(자원 ID·IP가 들어 있음). 새 변수를 만들었으면 본문에 적고 STA 담당에게 CI secret 갱신 요청(1-1절). 리뷰 1명 이상 승인 | PR에 승인 1건 이상, `Apply Ready` 통과 |
+| 6. PR | PR 템플릿 작성. plan 결과는 PR CI가 다는 요약 코멘트로 대체함. **plan 원문은 붙이지 않음**(자원 ID·IP가 들어 있음). 새 그룹 값 키를 쓰면 본문에 키 이름을 적고 관리자에게 `/boaz/terraform/group-vars` 키 추가를 요청함. 머지 전에 반영돼야 함(1-1절). 리뷰 1명 이상 승인 | PR에 승인 1건 이상, `Apply Ready` 통과 |
 | 7. 머지·apply | 관리자에게 apply 요청. 관리자가 `import-log.md` 상태를 `apply 중`으로 바꾸고 PR 머지 → `dev` 최신에서 `plan -out=plan.bin` → 로컬 게이트 통과 확인 → 같은 plan 파일로 apply(state 등록만 일어남). 2절 "머지 뒤 dev에서 apply" 참조 | 게이트 통과, apply 로그에 `import`만 존재 |
 | 8. 최종 확인 | `dev` 같은 커밋에서 다시 `terraform plan` | 출력에 "No changes." 문구 |
 | 9. 기록 | `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 그룹 상태 `완료`(이 갱신은 작은 PR로 올림) | import-log.md 해당 행 갱신 |
