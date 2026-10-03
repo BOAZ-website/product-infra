@@ -13,17 +13,17 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | 항목 | 분류 | 상태 | 기본안·확인할 내용 | 결정·확인 주체 | 기한 | 막는 티켓 | 조사 결과·비고 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | state 버킷·키 | 결정 | 완료 | 전용 신규 버킷, 키 `envs/prod/terraform.tfstate` | 인프라 담당 | 2026-10-02 | STA-03, STA-04 | 2026-09-27 기본안으로 확정. 잠금은 S3 자체 잠금(`use_lockfile`), 암호화는 SSE-S3(AES256, KMS 키 삭제 시 복구 불가 위험 회피). bootstrap state도 같은 버킷 `bootstrap/terraform.tfstate`로 옮김(최초 apply만 로컬, 유실 시 import로 복구 가능). 이전 버전은 90일 뒤 만료(최근 20개 보관), 미완료 멀티파트 업로드 7일 뒤 중단, 만료된 삭제 마커(`.tflock`) 정리. 버킷 태그 `Environment = "shared"`(모든 환경 공용). 환경 추가 시 `envs/<환경>/terraform.tfstate` 키로 같은 버킷 사용. 기존 버킷 중 state 후보 없음 |
-| EC2-B 제어 방식 | 결정 | 대기 | `aws_ec2_instance_state` 사용, ASG 전환 안 함 | 인프라 담당 + 백엔드 리드 | 2026-10-02 | CMP-01 | 현재 launch template·ASG 없음 |
+| EC2-B 제어 방식 | 결정 | 완료 | `aws_ec2_instance_state`로 running·stopped 상태 제어, ASG 전환 안 함 | 인프라 담당 + 백엔드 리드 | 2026-10-02 | CMP-01 | 2026-10-02 채택. ASG는 launch template·ASG 신규 생성과 인스턴스 교체가 필요해 import 목표(plan "No changes")와 비목표 "구조 변경"(`docs/overview/migration-plan.md` 1절)에 어긋남. 현재 launch template·ASG 없음. `season_capacity`가 전원뿐 아니라 CodeDeploy 대상 태그(`app=boaz-api`)·Target Group 등록 대상도 함께 제어하므로, 기동·재배포·종료 순서는 "EC2-B 기동·재배포 연동" 확인 항목에서 정함 |
 | 관리 대상 버킷·레코드 | 결정 | 대기 | 서비스 버킷만 관리, 나머지는 제외 사유 기록 | 운영진 + 인프라 담당 | 2026-10-09 | STO-01, STO-02 | 관리 대상 외 버킷(레거시 웹사이트·dev 웹사이트·구 홈페이지·설문 버킷), dev 프론트 버킷(연결된 배포 없음), Route53 `dev`·`dev-back` A 레코드(외부 IP 직결), 미사용 OAI 4개·고아 인증서 검증 CNAME 포함 |
-| Network ACL 관리 방식 | 결정 | 대기 | 현행 그대로 import(`aws_default_network_acl`) 또는 제외 | 인프라 담당 | 2026-10-09 | NET-01 | 기본 NACL 1개만 존재 |
+| Network ACL 관리 방식 | 결정 | 완료 | 현행 그대로 import(`aws_default_network_acl`) | 인프라 담당 | 2026-10-09 | NET-01 | 2026-10-02 채택. 기본 NACL 1개만 존재하고 규칙 변경 없음. import 목표(현행 보존)에 맞춰 그대로 편입, 규칙 변경은 별도 PR |
 | WAF WebACL 관리 방식 | 결정 | 대기 | CloudFront에서 기존 WebACL을 참조만 함, WebACL 자체 import는 보류 | 인프라 담당 | 2026-10-16 | CDN-02, CDN-03 | 3개 배포 모두 CloudFront 자동 생성 WebACL 연결(us-east-1). 요금제 묶음 여부 확인 필요 |
 | 앱 시크릿 SecureString 범위 | 결정 | 대기 | 잔여 2개(`DB_URL`, `DB_USERNAME`)는 현행 유지, 후속 이슈로 분리 | 백엔드 리드 | 2026-10-16 | IAM-03, IAM-04 | 비밀값 6개는 이미 SecureString. 전환 시 백엔드 `load-ssm-env.sh` 영향 확인 필요 |
 | 공개 읽기 S3 버킷 | 결정 | 대기 | 아카이빙 버킷 공개 읽기는 현행 유지로 import, 변경은 별도 PR | 운영진 | STO-01 전 | STO-01 | 아카이빙 버킷과 구 홈페이지 버킷이 공개 읽기 정책 |
-| 프론트 버킷 퍼블릭 차단 | 결정 | 대기 | 이번 import에서는 적용하지 않고 별도 승인 | 인프라 담당 | STO-01 전 | STO-01 | 실제 공개는 아니나 퍼블릭 액세스 차단이 모두 꺼져 있음 |
+| 프론트 버킷 퍼블릭 차단 | 결정 | 완료 | 이번 import에서는 현행 유지(퍼블릭 차단 적용 안 함), 변경은 별도 PR | 인프라 담당 | STO-01 전 | STO-01 | 2026-10-02 채택. 실제 공개는 아니나 퍼블릭 액세스 차단이 모두 꺼진 상태. import는 현행 보존이 원칙이라 그대로 편입, 차단 적용은 별도 승인·별도 PR |
 | 지원서 버킷 수명 주기 | 결정 | 대기 | 30일 만료 그대로 코드에 반영 | 운영진 | STO-01 전 | STO-01 | 현재 30일 후 자동 삭제 |
 | SSH 접근 방식 | 결정 | 대기 | Session Manager로 대체하고 SSH 보안 그룹 제거 | 인프라 담당 + 운영진 | NET-01 전 | NET-01 | SSH가 운영진 개인 IP 2개로만 허용됨. EC2 롤에 Session Manager 권한 있음. 개인 IP는 git 이력에서 삭제함 |
 | apply 승인자 | 결정 | 대기 | 2명 이상(GitHub Environment reviewer) | 운영진 | 2027-01-31 | STA-11 | |
-| property 테스트 범위 | 결정 | 대기 | 설계대로 유지 vs plan 검사 스크립트와 고정 입력 테스트로 축소. 권장안: 판정 로직은 고정 입력 테스트, hypothesis는 P1·P6만 | 인프라 담당 + PM | 2026-10-09 | STA-07 | 기한까지 기다리면 STA-07(2~3주)이 Phase 2 준비 마감을 넘겨 권장안으로 선행 구현(#32·#33). 결정이 달라지면 테스트 범위만 조정. STA-06 실행 환경은 두 안 모두 필요해 완료 |
+| property 테스트 범위 | 결정 | 완료 | 판정 로직은 고정 입력 테스트, hypothesis는 P1·P6만 적용 | 인프라 담당 + PM | 2026-10-09 | STA-07 | 2026-10-02 채택(인프라 담당이 PM 겸임). 설계대로 전면 적용은 비용이 크고, 전부 빼면 판정 로직 예외를 놓침. #32·#33에 이 범위로 구현 완료 |
 | 최종 인수 판정 방식 | 결정 | 대기 | 자동 스크립트 vs 체크리스트와 명령 출력 캡처 | 인프라 담당 + PM | Phase 5 전 | OPS-07 | |
 | CDN-03 지연 시 대응 | 결정 | 대기 | 관리자 페이지 오픈 연기 vs 콘솔로 먼저 적용 후 코드 반영 | PM + 운영진 | Phase 2 2차 중 | CDN-03 | 관리자 페이지 12월 오픈 목표 |
 | dev 환경 신설 | 결정 | 대기 | 필요할 때만 dev EC2를 올려 검증 후 prod 배포하는 일회용 모델 채택 여부. 채택 시 Phase 2 뒤 별도 Epic | 인프라 담당 + 백엔드 리드 + 운영진 | Phase 2 마무리 뒤 | 없음 | 현재 비목표(`docs/overview/migration-plan.md` 1절). 기술 검토 문서는 노션에 둠. state 구조는 환경 추가 가능(STA-03) |
@@ -39,6 +39,7 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | 레거시 버킷 소유자·사용 여부 | 확인 | 대기 | 소유자, 계속 쓰는지, 아카이빙 버킷 버전 관리 필요 여부 | 운영진 | STO-02 전 | STO-02 | |
 | RDS 암호화 키·파라미터 값 | 확인 | 대기 | 암호화 키 종류(AWS 관리형/직접 생성), 파라미터 그룹 실제 값 | 인프라 담당 | RDB-01 전 | RDB-01 | |
 | EC2-B 사전 점검 | 확인 | 대기 | 12월 시즌 전 기동·패치·에이전트 점검 날짜, 공인 IPv4 과금 비용표 반영 | 인프라 담당 | Phase 2 2차 중 | CMP-03 | |
+| EC2-B 기동·재배포 연동 | 확인 | 대기 | 시즌 시작 시 EC2-B 기동·태그 부착 단계(런북 CLI), 재배포 성공 판정 기준, 전환 중 CI 배포 동결 여부, 장기 정지 후 CodeDeploy 에이전트·`boaz.service` 점검, OPS-08 backend 저장소 README 수정 동의 | 백엔드 리드 | CMP-03, SEA-02 전 | CMP-03, SEA-02 | 평시 EC2-B는 `app=boaz-api` 태그가 없어 CodeDeploy 대상에서 빠지고 앱 버전이 정지함. 장기 정지 후 기동 시 옛 jar가 뜨므로 재배포 게이트 필수. 시즌 중 `cd.yml`은 AllAtOnce, season-up 재배포는 OneAtATime |
 | EC2-A EIP 처리 | 결정 | 완료 | 기존 EIP와 연결을 import, `prevent_destroy` | 인프라 담당 | 2026-10-02 | CMP-01 | 조사로 이미 연결 확인 |
 | admin CloudFront import 포함 | 결정 | 완료 | 기존 자원 import에 포함 | 인프라 담당 | 즉시 | CDN-01 | 계획서 비목표(신규 환경 구성)와 별개 |
 | 브랜치 전략 | 결정 | 완료 | dev → main | 인프라 담당 | 2026-09-26 | 없음 | README 협업 규약·base 검사 workflow. apply 실행 브랜치는 STA-11에서 확정 |

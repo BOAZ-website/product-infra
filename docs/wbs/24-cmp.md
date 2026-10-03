@@ -31,6 +31,7 @@
 | CMP-01-03 | AMI·`user_data`는 항상 변경 무시 목록(`ignore_changes`)에 넣음. 기능 태그(`app=boaz-api`)·인스턴스 상태는 넣지 않음 | 기능 태그를 바꾸면 plan에 변경이 나옴 |
 | CMP-01-04 | EC2-A/B 모두 `prevent_destroy` 적용 | 삭제하는 plan이 오류로 차단 |
 | CMP-01-05 | EC2-B 켜기·끄기는 `aws_ec2_instance_state`로 하고 ASG로 바꾸지 않은 이유를 기록 | decisions.md에 두 방식 비교와 선택 이유 존재 |
+| CMP-01-06 | `off` 적용 시 `season-down.sh`와 같은 순서(Target Group 등록 해제 → `app=boaz-api` 태그 제거 → EC2-B 중지)를 `depends_on`으로 강제. `aws_ec2_instance_state`만으로는 순서가 보장되지 않음 | 모듈에 `depends_on`으로 세 단계 순서가 표현되고, off plan에서 중지가 태그 제거·등록 해제 뒤에 옴 |
 
 ## CMP-02 Target Group·ALB 그룹 import
 
