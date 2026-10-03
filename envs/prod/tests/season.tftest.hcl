@@ -2,7 +2,16 @@
 #   terraform -chdir=envs/prod init -backend=false
 #   terraform -chdir=envs/prod test
 
-mock_provider "aws" {}
+mock_provider "aws" {
+  # 그룹 값 파라미터(locals.tf)는 빈 JSON 객체로 대체함
+  override_data {
+    target = data.aws_ssm_parameter.group_vars
+    values = {
+      type           = "String"
+      insecure_value = "{}"
+    }
+  }
+}
 
 mock_provider "aws" {
   alias = "us_east_1"
@@ -36,6 +45,10 @@ run "off_ec2_is_offseason" {
   assert {
     condition     = local.season.api_origin.target == "ec2_a" && local.season.api_origin.port == 8080
     error_message = "api_origin = ec2이면 origin은 EC2-A:8080이어야 합니다."
+  }
+  assert {
+    condition     = local.group_vars == {}
+    error_message = "그룹 값 파라미터의 JSON이 객체로 읽혀야 합니다."
   }
 }
 
