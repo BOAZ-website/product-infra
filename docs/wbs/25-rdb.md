@@ -38,4 +38,4 @@
 
 - 암호화 키: AWS 관리형 기본 RDS 키(`alias/aws/rds`)로 확인(2026-10-02 조사). 고객 생성 키 아님 → Terraform 키 관리 불필요, `storage_encrypted = true`와 현행 키로 맞춰 교체 방지
 - 파라미터 그룹 `boaz-prod-mysql84`: 기본값과 다른 값은 `time_zone = Asia/Seoul`(immediate) 하나뿐으로 확인(2026-10-02 조사). 엔진 MySQL 8.4.11
-- RDS 유지보수 시간(목요일 20:00 UTC)과 배포·DDL 일정이 겹치지 않는지 [확인 필요]
+- RDS 유지보수 시간: `thu:20:00-thu:20:30` UTC(한국시간 금 05:00~05:30), 백업 창 `19:00-19:30` UTC, AutoMinorVersionUpgrade 켜짐으로 확인(2026-10-02 조사). 이 창에 배포·DDL이 겹치지 않게 함(2027-01 출결 기능 배포 주 겹침 여부는 OPS-03에서 확인)

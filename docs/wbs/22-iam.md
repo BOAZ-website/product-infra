@@ -88,4 +88,4 @@
 ## 확인 필요 사항
 
 - 전환하면 백엔드 `load-ssm-env.sh` 동작에 영향이 있는지 [확인 필요: 백엔드 리드]
-- Terraform 실행 자격 증명이 장기 액세스 키인지 [확인 필요]
+- Terraform 실행 자격 증명: 로컬은 `aws login` 세션(장기 액세스 키 아님), CI는 GitHub OIDC plan 역할로 확정(2026-10-02, decisions.md "Terraform 실행 자격 증명")
