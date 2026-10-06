@@ -300,9 +300,14 @@ output "vpc_id" {
   value       = aws_vpc.main.id
 }
 
+output "public_subnet_ids" {
+  description = "퍼블릭 서브넷 ID. 가용 영역 키(a, c) → ID"
+  value       = { for k, s in aws_subnet.public : k => s.id }
+}
+
 output "private_subnet_ids" {
-  description = "프라이빗 서브넷 ID 목록(역할 키 순서)"
-  value       = [for s in aws_subnet.private : s.id]
+  description = "프라이빗 서브넷 ID. 가용 영역 키(a, c) → ID"
+  value       = { for k, s in aws_subnet.private : k => s.id }
 }
 
 output "security_group_ids" {
@@ -381,8 +386,8 @@ variable "season" {
 }
 
 variable "subnet_ids" {
-  description = "DB 서브넷 그룹에 넣을 서브넷 ID(module.network.private_subnet_ids)"
-  type        = list(string)
+  description = "DB 서브넷 그룹에 넣을 서브넷 ID. 가용 영역 키 → ID(module.network.private_subnet_ids)"
+  type        = map(string)
 }
 
 variable "security_group_id" {
@@ -395,7 +400,7 @@ variable "security_group_id" {
 # modules/database/main.tf
 resource "aws_db_subnet_group" "main" {
   name       = "example-db-subnet-group" # 예시 값
-  subnet_ids = var.subnet_ids
+  subnet_ids = values(var.subnet_ids) # map → list. values()는 키 순으로 정렬되어 결과가 일정함
 }
 
 # 나머지 속성(엔진·스토리지·백업 창 등)은 생략. 실제 값과 같게 적음
@@ -417,6 +422,7 @@ resource "aws_db_instance" "main" {
 - 모듈 변수 타입에 `rds_multi_az`만 적으면 `local.season`의 나머지 속성은 변환 때 버려짐
 - RDS 보안 그룹은 network가 import·관리하고 database는 output만 참조함. 같은 자원을 두 주소가 관리하지 않음
 - 참조 방향은 network → database 한쪽만임
+- output 이름·타입은 1-1-2절 표를 따름. 여러 개 값은 map으로 받고 list가 필요한 자원 속성에서만 `values()`로 바꿈
 
 **예시 C. cdn·obs의 us-east-1 provider 전달**
 
@@ -528,6 +534,41 @@ module "cdn" {
 
 - data source(`aws_route53_zone`, `aws_acm_certificate` 등)로 조회할 수 있는 값은 키를 만들지 않음(1-1절 2번)
 - 키 이름 변경·삭제는 그 키를 쓰는 코드가 없을 때만 하고, 파라미터 갱신은 관리자가 함
+- 그룹 값 키와 모듈 output은 이름이 같아도 별개임. 그룹 값은 import용 입력(자원 ID), output은 모듈이 내보내는 결과(1-1-2절). 예: `private_subnet_ids`는 양쪽에 있음
+
+### 1-1-2. 그룹 간 output 계약
+
+다른 그룹이 쓰는 값은 모듈 output으로 내보내고(예시 D), 소비 그룹은 `module.<그룹>.<output>`으로 참조함. 이름·타입은 아래 표가 기준임. 기준일 2026-10-06, `docs/records/inventory.md`(Phase 0 조사)와 대조함. 재조사(3절 2단계)에서 달라지면 소비 그룹과 합의해 이 표를 같은 PR에서 고침
+
+규칙
+
+- 여러 개 값은 `map(string)`으로 내보냄. 키는 가용 영역(`a`·`c`), 보안 그룹 역할, 버킷 역할(`www`·`admin`) 같은 이름임. list는 쓰지 않음. list가 필요한 자원 속성(DB 서브넷 그룹 등)은 소비 모듈 안에서 `values()`로 바꿈
+- 소비 그룹이 없는 output은 만들지 않음. 필요해지면 그때 소비 그룹이 요청함
+- 공인 IP·EC2 퍼블릭 DNS가 값에 들어가는 output은 `sensitive = true`를 붙임. PR CI plan 코멘트가 공개되기 때문임
+- output 이름을 바꾸면 소비 그룹 코드도 같은 PR에서 고치거나, 소비 그룹 PR보다 먼저 머지함
+- 선행 그룹 output이 아직 없을 때: 후행 그룹은 모듈 변수를 default 없이 선언하고(1-0-1절), 선행 그룹 브랜치를 자기 브랜치에 합쳐 로컬 plan을 맞춤. `envs/prod/<그룹>.tf`의 모듈 호출은 선행 PR이 머지된 뒤 올림
+
+| 출처 | output | 타입 | 소비 그룹·용도 |
+| --- | --- | --- | --- |
+| network | `vpc_id` | string | compute(ALB), database |
+| network | `public_subnet_ids` | map(string), 키 `a`·`c` | compute(ALB 서브넷, CMP-02) |
+| network | `private_subnet_ids` | map(string), 키 `a`·`c` | database(DB 서브넷 그룹) |
+| network | `security_group_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | database(`rds`), compute(EC2·ALB용 키) |
+| iam | `ec2_instance_profile_name` | string | compute(EC2) |
+| iam | `codedeploy_service_role_arn` | string | deploy |
+| storage | `bucket_regional_domain_names` | map(string), 키 `www`·`admin` | cdn(S3 origin) |
+| storage | `bundle_bucket_name` | string | deploy(배포 번들) |
+| compute | `ec2_a_id`, `ec2_b_id` | string | obs(상태 검사 경보) |
+| compute | `ec2_a_public_dns` | string, `sensitive = true` | cdn(api origin, CDN-02 1단계) |
+| compute | `alb_dns_name` | string, 시즌 off면 null | cdn(api origin, 시즌 on) |
+| database | `db_instance_identifier` | string | obs(RDS 경보) |
+| cdn | `api_distribution_id` | string | IAM-03 P7 참조 전환. 소비 위치(iam·params)는 STA-08에서 확정 |
+| deploy | `application_name`, `deployment_group_name` | string | backend workflow 배포 계약 검사(STA-10) |
+| params, obs | 없음 | - | - |
+
+- [확인 필요] compute 인스턴스(EC2-A·B)가 쓰는 서브넷: inventory에 public·private 구분이 없음. NET-01·CMP-01 재조사에서 확인한 뒤 `public_subnet_ids` 또는 `private_subnet_ids` 중 소비하는 쪽을 이 표에 적음
+- Target Group ARN은 소비 그룹이 없어 output을 만들지 않음(그룹 값 `compute.target_group_arn`은 import용으로 별개)
+- storage ↔ cdn은 순환이므로 storage 쪽이 data source로 CloudFront를 조회함(1-1절 2번, `23-sto.md` STO-01-05). cdn → storage output 참조는 그대로 둠
 
 ### 1-2. 그룹 값을 plan 때 읽어 오는 원리
 
