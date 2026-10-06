@@ -9,6 +9,7 @@
 - 적용 티켓: OBS-01(신규 생성), NET-01, IAM-02, IAM-03, STO-01, CMP-01, CMP-02, RDB-01, CDN-01·CDN-02·CDN-03, DEP-01·DEP-02
 - 각 명세서(`docs/wbs/2x-*.md`)에는 그 그룹에만 해당하는 항목만 있음. 이 문서의 절차는 모든 그룹이 따름
 - 예외는 두 가지뿐임: obs는 기존 자원 import 없이 새로 만듦, CDN-03은 import된 자원의 설정을 바꿈(3절 완료 기준 참조)
+- GitHub 이슈 본문의 체크리스트는 완료 조건임. 구현 순서는 3절, 코드 모양은 1-0-2절 예시가 기준임
 
 용어
 
@@ -20,8 +21,14 @@
 | 읽기 전용 팀원 | AWS `terraform-readonly` 그룹. 재조사·plan까지 가능함 |
 | 안전 게이트 | `scripts/plan_gate.py`. plan JSON을 검사해 G1~G4 위반이면 실패함(2절) |
 | 그룹 값 | 코드에 적을 수 없는 자원 ID·CIDR. SSM 파라미터 `/boaz/terraform/group-vars`에 둠(1-1절 3번) |
+| plan | 적용 전에 Terraform이 바꿀 내용을 미리 보여 주는 명령. 자원을 바꾸지 않음 |
+| apply | plan 내용을 실제 AWS에 반영하는 명령. 관리자만 실행함 |
+| state | Terraform이 관리하는 자원 목록 파일. S3 state 버킷에 있음 |
+| import 블록 | 이미 있는 AWS 자원을 state에 연결하는 선언. `envs/prod/imports_<그룹>.tf`에 둠 |
+| 모듈 | 그룹 하나의 자원 정의 묶음. `modules/<그룹>/` |
+| `prevent_destroy` | 삭제를 막는 설정. 보호 자원에 붙임 |
 
-## 한눈에 보기
+## 절차 요약
 
 ```text
 착수 선언 → 재조사 → 코드 작성 → plan 맞추기 → PR·리뷰 → 머지·apply → 최종 확인 → 기록
@@ -30,12 +37,12 @@
 
 | 단계 | 누가 | 무엇을 | 결과물 |
 | --- | --- | --- | --- |
-| 착수 선언 | 그룹 담당 | `import-log.md` 상태 `작업 중`(작은 PR), 브랜치 생성 | import-log 행 |
-| 재조사 | 그룹 담당 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사 | `inventory.md` 갱신 |
+| 착수 선언 | 그룹 담당 | `import-log.md` 상태 `작업 중`(import-log.md만 고치는 PR), 브랜치 생성 | import-log 행 |
+| 재조사 | 그룹 담당 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사(부록 A-4), 새 그룹 값 키 요청 | `inventory.md` 갱신 |
 | 코드 작성·plan | 그룹 담당 | 모듈·import 블록 작성, 로컬 plan에서 차이 0건 | 그룹 파일 |
 | PR·리뷰 | 그룹 담당·리뷰어 | PR CI plan 코멘트 확인, 5절 체크리스트 | 승인 1건, `Apply Ready` |
 | 머지·apply | 관리자 | `apply 중` 기록 → 머지 → `dev`에서 plan → 로컬 게이트 → apply | state 등록 |
-| 최종 확인·기록 | 관리자·그룹 담당 | `dev`에서 plan "No changes", import-log `완료`(작은 PR) | import-log 행 |
+| 최종 확인·기록 | 관리자·그룹 담당 | `dev`에서 plan "No changes", import-log `완료`(import-log.md만 고치는 PR) | import-log 행 |
 
 - 착수 조건: 재조사·모듈 초안·로컬 plan은 Phase 2 1차 시작 때 8개 파트 모두 시작함(`docs/wbs/01-schedule.md`)
 - 머지·apply 조건: STA-07 안전 게이트가 PR CI에서 동작해야 함. PR에 "Terraform Plan (envs/prod)" 코멘트와 게이트 결과가 붙으면 동작 중임
@@ -43,14 +50,15 @@
 
 ## 처음이라면: 빠른 시작
 
-처음 하루에 아래를 끝냄. 막히면 해당 티켓의 GitHub 이슈 코멘트로 관리자에게 질문함
+선행: 관리자가 IAM 사용자를 만든 상태. 역할·질문 대상·리뷰어·마감은 GitHub Milestone 설명 참조. 처음 하루에 아래를 끝냄. 질문은 해당 티켓의 GitHub 이슈 코멘트에 남김
 
 - [ ] 도구 설치·버전 확인(0-3절)
 - [ ] IAM 사용자 첫 로그인과 비밀번호 변경, 액세스 키로 `boaz` 프로필 등록(0-1절)
 - [ ] `git clone` 후 `git config core.hooksPath .githooks` 실행(0-3절)
 - [ ] `backend.hcl`·`terraform.tfvars` 준비, `init`·`plan` 성공(0-2절)
-- [ ] 1-0절(파일 구조), 1-0-2절(코드 예시), 3절(작업 순서) 읽기
+- [ ] 1절(파일 규칙), 1-0-2절(코드 예시), 1-1절(자원 ID를 코드 밖으로 빼는 규칙), 3절(작업 순서), 4절(멈춰야 하는 경우) 읽기
 - [ ] 자기 그룹 명세서(`docs/wbs/2x-*.md`)와 GitHub 이슈 확인. 노션 티켓과 GitHub 이슈는 1:1이며 커밋에 쓰는 번호는 GitHub 이슈 번호임
+- [ ] 이슈 본문 체크리스트는 완료 조건이고 구현 순서는 3절 9단계임을 확인. 7단계 apply는 관리자가 수행하므로 이슈 코멘트로 요청함
 
 ---
 
@@ -91,7 +99,7 @@
 - `-lockfile=readonly`: 로컬 init이 `.terraform.lock.hcl`을 바꾸지 않게 함(CI와 같음). 잠금 파일 변경이 필요하면 STA 담당에게 요청함
 - workspace는 쓰지 않음(`terraform workspace new` 금지). 쓰면 state가 `env:/` 경로로 갈라짐
 - plan·apply에는 항상 `-input=false`를 붙임. 변수가 빠지면 입력을 기다리지 않고 바로 실패함
-- state 잠금을 끄는 옵션(`-lock=false`)은 쓰지 않음. 대신 `-lock-timeout=5m`을 붙임(2절)
+- state 잠금을 끄는 옵션(`-lock=false`)은 쓰지 않음. 대신 `-lock-timeout=5m`(다른 사람이 state를 잠그고 있으면 최대 5분 기다림)을 붙임(2절)
 
 ### 0-3. 도구 준비
 
@@ -127,11 +135,11 @@
 | deploy | DEP | `modules/deploy/` | `envs/prod/deploy.tf` | `envs/prod/imports_deploy.tf` |
 
 - 그룹 코드 PR에 함께 넣을 수 있는 문서: `docs/records/inventory.md`의 자기 그룹 부분(3절 2단계)
-- `docs/records/import-log.md`는 코드 PR에 넣지 않고 작은 PR로 따로 올림(3절 1·9단계). 여러 그룹이 같은 표를 고쳐 충돌이 나기 때문임
-- 공통 파일(STA 담당만 수정): `envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `locals.tf`, `season.auto.tfvars`, `.terraform.lock.hcl`, `tests/`. 단 `tests/season.tftest.hcl`의 그룹 값·`override_resource` 구역은 그룹 담당이 자기 그룹 부분만 같은 PR에서 수정함(1-1-1절)
+- `docs/records/import-log.md`는 코드 PR에 넣지 않고 별도 PR로 올림(3절 1·9단계). 여러 그룹이 같은 표를 고쳐 충돌이 나기 때문임
+- 공통 파일(STA 담당만 수정): `envs/prod/versions.tf`, `providers.tf`, `backend.tf`, `variables.tf`, `locals.tf`, `season.auto.tfvars`, `.terraform.lock.hcl`, `tests/`. 단 `tests/season.tftest.hcl`의 그룹 값·`override_resource` 구역은 그룹 담당이 자기 그룹 부분만 같은 PR에서 수정함(1-2절)
 - import 블록 파일은 `envs/prod/` 바로 아래 평면 파일임. Terraform은 root 디렉터리 바로 아래 `.tf`만 읽으므로 하위 폴더에 두면 무시됨
 - 시즌에 따라 상태가 달라지는 자원(compute·database·cdn)은 `var.season_capacity`·`var.api_origin`을 직접 쓰지 않고 `local.season`을 모듈 입력으로 받음. 시즌 값은 `season.auto.tfvars`가 자동으로 넘김
-- 그룹 사이 값 전달은 상대 그룹 모듈의 output을 참조함(예시 B). 필요한 output이 없으면 그 그룹 담당에게 추가를 요청함
+- 그룹 사이 값 전달은 상대 그룹 모듈의 output을 참조함(예시 D). 필요한 output이 없으면 그 그룹 담당에게 추가를 요청함
 - 두 그룹이 서로의 output을 참조하면 순환 참조가 됨. 한쪽은 data source로 조회함(예: storage 버킷 정책의 CloudFront 배포 ARN, `23-sto.md` STO-01-05)
 - import가 끝나 state에 등록되면 import 블록을 지워도 됨. plan "No changes" 확인 뒤 별도 커밋으로 지움
 
@@ -149,7 +157,7 @@
 - 그룹 파일(`envs/prod/<그룹>.tf`)에는 `module "<그룹>"` 호출과 그룹 전용 variable·locals만 둠
 - 모듈 입력으로 넘기는 값: 그룹 값, 시즌 값, 다른 그룹 output
 - import 블록은 root에만 둘 수 있음. 모듈 안 자원은 `to = module.<그룹>.<자원>`으로 가리킴
-- 각 모듈 폴더에는 뼈대 파일(`versions.tf`, `main.tf`, `variables.tf`, `outputs.tf`, 머리 주석만)이 있음. `envs/prod/<그룹>.tf`의 `module` 호출은 그룹 담당이 첫 작업 때 추가함
+- 각 모듈 폴더에는 빈 기본 파일(`versions.tf`, `main.tf`, `variables.tf`, `outputs.tf`, 파일 맨 위 주석만 있음)이 있음. `envs/prod/<그룹>.tf`의 `module` 호출은 그룹 담당이 첫 작업 때 추가함
 - us-east-1 provider: cdn·obs 모듈의 `versions.tf`에 `configuration_aliases = [aws.us_east_1]`가 선언되어 있음. 두 그룹의 `module` 호출에는 `providers = { aws = aws, aws.us_east_1 = aws.us_east_1 }`를 넘김(예시 C). 별칭 provider 자체는 `providers.tf`에 있음
 
 팀원이 손대는 파일(network 그룹 예)
@@ -183,11 +191,11 @@ product-infra/
 
 ### 1-0-2. 코드 예시
 
-network·database·cdn 그룹 기준 예시임. `example-…`, `10.0.…` 값은 형식만 맞춘 예시 값임. 실제 값은 inventory.md 기준으로 맞춤. 예시 코드는 `fmt`·`validate`·mock provider `terraform test`를 통과함
+network·database·cdn 그룹 기준 예시임. 예시 번호(N·D·C)는 부록 A·B와 무관함. `example-…`, `10.0.…` 값은 형식만 맞춘 예시 값임. 실제 값은 inventory.md 기준으로 맞춤. 예시 코드는 `fmt`·`validate`·mock provider `terraform test`를 통과함
 
-**A. envs/prod와 모듈 연결(network)**
+**예시 N. envs/prod와 모듈 연결(network)**
 
-A-1. 그룹 값 파라미터 모양. `<…>`는 실제 값 자리이며 저장소에 적지 않음
+N-1. 그룹 값 파라미터 모양. `<…>`는 실제 값 자리이며 저장소에 적지 않음
 
 ```json
 {
@@ -205,7 +213,7 @@ A-1. 그룹 값 파라미터 모양. `<…>`는 실제 값 자리이며 저장�
 - 키는 역할 키(`a`, `c`, `ssh`, `rds`, `ops_1`)로 쓰고 모듈의 `for_each` 키로도 씀
 - `ssh_rule_ids`와 `ssh_allowed_cidrs`는 같은 키를 가짐(규칙 1개 = CIDR 1개)
 
-A-2. `modules/network/variables.tf`
+N-2. `modules/network/variables.tf`
 
 ```hcl
 # 모듈이 쓰는 키만 타입에 적음. 나머지 키(import id 등)는 변환 때 버려짐
@@ -231,7 +239,7 @@ variable "private_subnets" {
 }
 ```
 
-A-3. `modules/network/vpc.tf`
+N-3. `modules/network/vpc.tf`
 
 ```hcl
 resource "aws_vpc" "main" {
@@ -252,7 +260,7 @@ resource "aws_subnet" "private" {
 }
 ```
 
-A-4. `modules/network/security_groups.tf`
+N-4. `modules/network/security_groups.tf`
 
 ```hcl
 locals {
@@ -284,7 +292,7 @@ resource "aws_vpc_security_group_ingress_rule" "ssh" {
 
 - 자원 주소는 `module.network.aws_vpc_security_group_ingress_rule.ssh["ops_1"]` 형태로 PR CI 코멘트에 공개됨. CIDR 값은 그룹 값에서 오므로 코드에 남지 않음
 
-A-5. `modules/network/outputs.tf`
+N-5. `modules/network/outputs.tf`
 
 ```hcl
 output "vpc_id" {
@@ -303,7 +311,7 @@ output "security_group_ids" {
 }
 ```
 
-A-6. `envs/prod/network.tf`
+N-6. `envs/prod/network.tf`
 
 ```hcl
 module "network" {
@@ -319,7 +327,7 @@ module "network" {
 }
 ```
 
-A-7. `envs/prod/imports_network.tf`
+N-7. `envs/prod/imports_network.tf`
 
 ```hcl
 import {
@@ -348,7 +356,7 @@ import {
 }
 ```
 
-**B. 그룹 사이 값 전달(network → database)**
+**예시 D. 그룹 사이 값 전달(network → database)**
 
 ```hcl
 # envs/prod/database.tf
@@ -410,7 +418,7 @@ resource "aws_db_instance" "main" {
 - RDS 보안 그룹은 network가 import·관리하고 database는 output만 참조함. 같은 자원을 두 주소가 관리하지 않음
 - 참조 방향은 network → database 한쪽만임
 
-**C. cdn·obs의 us-east-1 provider 전달**
+**예시 C. cdn·obs의 us-east-1 provider 전달**
 
 ```hcl
 # modules/cdn/versions.tf (obs도 같음)
@@ -456,18 +464,23 @@ module "cdn" {
 
 ### 1-1. 자원 ID·IP를 코드 밖으로 빼는 규칙
 
-공개 저장소이므로 자원 ID(VPC·서브넷·보안 그룹·인스턴스·CloudFront 배포·Route53 영역·AMI 등), 계정 ID가 들어간 ARN, 개인 IP는 `.tf` 파일에 적지 않음. `-generate-config-out` 초안에는 이 값이 그대로 들어가므로 아래 순서로 바꾼 뒤 옮김
+공개 저장소이므로 자원 ID(VPC·서브넷·보안 그룹·인스턴스·CloudFront 배포·Route53 영역·AMI 등), 계정 ID가 들어간 ARN, 개인 IP는 `.tf` 파일에 적지 않음. `-generate-config-out`(기존 자원에서 코드 초안을 만드는 옵션) 초안에는 이 값이 그대로 들어가므로 아래 순서로 바꾼 뒤 옮김
 
-1. **다른 자원 참조**: 같은 state의 자원 속성을 참조함. 예: 서브넷의 `vpc_id`는 `aws_vpc.main.id`(예시 A-3), 다른 그룹 자원은 그 그룹 모듈의 output(예시 B)
+1. **다른 자원 참조**: 같은 state의 자원 속성을 참조함. 예: 서브넷의 `vpc_id`는 `aws_vpc.main.id`(예시 N-3), 다른 그룹 자원은 그 그룹 모듈의 output(예시 D)
 2. **data source 조회**: 참조할 자원이 없으면 이름·태그 기준 data source로 조회함. 예: 버킷 정책의 CloudFront 배포 ARN(`23-sto.md` STO-01-05), AMI는 `data "aws_ami"` 이름 필터, ACM 인증서(예시 C)
-3. **그룹 값**: 위 두 가지로 없앨 수 없는 값(import 블록의 `id`, SSH 허용 CIDR 등)은 SSM String 파라미터 `/boaz/terraform/group-vars`(JSON 객체 하나)에 `<그룹>.<키>` 형태로 둠. 코드는 `local.group_vars.<그룹>.<키>`로 참조함(예시 A-1, A-7)
+3. **그룹 값**: 위 두 가지로 없앨 수 없는 값(import 블록의 `id`, SSH 허용 CIDR 등)은 SSM String 파라미터 `/boaz/terraform/group-vars`(JSON 객체 하나)에 `<그룹>.<키>` 형태로 둠. 코드는 `local.group_vars.<그룹>.<키>`로 참조함(예시 N-1, N-7)
    - 로컬 plan과 PR CI 모두 같은 파라미터를 읽음. 그룹 값을 위한 별도 파일·GitHub secret은 없음(CI의 secret 3개는 backend·계정 ID용)
    - 읽기 전용 권한(`ssm:GetParameter`)으로 읽힘. String 유형이라 KMS 복호화가 필요 없음
-   - 실제 값은 `docs/records/inventory.md` 또는 읽기 명령으로 확인함. 값을 저장소·PR·공개 채널에 적지 않음
+   - 실제 값은 `docs/records/inventory.md` 또는 아래 읽기 명령으로 확인함. 값을 저장소·PR·공개 채널에 적지 않음
+     ```bash
+     aws --profile boaz ssm get-parameter --name /boaz/terraform/group-vars --query Parameter.Value --output text
+     ```
+     - 출력에 전 그룹의 자원 ID와 SSH 허용 CIDR이 들어 있음. 터미널에서만 확인하고 파일 저장(`>`, `tee`)·화면 캡처·이슈·PR·채팅 붙여넣기를 하지 않음
+     - `--with-decryption`을 붙이지 않음. String 유형이라 필요 없고 시크릿 조회 금지 규칙과도 맞음
    - 새 키 추가 절차(이 문서에서 이 절만 기준임)
-     1. 그룹 담당: PR 본문에 추가한 키 이름(`<그룹>.<키>`)과 inventory.md의 참조 위치를 적고 이슈 코멘트로 관리자에게 갱신을 요청함
+     1. 그룹 담당: 3절 2단계(재조사) 직후, 필요한 새 키 이름(`<그룹>.<키>`)과 inventory.md의 참조 위치(머지 전이면 브랜치 경로)를 이슈 코멘트에 적어 관리자에게 갱신을 요청함. 값은 코멘트에 적지 않음. 관리자는 값을 AWS에서 직접 조회해 확인함
      2. 관리자: 현재 값을 읽어 키를 추가한 JSON 파일을 저장소 밖에 만들고 `aws ssm put-parameter --name /boaz/terraform/group-vars --type String --overwrite --value file://<파일>`로 덮어씀. 작업 후 JSON 파일을 지움
-     3. 갱신은 그 키를 쓰는 PR 머지 전에 함. 갱신 전에는 그 PR의 plan이 키 누락("Unsupported attribute")으로 실패함. 코드가 아직 쓰지 않는 키는 plan에 영향이 없으므로 먼저 넣어 둬도 됨
+     3. 갱신은 그 키를 쓰는 첫 plan(3절 3단계) 전에 함. 갱신 전에는 plan이 키 누락("Unsupported attribute")으로 실패함. 코드가 아직 쓰지 않는 키는 plan에 영향이 없으므로 먼저 넣어 둬도 됨
    - 이전 값은 파라미터 이력(`aws ssm get-parameter-history`)으로 되돌림(관리자만)
    - Standard 등급이라 값 전체가 4KB를 넘을 수 없음. 넘을 것 같으면 STA 담당과 파라미터 분리를 정함
    - 파라미터 값은 plan 출력에 그대로 나타날 수 있음(sensitive 표시 없음). plan 원문을 공개 채널에 붙이지 않음
@@ -486,7 +499,7 @@ module "cdn" {
 | 맵의 키 | 역할 이름(`a`, `c`, `ssh`, `ops_1`, `www`, `admin`). ID·IP를 키로 쓰지 않음(1-0-1절) |
 | 같은 자원군 | 키 집합이 같아야 함. 예: `ssh_rule_ids`와 `ssh_allowed_cidrs`. 모듈 `for_each` 키, import 맵 키와도 같음 |
 | 설정 값 | import `id`가 아닌 값(CIDR, 이메일 등)은 용도 이름으로 씀. 시크릿은 넣지 않음 |
-| 다른 그룹 값 | 모듈 output 참조가 우선임(예시 B). 순환 참조라 data source로 조회하는 경우에만 읽는 쪽 그룹이 자기 키로 둠. 다른 그룹의 키를 참조하지 않음 |
+| 다른 그룹 값 | 모듈 output 참조가 우선임(예시 D). 순환 참조라 data source로 조회하는 경우에만 읽는 쪽 그룹이 자기 키로 둠. 다른 그룹의 키를 참조하지 않음 |
 | 이름 기반 import | 자원 이름이 import `id`이고 이름이 공개돼도 되면 그룹 값 키를 만들지 않고 코드에 적음 |
 
 **그룹별 키 표(초안)**. 그룹 담당이 재조사해 키가 달라지면 이 표를 같은 PR에서 고침. 타입은 모듈 `variable "group_vars"` 선언과 같아야 함
@@ -576,9 +589,9 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
 | G4 | Phase 2 동안 보호 자원 밖을 포함한 모든 자원의 삭제·교체 |
 
 - 게이트는 신규 생성(create)·설정 변경(update)·import·`removed` 블록(forget)은 통과시킴. "그 그룹의 import와 승인된 변경만 있는지"는 사람이 plan 요약을 보고 확인함. 다른 그룹 자원의 변경이 하나라도 보이면 멈추고 `dev` 최신 상태부터 다시 확인함
-- apply 대기가 겹치면 12월 전 마감이 걸린 두 순서를 먼저 apply함(decisions.md): ① STO-01 → CDN-02 1단계 → CDN-03(관리자 페이지 오픈), ② IAM-02 → CMP-01 → CMP-02(시즌 전환). 나머지(OBS·NET·IAM-03·RDB·DEP 등)는 그 사이에 apply함
+- apply 대기가 겹치면 2026-12-07 시즌 동결 전 마감이 걸린 두 순서를 먼저 apply함(decisions.md): ① STO-01 → CDN-02 1단계 → CDN-03(관리자 페이지 오픈), ② IAM-02 → CMP-01 → CMP-02(시즌 전환). 나머지(OBS·NET·IAM-03·RDB·DEP 등)는 그 사이에 apply함
 - `apply 중`인 동안 다른 PR은 머지하지 않음
-- `dev` 브랜치 보호는 적용 예정임. 적용 전까지 승인 1건·`Apply Ready` 통과·`apply 중` 동안 머지 금지는 GitHub가 강제하지 않으며 사람이 지키는 규칙임
+- `dev` 브랜치 보호 적용일: [확인 필요: 적용일]. 적용 전까지 승인 1건·`Apply Ready` 통과·`apply 중` 동안 머지 금지는 GitHub가 강제하지 않으며 사람이 지키는 규칙임
 - 기다리는 사람은 plan만 실행하며 코드를 맞춤. plan도 state 잠금을 잡으므로 `-lock-timeout=5m`을 붙임. `-lock=false`는 쓰지 않음
 - 잠금이 오래 풀리지 않으면 잠금을 잡은 사람에게 먼저 확인함. 강제 해제·state 복구는 관리자만 아래 순서로 수행함
   1. 오류 메시지의 Lock ID·Who·Created 확인
@@ -591,15 +604,15 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
 
 | 단계 | 할 일 | 완료 확인 방법 |
 | --- | --- | --- |
-| 1. 착수 선언 | `import-log.md`에 상태 `작업 중`, 담당 역할, 시작 시각을 적어 작은 PR로 올림. 브랜치 `feat/import-<그룹>`을 `dev`에서 만듦 | import-log.md 해당 행 갱신 |
-| 2. 직전 재조사 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사해 `inventory.md` 갱신. 시크릿 값은 조회하지 않음 | inventory 갱신 시각이 착수 이후 |
+| 1. 착수 선언 | `import-log.md`에 상태 `작업 중`, 담당 역할, 시작 시각을 적어 import-log.md만 고치는 PR로 올림. 브랜치 `feat/import-<그룹>`을 `dev`에서 만듦 | import-log.md 해당 행 갱신 |
+| 2. 직전 재조사 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사해(부록 A-4) `inventory.md` 갱신. 시크릿 값은 조회하지 않음. 새 그룹 값 키가 필요하면 이 단계 끝에 1-1절 3번 절차로 요청하고, 관리자가 파라미터를 갱신하기 전에는 3단계로 넘어가지 않음 | inventory 갱신 시각이 착수 이후 |
 | 3. 코드 작성 | `-generate-config-out`으로 초안을 만들고(부록 A-2), 1-1절 규칙대로 ID·ARN·IP를 바꿔 `modules/<그룹>/`로 옮김. import 블록의 `to`를 `module.<그룹>.<자원>`으로 바꿈. `generated.tf`는 삭제. obs는 import 없이 명세대로 새 자원을 작성함 | `validate` 통과, `.tf`에 자원 ID·IP 없음 |
 | 4. 보호 설정 | 보호 대상 자원에 `prevent_destroy` 추가. 재생성을 일으키는 속성은 실제 값과 똑같이 맞춤 | 코드에 `prevent_destroy` 존재 |
 | 5. plan 맞추기 | `git merge origin/dev`로 최신 `dev`를 반영한 뒤 로컬 plan(부록 A-1). 차이가 0이 될 때까지 코드 수정. 삭제·교체가 나오면 즉시 멈춤(4절) | import만 있고 변경·교체·삭제 0건(예외는 아래) |
-| 6. PR | base `dev`, 제목 `[Feat] network 그룹 import` 형식, PR 템플릿 작성. plan 결과는 PR CI 요약 코멘트로 대체하고 plan 원문은 붙이지 않음. 새 그룹 값 키가 있으면 1-1절 3번 절차로 요청. 리뷰 1명 이상 승인 | 승인 1건 이상, `Apply Ready` 통과 |
+| 6. PR | base `dev`, 제목 `[Feat] network 그룹 import` 형식, PR 템플릿 작성. plan 결과는 PR CI 요약 코멘트로 대체하고 plan 원문은 붙이지 않음. 요청한 그룹 값 키가 모두 갱신됐는지 확인하고 PR 본문에 키 이름만 적음. 리뷰 1명 이상 승인 | 승인 1건 이상, `Apply Ready` 통과 |
 | 7. 머지·apply | 이슈 코멘트로 관리자에게 apply 요청. 관리자가 2절 순서로 머지·apply | 로컬 게이트 통과, apply 결과가 5단계 기준과 같음 |
 | 8. 최종 확인 | `dev` 같은 커밋에서 다시 plan | 출력에 "No changes." |
-| 9. 기록 | `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 상태 `완료`(작은 PR) | import-log.md 해당 행 갱신 |
+| 9. 기록 | `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 상태 `완료`(import-log.md만 고치는 PR) | import-log.md 해당 행 갱신 |
 
 - 완료 기준 예외(5·7단계)
   - obs(OBS-01): 기존 자원 import가 없음. plan에 신규 생성(create)만 있고 변경·교체·삭제 0건
@@ -706,7 +719,7 @@ terraform -chdir=envs/prod plan -input=false -generate-config-out=generated.tf
    - ID·ARN·IP를 참조·data source·그룹 값으로 바꿈(1-1절)
    - 보안 그룹의 인라인 `ingress`·`egress`는 지우고 규칙별 리소스로 옮김
    - 하나씩 생성한 자원(`private_a`, `private_c`)은 `for_each` 자원 하나(`aws_subnet.private`)로 합침
-4) 임시 import 블록을 예시 A-7 형태(`to = module.network.…`, 필요하면 `for_each`)로 바꿈
+4) 임시 import 블록을 예시 N-7 형태(`to = module.network.…`, 필요하면 `for_each`)로 바꿈
 5) `generated.tf` 삭제 후 다시 확인
 
 ```bash
@@ -737,6 +750,22 @@ python3.12 -m venv ~/.venvs/boaz-infra
 HYPOTHESIS_PROFILE=ci ~/.venvs/boaz-infra/bin/python -m pytest
 ```
 
+### A-4. 그룹별 재조사 읽기 명령(3절 2단계)
+
+모두 `--profile boaz`를 붙여 실행함. 조회 결과의 자원 ID·IP는 `inventory.md`(`docs/records/`)에만 적고 다른 문서·이슈·PR에는 옮기지 않음. `<…>`는 이름·ARN 자리이며 자원 ID는 명령에 직접 쓰지 않고 이름·태그 필터로 찾음
+
+| 그룹 | 명령 |
+| --- | --- |
+| network | `ec2 describe-vpcs`, `ec2 describe-subnets`, `ec2 describe-route-tables`, `ec2 describe-internet-gateways`, `ec2 describe-security-groups`, `ec2 describe-security-group-rules`, `ec2 describe-network-acls` |
+| iam | `iam list-roles`, `iam get-role --role-name <롤 이름>`, `iam list-attached-role-policies --role-name <롤 이름>`, `iam list-instance-profiles` |
+| params | `ssm describe-parameters`(이름·type만, 값은 조회하지 않음), `ssm get-parameter --name /boaz/terraform/group-vars`(1-1절 3번) |
+| storage | `s3api list-buckets`, `s3api get-bucket-policy --bucket <버킷명>`, `s3api get-bucket-versioning --bucket <버킷명>`, `s3api get-public-access-block --bucket <버킷명>`, `s3api get-bucket-encryption --bucket <버킷명>`. 객체 내용은 조회하지 않음 |
+| compute | `ec2 describe-instances --filters Name=tag:app,Values=boaz-api`, `ec2 describe-addresses`, `elbv2 describe-load-balancers`, `elbv2 describe-target-groups`, `elbv2 describe-listeners --load-balancer-arn <ALB ARN>` |
+| database | `rds describe-db-instances`, `rds describe-db-subnet-groups`, `rds describe-db-parameter-groups`. 비밀번호는 조회하지 않음 |
+| cdn | `cloudfront list-distributions`, `cloudfront get-distribution-config --id <배포 ID>`, `route53 list-hosted-zones`, `route53 list-resource-record-sets --hosted-zone-id <영역 ID>`, `acm list-certificates --region us-east-1` |
+| deploy | `deploy list-applications`, `deploy get-application --application-name <앱 이름>`, `deploy list-deployment-groups --application-name <앱 이름>`, `deploy get-deployment-group --application-name <앱 이름> --deployment-group-name <그룹 이름>` |
+| obs | `cloudwatch describe-alarms`, `logs describe-log-groups`, `sns list-topics`(신규 생성 전 기존 자원 확인용) |
+
 ## 부록 B. 자주 묻는 질문
 
 | 질문 | 답 |
@@ -744,7 +773,7 @@ HYPOTHESIS_PROFILE=ci ~/.venvs/boaz-infra/bin/python -m pytest
 | apply·그룹 값 갱신·잠금 해제는 어디에 요청하나 | 해당 티켓의 GitHub 이슈 코멘트로 관리자(Admin 그룹 운영진)에게 요청함 |
 | 로컬 plan에는 다른 그룹 삭제가 나오는데 CI plan은 깨끗함 | 브랜치가 오래된 것임. `git merge origin/dev` 후 다시 plan함(3절) |
 | CI plan에만 다른 그룹 자원이 나옴 | `dev`에 다른 그룹 머지가 들어온 뒤 apply 전일 수 있음. 관리자에게 확인하고 workflow를 다시 실행함 |
-| plan이 "Unsupported attribute"로 멈춤 | 그룹 값 파라미터에 키가 없음. 1-1절 3번 절차로 요청함 |
+| plan이 "Unsupported attribute"로 멈춤 | 키 이름 오타를 먼저 확인함. 오타가 없으면 그룹 값 파라미터에 키가 없는 것이므로 1-1절 3번 절차로 요청함(요청 시점은 3절 2단계 직후) |
 | init이 잠금 파일 때문에 실패함 | 새 provider가 필요한 경우임. STA 담당에게 잠금 파일 갱신을 요청함(1-0-1절) |
 | Terraform Validate의 `terraform test`만 실패함 | 그룹 값 mock 문제일 수 있음. 자기 그룹의 가짜 값·`override_resource`를 `season.tftest.hcl`에 추가함(1-2절) |
 | plan이 잠금을 못 얻음 | `-lock-timeout=5m`으로 다시 실행함. 계속되면 2절 순서로 관리자에게 요청함 |

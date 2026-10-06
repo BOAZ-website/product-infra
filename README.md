@@ -32,7 +32,7 @@ product-infra/
 └── .kiro/specs/              # 마이그레이션 스펙(requirements/design/tasks)
 ```
 
-> 상세 설계와 작업 목록은 `.kiro/specs/product-infra-migration/`을 참고하세요.
+> 문서 지도와 역할별 읽기 순서는 `docs/README.md`를 참고하세요. 처음 참여하는 팀원은 `docs/guides/import-procedure.md`의 "처음이라면: 빠른 시작"부터 읽습니다. `.kiro/specs/`는 초기 설계 참고용입니다.
 
 ## 사전 준비
 

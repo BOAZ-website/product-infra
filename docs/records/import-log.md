@@ -1,6 +1,6 @@
 # Import 기록 (Import Log)
 
-자원을 Terraform으로 편입(import)할 때 각 자원마다 아래 레코드를 남김. 실제 import·apply 단계(후속 작업)에서 채움. 현재는 양식과 대상 목록만 준비된 상태
+자원을 Terraform으로 편입(import)할 때 각 자원마다 아래 레코드를 남김. 그룹 담당이 `docs/guides/import-procedure.md` 3절 1·9단계에서 채움
 
 secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하지 않음
 
