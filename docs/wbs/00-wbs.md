@@ -136,7 +136,7 @@
 | 8 | 배포(CodeDeploy) | DEP | DEP-01, DEP-02 | `deploy.tf` | IAM-02, STO-01 |
 
 - **8개 파트(OBS·NET·IAM·STO·CMP·RDB·CDN·DEP)는 Phase 2 1차 시작 시 동시에 배정·착수함.** 순서 열은 착수 순서가 아니라 머지·apply 순서
-- 1~3(Phase 2 1차)은 서로 선행 관계가 없어 바로 import까지 진행함. IAM만 IAM-01(권한 변경 후 재조사)을 먼저 끝냄
+- 1~3(Phase 2 1차)은 서로 선행 관계가 없어 바로 import까지 진행함. IAM만 IAM-01(전용 Role 신설 후 재조사)을 먼저 끝냄
 - 4~8(Phase 2 2차) 파트는 착수 직후 재조사·명세서 확인·모듈 초안(로컬 `generate-config-out`)·앞 그룹에 필요한 output 요청까지 진행하고, 선행 그룹이 `dev`에 머지되면 plan 맞추기와 PR을 진행함. 그룹 간 값은 output으로만 받으므로 선행 그룹 머지 전에는 plan "No changes"를 맞출 수 없음
 - 인원이 8명보다 적으면 선행 관계로 이어진 파트를 한 사람에게 묶음(예: CMP+DEP, NET+RDB)
 - 2026-10-02 확정. 참여 인원 5명, 묶음 OBS+STO, NET+CDN(정), RDB+CDN(부), IAM+DEP, CMP 단독. 담당자 이름은 노션 배정 문서에 둠
@@ -184,7 +184,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 1차 | 예 | 대기 |
 | OBS-02 | 접근 로그·대시보드 | OBS | 하루이틀 | OBS-01, CDN-02 | 없음 | Phase 3 | 아니오 | 대기 |
 | NET-01 | network 그룹 import | NET | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 예 | 대기 |
-| IAM-01 | 배포 Role 권한 콘솔 적용 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 대기 |
+| IAM-01 | 관리자 콘솔 배포 Role 신설 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 대기 |
 | IAM-02 | IAM 롤·정책 그룹 import | IAM | 한 주 | IAM-01 | 없음 | Phase 2 1차 | 예 | 대기 |
 | IAM-03 | SSM 파라미터 그룹 import + P7 | IAM | 한 주 | IAM-01 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 대기 |
 | IAM-04 | 앱 시크릿 잔여 항목 결정·적용 | IAM | 하루이틀 | IAM-03 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 대기 |
