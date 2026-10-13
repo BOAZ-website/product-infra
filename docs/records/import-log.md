@@ -92,7 +92,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 
 > frontend 배포 role 신뢰 정책의 중복된 `sub` 조건 제거는 IAM-02 plan 결과가 "No changes"로 확인된 뒤 별도 PR에서 수행함
 
-> IAM-02 주의: 고객 관리형 정책 `boaz-ec2-s3-archiving-policy`는 `role-prod-ec2`와 IAM 사용자 `boaz-backend-dev`에 **함께 연결됨**(조회 확인). (1) 정책 본문을 나중에 고치면 그 사용자 권한도 바뀌므로 PR 본문에 적음. (2) `aws_iam_policy_attachment`(독점 관리) 방식을 쓰면 사용자 연결이 떨어지므로 개별 `aws_iam_role_policy_attachment`만 씀.
+> IAM-02 주의: 고객 관리형 정책 `boaz-ec2-s3-archiving-policy`는 `role-prod-ec2`와 IAM 사용자 1명에게 **함께 연결됨**(조회 확인). (1) 정책 본문을 나중에 고치면 그 사용자 권한도 바뀌므로 PR 본문에 적음. (2) `aws_iam_policy_attachment`(독점 관리) 방식을 쓰면 사용자 연결이 떨어지므로 개별 `aws_iam_role_policy_attachment`만 씀.
 
 ## 참고
 
