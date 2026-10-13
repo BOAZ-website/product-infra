@@ -48,7 +48,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 |---|---|---|---|---|---|
 | 0 | obs | SNS 주제·구독, CloudWatch 경보(RDS 여유 메모리 등), Discord 알림 Lambda(신규 생성, import 아님) | | | 대기 |
 | 1 | network | VPC, Subnet 4개, Route Table 3개(+association), IGW, SG 6개와 규칙, prefix list(data_source) | | | 대기 |
-| 2 | iam | OIDC provider, role 5개(frontend_admin 배포 role 포함, IAM-01에서 신규 생성), role별 정책 연결·인라인 정책, EC2 instance profile | | | 대기 |
+| 2 | iam | OIDC provider, role 5개(IAM-01에서 신규 생성한 frontend_admin 배포 role 포함), role별 정책 연결·인라인 정책, EC2 instance profile | | | 대기 |
 | 3 | params | `/boaz/infra/*` 12개, 앱 시크릿 존재·타입 확인(값 제외) | | | 대기 |
 | 4 | storage | S3 버킷(codedeploy·prod-frontend·frontend-admin·recruitment·archiving) + 버킷별 정책·퍼블릭 차단·암호화·lifecycle | | | 대기 |
 | 5 | compute | EC2-A, EC2-B, EIP와 연결, Target Group과 EC2-A 등록(ALB는 `season_capacity = on`일 때만) | | | 대기 |
@@ -74,17 +74,19 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 
 ## IAM-01 콘솔·CLI 변경 기록 (import 아님, 신규 생성)
 
-2026-10-13 관리자가 CLI로 적용. frontend_admin(관리자 콘솔) 배포 전용 role·정책을 신설함. 기존 frontend 배포 role은 변경하지 않음(www 배포 영향 없음). IAM-02에서 이 role·정책을 import 대상에 포함함.
+- 2026-10-13 관리자(Admin 그룹)가 AWS CLI로 적용함. frontend_admin(관리자 콘솔) 배포 전용 role과 정책을 신설함
+- 기존 frontend 배포 role은 변경하지 않았으므로 www 배포에 영향 없음
+- 신설한 role과 정책은 IAM-02에서 import 대상에 포함함
 
 | 항목 | 내용 |
 |---|---|
-| role | `role-prod-github-actions-frontend-admin` (max session 3600) |
-| 신뢰 조건 | GitHub OIDC, `aud=sts.amazonaws.com`, `sub=repo:BOAZ-website@258640138/frontend_admin@1351152812:ref:refs/heads/main` (immutable subject, 와일드카드 없음, main 브랜치만) |
-| 정책 | `boaz-prod-frontend-admin-deploy` (role에만 연결) |
-| 허용 동작 | admin 버킷 `boaz-prod-frontend-admin` `s3:PutObject`·`DeleteObject`·`ListBucket`, admin CloudFront 배포 `E2GM63NBDWPND0` `cloudfront:CreateInvalidation` |
-| 되돌리기 | role·정책 삭제로 복구 가능. frontend_admin 배포 워크플로(frontend_admin#28)는 아직 없어 이 role을 처음부터 지정함 |
+| role | `role-prod-github-actions-frontend-admin` (최대 세션 시간(max session) 3600초) |
+| 신뢰 조건 | GitHub OIDC, `aud=sts.amazonaws.com`, `sub=repo:BOAZ-website@258640138/frontend_admin@1351152812:ref:refs/heads/main` (불변 형식(immutable) subject, 와일드카드 없음, main 브랜치만 허용) |
+| 정책 | `boaz-prod-frontend-admin-deploy` (이 role에만 연결) |
+| 허용 동작 | admin 버킷 `boaz-prod-frontend-admin`에 `s3:PutObject`·`DeleteObject`·`ListBucket`, admin CloudFront 배포 `E2GM63NBDWPND0`에 `cloudfront:CreateInvalidation` |
+| 되돌리기 | role과 정책 삭제로 복구 가능함. 배포 워크플로(frontend_admin#28)가 아직 없어 삭제해도 기존 배포에 영향 없음 |
 
-> frontend 배포 role 신뢰 정책의 중복 `sub` 조건 정리는 IAM-02 plan "No changes" 확인 뒤 별도 PR.
+> frontend 배포 role 신뢰 정책의 중복된 `sub` 조건 제거는 IAM-02 plan 결과가 "No changes"로 확인된 뒤 별도 PR에서 수행함
 
 ## 참고
 
