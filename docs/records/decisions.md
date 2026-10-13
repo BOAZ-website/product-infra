@@ -59,8 +59,9 @@ Terraform 이전 작업에서 **결정이 필요한 것**과 **팀에 확인이 
 | storage·cdn 참조 방향 | 결정 | 완료 | cdn이 storage output을 참조하고, storage 버킷 정책의 CloudFront 배포 ARN은 data source로 조회 | 인프라 담당 | STO-01 전 | STO-01, CDN-02 | 2026-10-02 확정. 프론트엔드 버킷 정책 조건(`AWS:SourceArn`)에 배포 ARN이 있어 양방향 output 참조 시 순환 참조 (#35) |
 | 팀원 AWS 접근 방식 | 결정 | 완료 | IAM 사용자 + 각자 액세스 키로 CLI 사용(막지 않음). MFA 강제는 하지 않음 | 인프라 담당 | Phase 2 1차 착수 전 | #44 | 2026-10-02 확정. 급한 착수 우선, 장기 키 허용·MFA 생략은 공개 저장소 기준상 트레이드오프로 인지. IAM Identity Center는 미도입(계정 1개·단기 작업이라 과함) |
 | 팀원 권한 범위 | 결정 | 완료 | 읽기 전용(`ReadOnlyAccess` + state 접근, 시크릿·S3객체·복호화 Deny). 그룹 `terraform-readonly` | 인프라 담당 | Phase 2 1차 착수 전 | #44 | 2026-10-02 확정·적용. import·plan은 조회만 필요. 쓰기·apply 없음. 그룹·정책은 bootstrap 코드, 사용자는 코드 밖(이름 비공개) |
-| apply 실행 주체 | 결정 | 완료 | 관리자(Admin 그룹, 운영진 3명)가 apply. 읽기 전용 팀원 2명은 재조사·plan까지 | 인프라 담당 | Phase 2 1차 착수 전 | #44, STA-11 | 2026-10-02 확정. state 1개라 동시 apply 위험·보호 자원 많음. apply는 한 번에 한 그룹만. OBS 생성 apply·IAM-01 Role 변경 등 보호 자원 쓰기는 관리자가 수행. Phase 3 STA-11에서 승인 후 자동 apply로 전환 검토 |
+| apply 실행 주체 | 결정 | 완료 | 관리자(Admin 그룹, 운영진 3명)가 apply. 읽기 전용 팀원 2명은 재조사·plan까지 | 인프라 담당 | Phase 2 1차 착수 전 | #44, STA-11 | 2026-10-02 확정. state 1개라 동시 apply 위험·보호 자원 많음. apply는 한 번에 한 그룹만. OBS 생성 apply·IAM-01 Role 신설 등 보호 자원 쓰기는 관리자가 수행. Phase 3 STA-11에서 승인 후 자동 apply로 전환 검토 |
 | 운영진 1명 관리자 권한 | 결정 | 완료 | 관리자(Admin 그룹) 유지 | 인프라 담당 + 해당 운영진 | 2026-10-02 | #44 | 당초 읽기 전용 검토했으나, DB 스냅샷(RDB-01-04) 등 운영 편의로 관리자 유지. 웹사이트 이미지 업로드는 앱이 자기 역할로 처리해 해당 운영진 개인 권한과 무관 |
+| 관리자 콘솔 배포 Role 분리 | 결정 | 완료 | 기존 프론트 배포 롤에 추가하지 않고 관리자 콘솔 전용 롤 `role-prod-github-actions-frontend-admin`과 전용 정책 `boaz-prod-frontend-admin-deploy`를 새로 만듦. 기존 프론트 배포 롤·정책은 변경하지 않음 | 인프라 담당 | IAM-01 전 | IAM-01, IAM-02 | 2026-10-13 채택. 같은 롤에 붙은 정책은 권한이 합산돼, 정책을 나눠도 frontend·frontend_admin 저장소 사이 권한이 격리되지 않음. 운영 중인 www 배포 롤을 콘솔에서 고치지 않아 IAM-01 작업 중 www 배포 중단 위험이 없음. 추가 비용은 롤 1개(IAM-02 import 1건). 기존 프론트 롤 신뢰 정책의 중복 `sub` 조건 정리는 IAM-02 plan "No changes" 확인 뒤 별도 PR |
 | apply 우선순위 | 결정 | 완료 | STO-01 → CDN-02 1단계 → CDN-03 줄과 IAM-02 → CMP-01 → CMP-02 줄을 먼저, 나머지 그룹은 그 사이에 apply | 인프라 담당 | Phase 2 1차 착수 전 | Phase 2 전체 | 2026-10-02 확정. `import-procedure.md` 2절 (#35) |
 
 ## 참고
