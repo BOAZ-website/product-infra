@@ -88,7 +88,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 | 신뢰 조건 | GitHub OIDC, `aud=sts.amazonaws.com`, `sub=repo:BOAZ-website@258640138/frontend_admin@1351152812:ref:refs/heads/main` (불변 형식(immutable) subject, 와일드카드 없음, main 브랜치만 허용) |
 | 정책 | `boaz-prod-frontend-admin-deploy` (이 role에만 연결) |
 | 허용 동작 | admin 버킷 `boaz-prod-frontend-admin`에 `s3:PutObject`·`DeleteObject`·`ListBucket`, admin CloudFront 배포 `E2GM63NBDWPND0`에 `cloudfront:CreateInvalidation` |
-| 되돌리기 | role과 정책 삭제로 복구 가능함. 배포 워크플로(frontend_admin#28)가 아직 없어 삭제해도 기존 배포에 영향 없음 |
+| 되돌리기 | `aws iam detach-role-policy`로 정책 연결을 먼저 분리한 뒤 role과 정책을 삭제해 복구함(연결이 남아 있으면 삭제 불가). 배포 워크플로(frontend_admin#28)가 아직 없어 삭제해도 기존 배포에 영향 없음 |
 
 > frontend 배포 role 신뢰 정책의 중복된 `sub` 조건 제거는 IAM-02 plan 결과가 "No changes"로 확인된 뒤 별도 PR에서 수행함
 
