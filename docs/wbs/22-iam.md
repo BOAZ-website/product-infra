@@ -6,7 +6,7 @@
 
 - GitHub OIDC, 배포 롤, EC2 인스턴스 프로파일, `/boaz/infra/*` 파라미터 12개를 코드로 관리함
 - 앱 시크릿은 존재와 타입만 확인하고 값은 조회·기록하지 않음
-- 관리자 콘솔 배포 Role 권한 변경(#13 R2)은 IAM import 전에 끝냄. import 뒤에 콘솔로 바꾸면 곧바로 코드와 실제가 달라지기 때문
+- 관리자 콘솔 전용 배포 Role 신설(#13 R2)은 IAM import 전에 끝냄. import 뒤에 콘솔로 만들면 곧바로 코드와 실제가 달라지기 때문
 
 **범위:** IAM 롤·정책·OIDC provider·인스턴스 프로파일, SSM 인프라 파라미터, 앱 시크릿 존재 확인
 **범위 밖:** 앱 시크릿 값 관리, `/boaz/app/*` 이관(후속 작업)
@@ -15,7 +15,7 @@
 
 ## IAM-01 배포 Role 권한 콘솔 적용 + 재조사
 
-**목적:** 관리자 콘솔 프론트 배포에 필요한 권한을 먼저 콘솔·CLI로 적용하고 IAM 자원만 다시 조사함
+**목적:** 관리자 콘솔 프론트 배포에 쓸 전용 Role·정책을 먼저 콘솔·CLI로 만들고 IAM 자원만 다시 조사함. 기존 프론트 배포 롤은 변경하지 않음(2026-10-13 결정, `docs/records/decisions.md`)
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -23,9 +23,9 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| IAM-01-01 | 기존 프론트 배포 롤의 신뢰 정책에 관리자 콘솔 저장소 추가 | `aws iam get-role` 결과의 신뢰 정책에 저장소 조건 존재 |
-| IAM-01-02 | 연결 정책에 관리자 콘솔 버킷·배포 권한 추가 | 정책 JSON에 해당 버킷 ARN 포함 |
-| IAM-01-03 | 변경 전후 정책 차이를 decisions.md·Import_Log에 기록 | 문서에 변경 전후 비교 존재 |
+| IAM-01-01 | 관리자 콘솔 전용 배포 롤 `role-prod-github-actions-frontend-admin` 생성. 신뢰 정책은 GitHub OIDC `aud=sts.amazonaws.com`, `sub`는 frontend_admin 저장소의 `main` 브랜치만 허용(immutable subject 형식 `repo:BOAZ-website@<조직 번호>/frontend_admin@<저장소 번호>:ref:refs/heads/main`, 와일드카드 `*` 쓰지 않음) | `aws iam get-role` 결과의 신뢰 정책에 위 `sub` 조건 존재 |
+| IAM-01-02 | 관리형 정책 `boaz-prod-frontend-admin-deploy` 생성 후 이 롤에만 연결. 관리자 콘솔 버킷 `PutObject`·`DeleteObject`·`ListBucket`, 관리자 콘솔 CloudFront 배포 1개 `CreateInvalidation`만 허용 | 정책 JSON에 관리자 콘솔 버킷·배포 ARN만 있음, 기존 프론트 배포 롤의 정책 연결 변경 없음 |
+| IAM-01-03 | 새 롤·정책 내용을 decisions.md·Import_Log에 기록 | 문서에 신뢰 조건·허용 동작·대상 자원 기록 존재 |
 | IAM-01-04 | 변경 직후 IAM 자원만 CLI로 다시 조사해 inventory 갱신 | inventory IAM 절 갱신 시점이 변경 이후 |
 
 ## IAM-02 IAM 롤·정책 그룹 import
@@ -42,7 +42,7 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| IAM-02-01 | GitHub OIDC provider, backend·frontend 배포 롤, CodeDeploy 서비스 롤, EC2 인스턴스 프로파일 import | `terraform state list`에 각 주소 존재 |
+| IAM-02-01 | GitHub OIDC provider, backend·frontend·관리자 콘솔 배포 롤, CodeDeploy 서비스 롤, EC2 인스턴스 프로파일 import | `terraform state list`에 각 주소 존재 |
 | IAM-02-02 | 롤에 붙은 정책 연결과 인라인 정책도 함께 import | plan에 정책 연결 삭제 없음 |
 | IAM-02-03 | CI용 plan 역할은 bootstrap에서 이미 관리함(신뢰 조건 `pull_request`). apply 역할은 STA-11(Phase 3) 범위임. 이 티켓에서는 두 역할을 만들거나 import하지 않음. 이유는 같은 자원의 이중 관리 방지임 | envs/prod 코드에 CI 역할 없음, 코드에 액세스 키 없음 |
 | IAM-02-04 | EC2 롤에 현재 연결된 권한을 그대로 import: 관리형 정책 5개(S3 읽기, Session Manager, CloudWatch Agent 전송 — OBS-01에 필요, 아카이빙·지원서 버킷 접근 2개)와 인라인 정책 3개(CodeDeploy 읽기, SSM 파라미터 읽기, CloudWatch 지표 조회). 권한 축소는 plan "No changes" 확인 뒤 별도 PR | plan에 정책 연결 변경 없음, 조사 기록(`docs/records/inventory.md`)의 관리형 5개·인라인 3개와 일치 |
