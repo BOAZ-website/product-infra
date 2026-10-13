@@ -40,7 +40,7 @@
 | 착수 선언 | 그룹 담당 | `import-log.md` 상태 `작업 중`(import-log.md만 고치는 PR), 브랜치 생성 | import-log 행 |
 | 재조사 | 그룹 담당 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사(부록 A-4), 새 그룹 값 키 요청 | `inventory.md` 갱신 |
 | 코드 작성·plan | 그룹 담당 | 모듈·import 블록 작성, 로컬 plan에서 차이 0건 | 그룹 파일 |
-| PR·리뷰 | 그룹 담당·리뷰어 | PR CI plan 코멘트 확인, 5절 체크리스트 | 승인 1건, `Apply Ready` |
+| PR·리뷰 | 그룹 담당·리뷰어 | PR CI plan 코멘트 확인, 5절 체크리스트, 리뷰어에게 리뷰 요청 | `Apply Ready` 통과(승인은 강제 아님, 리뷰 요청은 규칙) |
 | 머지·apply | 관리자 | `apply 중` 기록 → 머지 → `dev`에서 plan → 로컬 게이트 → apply | state 등록 |
 | 최종 확인·기록 | 관리자·그룹 담당 | `dev`에서 plan "No changes", import-log `완료`(import-log.md만 고치는 PR) | import-log 행 |
 
