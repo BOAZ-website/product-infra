@@ -148,7 +148,8 @@ ap-northeast-2에는 인증서가 없음
 | 자원 | 식별자 | 현재 설정 | ownership |
 |---|---|---|---|
 | Role backend deploy | `arn:aws:iam::156312218841:role/role-prod-github-actions` | - | managed |
-| Role frontend deploy | `arn:aws:iam::156312218841:role/role-prod-github-actions-frontend` | - | managed |
+| Role frontend deploy | `arn:aws:iam::156312218841:role/role-prod-github-actions-frontend` | 신뢰: `repo:BOAZ-website/frontend:*`(중복 2건, IAM-02 plan "No changes" 확인 뒤 별도 PR에서 제거). 연결 정책 `boaz-prod-frontend-deploy`(www·dev 버킷 쓰기, CloudFront 무효화 2건) | managed |
+| Role frontend_admin deploy | `arn:aws:iam::156312218841:role/role-prod-github-actions-frontend-admin` | IAM-01에서 신규 생성(2026-10-13). 신뢰: `repo:BOAZ-website@258640138/frontend_admin@1351152812:ref:refs/heads/main`(immutable, 와일드카드 없음), `aud=sts.amazonaws.com`. 연결 정책 `boaz-prod-frontend-admin-deploy`(admin 버킷 `boaz-prod-frontend-admin` 쓰기·삭제·목록 조회, admin CloudFront `E2GM63NBDWPND0` 무효화). 최대 세션 시간(max session) 3600초 | managed |
 | Role CodeDeploy | `arn:aws:iam::156312218841:role/role-prod-codedeploy` | - | managed |
 | Role EC2 | `arn:aws:iam::156312218841:role/role-prod-ec2` | instance profile 연결. 관리형 정책 5개(`AmazonS3ReadOnlyAccess`, `AmazonSSMManagedInstanceCore`, `CloudWatchAgentServerPolicy`, `boaz-ec2-s3-archiving-policy`, `boaz-ec2-s3-recruitment-policy`), 인라인 정책 3개(`boaz-codedeploy-read`, `boaz-ssm-read`, `cloudwatch-list-metric`) | managed |
 | GitHub OIDC provider | `arn:aws:iam::156312218841:oidc-provider/token.actions.githubusercontent.com` | - | managed |
