@@ -71,6 +71,10 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 | WAF WebACL 3개 | unconfirmed | 관리 방식 미결정 (decisions 참조) |
 | 레거시 OAI 4개, ACM 검증 CNAME `back`/`cdn`/`server` | unconfirmed | 미사용·고아 추정, 정리 여부 미결정 |
 | default Network ACL | unconfirmed | 관리 여부 미결정 |
+| 고객 관리형 정책 `boaz-ec2-s3-policy` | excluded | 어디에도 연결되지 않음(연결 수 0). iam 그룹 import 대상 아님 |
+| `rds-monitoring-role` | excluded | RDS enhanced monitoring용. database 그룹에서 RDS가 참조만 함, iam 그룹 import 대상 아님 |
+| 서비스 연결 역할(`AWSServiceRoleFor*`) 12개 | excluded | AWS가 자동 생성·관리(SSM·RDS·ELB·SSO·Organizations 등). import·관리 대상 아님 |
+| 사용자·그룹용 정책, bootstrap 관리 자원 | excluded | IAM 사용자/그룹 정책은 iam 그룹 범위 밖. CI plan 역할·공용 plan 정책·state 버킷 등은 bootstrap이 관리 |
 
 ## IAM-01 콘솔·CLI 변경 기록 (import 아님, 신규 생성)
 
@@ -87,6 +91,8 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 | 되돌리기 | role과 정책 삭제로 복구 가능함. 배포 워크플로(frontend_admin#28)가 아직 없어 삭제해도 기존 배포에 영향 없음 |
 
 > frontend 배포 role 신뢰 정책의 중복된 `sub` 조건 제거는 IAM-02 plan 결과가 "No changes"로 확인된 뒤 별도 PR에서 수행함
+
+> IAM-02 주의: 고객 관리형 정책 `boaz-ec2-s3-archiving-policy`는 `role-prod-ec2`와 IAM 사용자 `boaz-backend-dev`에 **함께 연결됨**(조회 확인). (1) 정책 본문을 나중에 고치면 그 사용자 권한도 바뀌므로 PR 본문에 적음. (2) `aws_iam_policy_attachment`(독점 관리) 방식을 쓰면 사용자 연결이 떨어지므로 개별 `aws_iam_role_policy_attachment`만 씀.
 
 ## 참고
 
