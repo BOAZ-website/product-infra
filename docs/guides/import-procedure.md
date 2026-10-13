@@ -40,7 +40,7 @@
 | 착수 선언 | 그룹 담당 | `import-log.md` 상태 `작업 중`(import-log.md만 고치는 PR), 브랜치 생성 | import-log 행 |
 | 재조사 | 그룹 담당 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사(부록 A-4), 새 그룹 값 키 요청 | `inventory.md` 갱신 |
 | 코드 작성·plan | 그룹 담당 | 모듈·import 블록 작성, 로컬 plan에서 차이 0건 | 그룹 파일 |
-| PR·리뷰 | 그룹 담당·리뷰어 | PR CI plan 코멘트 확인, 5절 체크리스트, 리뷰어에게 리뷰 요청 | `Apply Ready` 통과(승인은 강제 아님, 리뷰 요청은 규칙) |
+| PR·리뷰 | 그룹 담당·리뷰어 | PR CI plan 코멘트 확인, 5절 체크리스트 확인, 리뷰어에게 리뷰 요청함 | `Apply Ready` 통과됨(승인은 강제하지 않음, 리뷰 요청은 규칙으로 유지함) |
 | 머지·apply | 관리자 | `apply 중` 기록 → 머지 → `dev`에서 plan → 로컬 게이트 → apply | state 등록 |
 | 최종 확인·기록 | 관리자·그룹 담당 | `dev`에서 plan "No changes", import-log `완료`(import-log.md만 고치는 PR) | import-log 행 |
 
@@ -632,7 +632,7 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
 - 게이트는 신규 생성(create)·설정 변경(update)·import·`removed` 블록(forget)은 통과시킴. "그 그룹의 import와 승인된 변경만 있는지"는 사람이 plan 요약을 보고 확인함. 다른 그룹 자원의 변경이 하나라도 보이면 멈추고 `dev` 최신 상태부터 다시 확인함
 - apply 대기가 겹치면 2026-12-07 시즌 동결 전 마감이 걸린 두 순서를 먼저 apply함(decisions.md): ① STO-01 → CDN-02 1단계 → CDN-03(관리자 페이지 오픈), ② IAM-02 → CMP-01 → CMP-02(시즌 전환). 나머지(OBS·NET·IAM-03·RDB·DEP 등)는 그 사이에 apply함
 - `apply 중`인 동안 다른 PR은 머지하지 않음
-- `dev` 브랜치 보호 적용일: [확인 필요: 적용일]. 적용 전까지 승인 1건·`Apply Ready` 통과·`apply 중` 동안 머지 금지는 GitHub가 강제하지 않으며 사람이 지키는 규칙임
+- `dev` 브랜치 보호 적용일: [확인 필요: 적용일]. 적용 전까지 `Apply Ready` 통과·`apply 중` 동안 머지 금지는 GitHub가 강제하지 않으며 사람이 지키는 규칙임
 - 기다리는 사람은 plan만 실행하며 코드를 맞춤. plan도 state 잠금을 잡으므로 `-lock-timeout=5m`을 붙임. `-lock=false`는 쓰지 않음
 - 잠금이 오래 풀리지 않으면 잠금을 잡은 사람에게 먼저 확인함. 강제 해제·state 복구는 관리자만 아래 순서로 수행함
   1. 오류 메시지의 Lock ID·Who·Created 확인
@@ -650,14 +650,14 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
 | 3. 코드 작성 | `-generate-config-out`으로 초안을 만들고(부록 A-2), 1-1절 규칙대로 ID·ARN·IP를 바꿔 `modules/<그룹>/`로 옮김. import 블록의 `to`를 `module.<그룹>.<자원>`으로 바꿈. `generated.tf`는 삭제. obs는 import 없이 명세대로 새 자원을 작성함 | `validate` 통과, `.tf`에 자원 ID·IP 없음 |
 | 4. 보호 설정 | 보호 대상 자원에 `prevent_destroy` 추가. 재생성을 일으키는 속성은 실제 값과 똑같이 맞춤 | 코드에 `prevent_destroy` 존재 |
 | 5. plan 맞추기 | `git merge origin/dev`로 최신 `dev`를 반영한 뒤 로컬 plan(부록 A-1). 차이가 0이 될 때까지 코드 수정. 삭제·교체가 나오면 즉시 멈춤(4절) | import만 있고 변경·교체·삭제 0건(예외는 아래) |
-| 6. PR | base `dev`, 제목 `[Feat] network 그룹 import` 형식, PR 템플릿 작성. plan 결과는 PR CI 요약 코멘트로 대체하고 plan 원문은 붙이지 않음. 요청한 그룹 값 키가 모두 갱신됐는지 확인하고 PR 본문에 키 이름만 적음. 리뷰 1명 이상 승인 | 승인 1건 이상, `Apply Ready` 통과 |
+| 6. PR | base `dev`, 제목 `[Feat] network 그룹 import` 형식, PR 템플릿 작성. plan 결과는 PR CI 요약 코멘트로 대체하고 plan 원문은 붙이지 않음. 요청한 그룹 값 키가 모두 갱신됐는지 확인하고 PR 본문에 키 이름만 적음. 리뷰어 1명 이상에게 리뷰 요청함 | 리뷰 요청됨, `Apply Ready` 통과됨(승인은 강제하지 않음) |
 | 7. 머지·apply | 이슈 코멘트로 관리자에게 apply 요청. 관리자가 2절 순서로 머지·apply | 로컬 게이트 통과, apply 결과가 5단계 기준과 같음 |
 | 8. 최종 확인 | `dev` 같은 커밋에서 다시 plan | 출력에 "No changes." |
 | 9. 기록 | `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 상태 `완료`(import-log.md만 고치는 PR) | import-log.md 해당 행 갱신 |
 
 - 완료 기준 예외(5·7단계)
   - obs(OBS-01): 기존 자원 import가 없음. plan에 신규 생성(create)만 있고 변경·교체·삭제 0건
-  - CDN-03: import된 CloudFront의 설정 변경. plan에 명세서가 정한 설정 변경(update)만 있고 교체·삭제 0건. PR 본문에 변경 항목을 적고 리뷰 승인을 받음
+  - CDN-03: import된 CloudFront의 설정 변경. plan에 명세서가 정한 설정 변경(update)만 있고 교체·삭제 0건. PR 본문에 변경 항목을 적고 리뷰를 받은 뒤 머지함
   - CDN-03-01(WAF 규칙)은 코드가 아니라 콘솔로 적용하고 decisions.md에 기록함(WebACL은 참조만 하는 결정). 이 항목은 plan에 나오지 않음
   - 두 경우 모두 apply 뒤 8단계 "No changes."는 같게 적용함
 - 로컬 plan과 PR CI plan의 차이
