@@ -17,6 +17,22 @@ mock_provider "aws" {
   }
 
   # 그룹별 override_resource 구역(그룹마다 한 블록. target은 module.<그룹>.<자원 주소>)
+
+  # params: 경로 조회 결과를 관리 대상 12개(모두 String)로 대체함. 이름 목록은 envs/prod/params.tf와 같게 유지
+  override_data {
+    target = module.params.data.aws_ssm_parameters_by_path.infra
+    values = {
+      names = [
+        "/boaz/infra/ALB_PORT", "/boaz/infra/ALB_SG_ID", "/boaz/infra/ALB_SUBNETS", "/boaz/infra/CLOUDFRONT_DIST_ID",
+        "/boaz/infra/CODEDEPLOY_APP", "/boaz/infra/CODEDEPLOY_GROUP", "/boaz/infra/EC2_A_DOMAIN", "/boaz/infra/EC2_A_PORT",
+        "/boaz/infra/EC2_B_ID", "/boaz/infra/RDS_IDENTIFIER", "/boaz/infra/S3_BUCKET", "/boaz/infra/TARGET_GROUP_ARN",
+      ]
+      types = [for i in range(12) : "String"]
+    }
+  }
+  override_resource {
+    target = module.params.aws_ssm_parameter.infra
+  }
 }
 
 mock_provider "aws" {
@@ -129,4 +145,51 @@ run "invalid_origin_is_rejected" {
   }
 
   expect_failures = [var.api_origin]
+}
+
+run "params_extra_parameter_is_rejected" {
+  command = plan
+
+  variables {
+    season_capacity = "off"
+    api_origin      = "ec2"
+  }
+
+  override_data {
+    target = module.params.data.aws_ssm_parameters_by_path.infra
+    values = {
+      names = [
+        "/boaz/infra/ALB_PORT", "/boaz/infra/ALB_SG_ID", "/boaz/infra/ALB_SUBNETS", "/boaz/infra/CLOUDFRONT_DIST_ID",
+        "/boaz/infra/CODEDEPLOY_APP", "/boaz/infra/CODEDEPLOY_GROUP", "/boaz/infra/EC2_A_DOMAIN", "/boaz/infra/EC2_A_PORT",
+        "/boaz/infra/EC2_B_ID", "/boaz/infra/RDS_IDENTIFIER", "/boaz/infra/S3_BUCKET", "/boaz/infra/TARGET_GROUP_ARN",
+        "/boaz/infra/EXTRA",
+      ]
+      types = [for i in range(13) : "String"]
+    }
+  }
+
+  expect_failures = [output.params_infra_count]
+}
+
+run "params_secure_string_is_rejected" {
+  command = plan
+
+  variables {
+    season_capacity = "off"
+    api_origin      = "ec2"
+  }
+
+  override_data {
+    target = module.params.data.aws_ssm_parameters_by_path.infra
+    values = {
+      names = [
+        "/boaz/infra/ALB_PORT", "/boaz/infra/ALB_SG_ID", "/boaz/infra/ALB_SUBNETS", "/boaz/infra/CLOUDFRONT_DIST_ID",
+        "/boaz/infra/CODEDEPLOY_APP", "/boaz/infra/CODEDEPLOY_GROUP", "/boaz/infra/EC2_A_DOMAIN", "/boaz/infra/EC2_A_PORT",
+        "/boaz/infra/EC2_B_ID", "/boaz/infra/RDS_IDENTIFIER", "/boaz/infra/S3_BUCKET", "/boaz/infra/TARGET_GROUP_ARN",
+      ]
+      types = concat(["SecureString"], [for i in range(11) : "String"])
+    }
+  }
+
+  expect_failures = [output.params_infra_count]
 }
