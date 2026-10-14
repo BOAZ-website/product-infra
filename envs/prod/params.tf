@@ -24,6 +24,14 @@ locals {
   ])
 }
 
+# 경로 조회 결과 중 String인 짧은 이름(imports_params.tf가 사용)
+locals {
+  params_infra_string_names = toset([
+    for i, n in module.params.existing_names : trimprefix(n, "/boaz/infra/")
+    if module.params.existing_types[i] == "String"
+  ])
+}
+
 module "params" {
   source = "../../modules/params"
 

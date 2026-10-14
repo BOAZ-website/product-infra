@@ -33,5 +33,11 @@ resource "aws_ssm_parameter" "infra" {
   lifecycle {
     prevent_destroy = true
     ignore_changes  = [value]
+
+    # import 뒤 AWS에서 파라미터가 지워졌을 때 자리값으로 새로 만드는 plan을 막음(prevent_destroy는 생성을 막지 않음)
+    precondition {
+      condition     = contains(data.aws_ssm_parameters_by_path.infra.names, "${local.path}/${each.key}")
+      error_message = "파라미터가 AWS에 없습니다. 자리값으로 새로 만들지 않도록 plan을 중단합니다."
+    }
   }
 }
