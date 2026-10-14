@@ -161,6 +161,9 @@ ap-northeast-2에는 인증서가 없음
 
 `/boaz/infra/*`는 12개 (값 미조회, 이름·type·KMS만). `describe-parameters`의 결과가 페이지로 나뉘어 반환되므로(10개 + 2개) 개수는 전체 페이지를 합산해 확인함
 
+- 2026-10-15 재조사(IAM-03, 값 미조회): 12개 이름·type 변동 없음. 12개 모두 tier `Standard`, data type `text`, description·allowed pattern 없음, 태그 0개. params 모듈은 이 속성을 코드에 적지 않음
+- 계정 전체 파라미터는 27개 = `/boaz/infra/*` 12개 + 앱 파라미터 14개 + 그룹 값 `/boaz/terraform/group-vars` 1개(String, Terraform 그룹 값 저장용, 2026-10-13 추가)
+
 | 이름 | Type | KMS |
 |---|---|---|
 | `/boaz/infra/ALB_SG_ID` | String | 없음 |
@@ -176,7 +179,7 @@ ap-northeast-2에는 인증서가 없음
 | `/boaz/infra/TARGET_GROUP_ARN` | String | 없음 |
 | `/boaz/infra/S3_BUCKET` | String | 없음 |
 
-앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있음. Terraform에서 값을 관리하지 않음
+앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있음. Terraform에서 값을 관리하지 않음. 2026-10-15 재조사에서 이름·type·KMS 변동 없음
 
 | Type | 이름 | KMS |
 |---|---|---|

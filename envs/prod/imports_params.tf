@@ -3,3 +3,9 @@
 # - import 블록은 root 모듈(envs/prod) 바로 아래 파일에만 둘 수 있으므로 하위 폴더를 쓰지 않음
 # - 자원 ID는 코드에 직접 쓰지 않음(공개 저장소 규칙, README "보안 정보 공개 금지")
 # - 작업 절차: docs/guides/import-procedure.md
+
+import {
+  for_each = local.params_infra_names
+  to       = module.params.aws_ssm_parameter.infra[each.key]
+  id       = "/boaz/infra/${each.key}"
+}
