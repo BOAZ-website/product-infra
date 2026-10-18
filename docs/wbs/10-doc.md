@@ -145,7 +145,7 @@
 
 | 기능 ID | 기능 | 완료 확인 방법 |
 | --- | --- | --- |
-| DOC-09-01 | 종료 2단계 절차(origin 복귀 → CloudFront `Deployed` 확인 → ALB 제거)와 배포 방식 구분(AllAtOnce/OneAtATime) 기재 | 런북 순서와 SEA-03 구현 순서 일치 |
+| DOC-09-01 | 종료 2단계 절차(origin 복귀 → CloudFront `Deployed` 확인 → ALB 제거), 배포 그룹 기본값(AllAtOnce)과 실제 배포 방식(OneAtATime, `cd.yml`·`season-up.sh` 지정) 차이, 시즌 두 대 배포 시 인스턴스별 배포 결과 확인 단계 기재 | 런북 순서와 SEA-03 구현 순서 일치 |
 
 ## DOC-10 최종 Import_Log 갱신
 
