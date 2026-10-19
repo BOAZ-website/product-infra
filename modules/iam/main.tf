@@ -35,10 +35,8 @@ locals {
           Condition = {
             StringEquals = {
               "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            }
-            StringLike = {
-              # 현행 그대로 import함. 조건 축소·중복 정리는 plan "No changes" 확인 뒤 별도 PR
-              "token.actions.githubusercontent.com:sub" = ["repo:BOAZ-website/*", "repo:BOAZ-website/*"]
+              # backend cd.yml의 production environment 배포만 허용(#68, #74)
+              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website/backend:environment:production"
             }
           }
           Effect    = "Allow"
@@ -58,10 +56,8 @@ locals {
           Condition = {
             StringEquals = {
               "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            }
-            StringLike = {
-              # 현행 그대로 import함. 중복 조건 정리는 plan "No changes" 확인 뒤 별도 PR(decisions.md "관리자 콘솔 배포 Role 분리")
-              "token.actions.githubusercontent.com:sub" = ["repo:BOAZ-website/frontend:*", "repo:BOAZ-website/frontend:*"]
+              # frontend deploy-www.yml의 Production environment 배포만 허용(environment 배포 브랜치는 main만, #68, #74)
+              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website/frontend:environment:production"
             }
           }
           Effect    = "Allow"
