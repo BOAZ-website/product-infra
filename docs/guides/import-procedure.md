@@ -41,7 +41,7 @@
 | 재조사 | 그룹 담당 | 그 그룹 자원만 AWS CLI 읽기 명령으로 다시 조사(부록 A-4), 새 그룹 값 키 요청 | `inventory.md` 갱신 |
 | 코드 작성·plan | 그룹 담당 | 모듈·import 블록 작성, 로컬 plan에서 차이 0건 | 그룹 파일 |
 | PR·리뷰 | 그룹 담당·리뷰어 | PR CI plan 코멘트 확인, 5절 체크리스트 확인, 리뷰어에게 리뷰 요청함 | `Apply Ready` 통과됨(승인은 강제하지 않음, 리뷰 요청은 규칙으로 유지함) |
-| 머지·apply | 관리자 | `apply 중` 기록 → 머지 → `dev`에서 plan → 로컬 게이트 → apply | state 등록 |
+| 머지·apply | 관리자 | `apply 중` 기록 → 머지 → `dev`에서 `scripts/apply-group.sh` 실행(plan → 로컬 게이트 → apply → No changes 확인 → 이슈 코멘트) | state 등록 |
 | 최종 확인·기록 | 관리자·그룹 담당 | `dev`에서 plan "No changes", import-log `완료`(import-log.md만 고치는 PR) | import-log 행 |
 
 - 착수 조건: 재조사·모듈 초안·로컬 plan은 Phase 2 1차 시작 때 8개 파트 모두 시작함(`docs/wbs/01-schedule.md`)
@@ -619,7 +619,7 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
   5. 같은 plan 파일로 apply
   6. 같은 커밋에서 다시 plan해 "No changes" 확인
   7. apply 결과 요약을 그룹 이슈에 코멘트로 남김
-  - 3~7단계는 `scripts/apply-group.sh <그룹> <이슈 번호>`가 한 번에 실행함(부록 A-1)
+  - 3~7단계는 반드시 `scripts/apply-group.sh <그룹> <이슈 번호>`로 실행함(부록 A-1). `terraform apply`를 직접 실행하지 않음. 직접 실행하면 로컬 게이트·다른 그룹 자원 검사·No changes 확인·이슈 기록을 건너뛸 수 있기 때문임
 - 머지 뒤 `dev`에서 apply하는 이유: 브랜치에서 apply하고 나중에 머지하면, 그 사이 다른 그룹의 plan에 이 그룹 자원이 코드에 없어 삭제로 나옴
 - 로컬 게이트가 필수인 이유: PR CI의 게이트는 관리자가 실제로 apply하는 plan 파일을 검사하지 않음
 - 안전 게이트(`scripts/plan_gate.py`)가 차단하는 것
@@ -653,7 +653,7 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
 | 4. 보호 설정 | 보호 대상 자원에 `prevent_destroy` 추가. 재생성을 일으키는 속성은 실제 값과 똑같이 맞춤 | 코드에 `prevent_destroy` 존재 |
 | 5. plan 맞추기 | `git merge origin/dev`로 최신 `dev`를 반영한 뒤 로컬 plan(부록 A-1). 차이가 0이 될 때까지 코드 수정. 삭제·교체가 나오면 즉시 멈춤(4절) | import만 있고 변경·교체·삭제 0건(예외는 아래) |
 | 6. PR | base `dev`, 제목 `[Feat] network 그룹 import` 형식, PR 템플릿 작성. plan 결과는 PR CI 요약 코멘트로 대체하고 plan 원문은 붙이지 않음. 요청한 그룹 값 키가 모두 갱신됐는지 확인하고 PR 본문에 키 이름만 적음. 리뷰어 1명 이상에게 리뷰 요청함 | 리뷰 요청됨, `Apply Ready` 통과됨(승인은 강제하지 않음) |
-| 7. 머지·apply | 이슈 코멘트로 관리자에게 apply 요청. 관리자가 2절 순서로 머지·apply | 로컬 게이트 통과, apply 결과가 5단계 기준과 같음 |
+| 7. 머지·apply | 이슈 코멘트로 관리자에게 apply 요청. 관리자가 2절 순서로 머지 뒤 `scripts/apply-group.sh`로 apply | 로컬 게이트 통과, apply 결과가 5단계 기준과 같음 |
 | 8. 최종 확인 | `dev` 같은 커밋에서 다시 plan | 출력에 "No changes." |
 | 9. 기록 | `import-log.md`에 대상 자원, plan 결과 문구, 남은 차이, 관리 제외 항목과 사유 기록. 상태 `완료`(import-log.md만 고치는 PR) | import-log.md 해당 행 갱신 |
 
@@ -732,6 +732,8 @@ rm -f /tmp/plan.json envs/prod/plan.bin
 - 관리자는 apply 직전에 apply할 plan 파일로 이 게이트를 반드시 실행함(2절)
 
 **관리자 apply(2절 3~7단계)**
+
+apply는 이 스크립트로만 실행함. `terraform apply`를 직접 실행하지 않음
 
 ```bash
 git switch dev && git pull --ff-only
