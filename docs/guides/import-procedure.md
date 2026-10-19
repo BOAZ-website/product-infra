@@ -618,6 +618,8 @@ state 파일이 하나라서 한 번에 한 그룹만 apply함. apply는 관리�
   4. 그 plan 파일로 로컬 게이트 실행(부록 A-1). 통과한 경우만 진행
   5. 같은 plan 파일로 apply
   6. 같은 커밋에서 다시 plan해 "No changes" 확인
+  7. apply 결과 요약을 그룹 이슈에 코멘트로 남김
+  - 3~7단계는 `scripts/apply-group.sh <그룹> <이슈 번호>`가 한 번에 실행함(부록 A-1)
 - 머지 뒤 `dev`에서 apply하는 이유: 브랜치에서 apply하고 나중에 머지하면, 그 사이 다른 그룹의 plan에 이 그룹 자원이 코드에 없어 삭제로 나옴
 - 로컬 게이트가 필수인 이유: PR CI의 게이트는 관리자가 실제로 apply하는 plan 파일을 검사하지 않음
 - 안전 게이트(`scripts/plan_gate.py`)가 차단하는 것
@@ -728,6 +730,18 @@ rm -f /tmp/plan.json envs/prod/plan.bin
 ```
 
 - 관리자는 apply 직전에 apply할 plan 파일로 이 게이트를 반드시 실행함(2절)
+
+**관리자 apply(2절 3~7단계)**
+
+```bash
+git switch dev && git pull --ff-only
+AWS_PROFILE=boaz scripts/apply-group.sh iam 51   # <그룹> <이슈 번호>
+```
+
+- 순서: `dev` 최신 커밋 확인 → `-target=module.<그룹>` plan 파일 생성 → 로컬 게이트 → 요약 출력 → `yes` 입력 → 같은 plan 파일로 apply → 다시 plan해 "No changes" 확인 → 요약을 그룹 이슈에 코멘트
+- 멈추는 경우: `dev`가 아니거나 `origin/dev`와 다름, 작업 트리에 변경 있음, 게이트 위반, plan에 다른 그룹 자원 있음, `yes` 외 입력, apply 뒤 plan에 변경 남음
+- `-target`을 쓰는 이유: `dev`에 apply 전 그룹이 둘 이상 머지된 경우에도 한 번에 한 그룹만 apply하기 위함
+- plan 파일·JSON은 임시 폴더에 두고 끝나면 지움. 이슈 코멘트는 PR CI 코멘트와 같은 요약(주소·개수만, 값 없음)
 
 ### A-2. 코드 초안 생성(`-generate-config-out`)
 
