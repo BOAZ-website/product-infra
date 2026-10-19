@@ -67,7 +67,7 @@ locals {
       }
     }
 
-    # 관리자 콘솔 배포(frontend_admin 저장소 main 브랜치만, IAM-01)
+    # 관리자 콘솔 배포(frontend_admin 저장소 production environment 배포만, IAM-01. environment 배포 브랜치는 main만)
     # 2026-07-15 이후 생성 저장소라 immutable subject 형식을 씀(bootstrap/ci_plan_role.tf와 같음)
     frontend_admin = {
       name        = "role-prod-github-actions-frontend-admin"
@@ -78,7 +78,7 @@ locals {
           Condition = {
             StringEquals = {
               "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website@258640138/frontend_admin@1351152812:ref:refs/heads/main"
+              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website@258640138/frontend_admin@1351152812:environment:production"
             }
           }
           Effect    = "Allow"
