@@ -101,7 +101,7 @@ locals {
           Resource = "arn:aws:s3:::boaz-codedeploy-bucket/*"
           Sid      = "S3UploadBundle"
           }, {
-          Action   = ["codedeploy:CreateDeployment", "codedeploy:GetDeployment", "codedeploy:GetDeploymentConfig", "codedeploy:RegisterApplicationRevision", "codedeploy:GetApplicationRevision"]
+          Action   = ["codedeploy:CreateDeployment", "codedeploy:GetDeployment", "codedeploy:GetDeploymentConfig", "codedeploy:RegisterApplicationRevision", "codedeploy:GetApplicationRevision", "codedeploy:ListDeploymentTargets", "codedeploy:BatchGetDeploymentTargets"]
           Effect   = "Allow"
           Resource = "*"
           Sid      = "CodeDeployTrigger"
