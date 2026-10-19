@@ -35,10 +35,8 @@ locals {
           Condition = {
             StringEquals = {
               "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            }
-            StringLike = {
-              # 현행 그대로 import함. 조건 축소·중복 정리는 plan "No changes" 확인 뒤 별도 PR
-              "token.actions.githubusercontent.com:sub" = ["repo:BOAZ-website/*", "repo:BOAZ-website/*"]
+              # backend cd.yml의 production environment 배포만 허용(#68, #74)
+              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website/backend:environment:production"
             }
           }
           Effect    = "Allow"
@@ -58,10 +56,8 @@ locals {
           Condition = {
             StringEquals = {
               "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            }
-            StringLike = {
-              # 현행 그대로 import함. 중복 조건 정리는 plan "No changes" 확인 뒤 별도 PR(decisions.md "관리자 콘솔 배포 Role 분리")
-              "token.actions.githubusercontent.com:sub" = ["repo:BOAZ-website/frontend:*", "repo:BOAZ-website/frontend:*"]
+              # frontend deploy-www.yml의 Production environment 배포만 허용(environment 배포 브랜치는 main만, #68, #74)
+              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website/frontend:environment:production"
             }
           }
           Effect    = "Allow"
@@ -71,7 +67,7 @@ locals {
       }
     }
 
-    # 관리자 콘솔 배포(frontend_admin 저장소 main 브랜치만, IAM-01)
+    # 관리자 콘솔 배포(frontend_admin 저장소 production environment 배포만, IAM-01. environment 배포 브랜치는 main만)
     # 2026-07-15 이후 생성 저장소라 immutable subject 형식을 씀(bootstrap/ci_plan_role.tf와 같음)
     frontend_admin = {
       name        = "role-prod-github-actions-frontend-admin"
@@ -82,7 +78,7 @@ locals {
           Condition = {
             StringEquals = {
               "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website@258640138/frontend_admin@1351152812:ref:refs/heads/main"
+              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website@258640138/frontend_admin@1351152812:environment:production"
             }
           }
           Effect    = "Allow"
