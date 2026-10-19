@@ -5,7 +5,8 @@
 #   예: AWS_PROFILE=boaz scripts/apply-group.sh iam 51
 #
 # 순서: dev 최신 확인 → plan -out → 로컬 게이트(plan_gate.py) → 요약 출력 → 확인 입력
-#       → 같은 plan 파일로 apply → 다시 plan해 "No changes" 확인 → (이슈 번호가 있으면) 요약을 이슈 코멘트로 남김
+#       → 같은 plan 파일로 apply → 다시 plan해 "No changes" 확인
+#       → 요약을 그룹 이슈(이슈 번호가 있으면)와 dev 최신 커밋을 머지한 PR에 코멘트로 남김
 # 대상은 -target=module.<그룹>으로 그 그룹만 잡는다. plan에 다른 그룹 주소가 있으면 멈춘다.
 # plan 파일·JSON에는 값이 평문으로 들어가므로 저장소 밖 임시 폴더에 두고 끝나면 지운다.
 set -euo pipefail
@@ -82,12 +83,17 @@ if [[ ${rc} -ne 0 ]]; then
 fi
 echo "apply 완료, 다시 plan 결과 No changes"
 
-# 7. 결과를 그룹 이슈에 남김(요약은 주소·action만 있어 공개 가능, PR CI 코멘트와 같은 형식)
-if [[ -n "${issue}" ]]; then
-  {
-    echo "$(date +%F) ${group} 그룹 apply 완료(\`dev\` $(git rev-parse --short HEAD)). 다시 plan 결과 No changes."
-    echo
-    cat "${work}/summary.md"
-  } > "${work}/comment.md"
-  gh issue comment "${issue}" -F "${work}/comment.md"
+# 7. 결과를 그룹 이슈와, dev 최신 커밋을 머지한 PR에 남김(요약은 주소·action만 있어 공개 가능, PR CI 코멘트와 같은 형식)
+{
+  echo "$(date +%F) ${group} 그룹 apply 완료(\`dev\` $(git rev-parse --short HEAD)). 다시 plan 결과 No changes."
+  echo
+  cat "${work}/summary.md"
+} > "${work}/comment.md"
+[[ -z "${issue}" ]] || gh issue comment "${issue}" -F "${work}/comment.md"
+# dev 최신 커밋이 PR 머지 커밋이 아니면(직접 push 등) PR을 찾지 못해 건너뜀
+pr="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/pulls" --jq '.[0].number // empty' 2>/dev/null || true)"
+if [[ -n "${pr}" && "${pr}" != "${issue}" ]]; then
+  gh pr comment "${pr}" -F "${work}/comment.md"
+else
+  echo "dev 최신 커밋에 연결된 PR이 없어 PR 코멘트는 건너뜀"
 fi
