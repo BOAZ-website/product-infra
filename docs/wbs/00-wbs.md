@@ -184,10 +184,10 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 1차 | 예 | 대기 |
 | OBS-02 | 접근 로그·대시보드 | OBS | 하루이틀 | OBS-01, CDN-02 | 없음 | Phase 3 | 아니오 | 대기 |
 | NET-01 | network 그룹 import | NET | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 예 | 대기 |
-| IAM-01 | 관리자 콘솔 배포 Role 신설 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 대기 |
-| IAM-02 | IAM 롤·정책 그룹 import | IAM | 한 주 | IAM-01 | 없음 | Phase 2 1차 | 예 | 대기 |
+| IAM-01 | 관리자 콘솔 배포 Role 신설 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 완료(#50, 2026-10-13 관리자 콘솔 배포 롤·정책 신설, IAM 재조사 반영) |
+| IAM-02 | IAM 롤·정책 그룹 import | IAM | 한 주 | IAM-01 | 없음 | Phase 2 1차 | 예 | 완료(#51·#69, 2026-10-19 apply. import 23건, 다시 plan No changes) |
 | IAM-03 | SSM 파라미터 그룹 import + P7 | IAM | 한 주 | IAM-01 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 대기 |
-| IAM-04 | 앱 시크릿 잔여 항목 결정·적용 | IAM | 하루이틀 | IAM-03 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 대기 |
+| IAM-04 | 앱 시크릿 잔여 항목 결정·적용 | IAM | 하루이틀 | IAM-03 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 완료(#53, 2026-10-14 잔여 2개 현행 유지 확정, 후속 backend#219) |
 | STO-01 | storage 그룹 import | STO | 한 주 | STA-07 | 관리 대상 버킷·레코드 | Phase 2 1차 | 예 | 대기 |
 | STO-02 | 관리 대상 외 버킷 확정 | STO | 하루이틀 | STO-01 | 관리 대상 버킷·레코드 | Phase 2 1차 | 예 | 대기 |
 | CMP-01 | EC2·EIP 그룹 import | CMP | 2~3주 | SEA-01, IAM-02, NET-01 | EC2-A EIP 처리, EC2-B 제어 방식 | Phase 2 2차 | 예 | 대기 |
