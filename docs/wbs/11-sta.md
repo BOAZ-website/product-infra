@@ -190,7 +190,7 @@
 | --- | --- | --- |
 | STA-11-01 | GitHub Environment 승인 전에는 apply 실행 안 함 | 승인 없이 머지하면 apply 작업이 대기 상태로 멈춤 |
 | STA-11-02 | plan용 읽기 롤과 apply용 쓰기 롤 분리 | 두 workflow가 서로 다른 롤을 사용(실제 ARN은 비공개 변수) |
-| STA-11-03 | 롤 신뢰 조건(OIDC `sub`)을 이 저장소의 `main` 브랜치·`prod` environment로 정확히 고정(와일드카드 금지). apply는 `main` push에서만 실행 | 다른 브랜치·PR에서 apply 롤을 요청하면 거부됨 |
+| STA-11-03 | 롤 신뢰 조건(OIDC `sub`)을 이 저장소의 `production` environment 하나로 정확히 고정(와일드카드 금지, decisions.md "배포 롤 신뢰 조건 공통 규칙"). environment 배포 브랜치는 `main`만 허용해 apply는 `main` push에서만 실행 | 다른 브랜치·PR에서 apply 롤을 요청하면 거부됨 |
 
 ## STA-12 drift 감지 CI + P9
 
