@@ -519,7 +519,7 @@ module "cdn" {
 | network | `security_group_ids` | map(string), 키는 보안 그룹 역할 | 보안 그룹 import |
 | network | `ssh_rule_ids`, `<보안 그룹 역할>_rule_ids` | map(string) | 규칙별 import |
 | network | `ssh_allowed_cidrs` | map(string), 키 `ops_1`·`ops_2` | SSH 허용 CIDR |
-| iam | 없음 | - | 이름 기반 import. 계정 ID가 들어간 ARN이 필요하면 `oidc_provider_arn`(string)을 추가함 |
+| iam | `distribution_ids` | map(string), 키 `www`·`dev`·`admin` | 프론트 배포 정책의 CloudFront 무효화 대상 ARN 조립. `dev`는 이미 삭제된 배포이며 현행 정책 그대로 import함. 롤·정책·인라인 정책·인스턴스 프로파일은 이름 기반 import, ARN의 계정 ID는 `var.expected_account_id`로 조립함 |
 | params | 없음 | - | 파라미터 이름이 import `id` |
 | storage | `frontend_distribution_ids` | map(string), 키 `www`·`admin` | 버킷 정책용 CloudFront 배포 조회(STO-01-05) |
 | compute | `instance_ids` | map(string), 키 `ec2_a`·`ec2_b` | 인스턴스 import |

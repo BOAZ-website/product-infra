@@ -12,11 +12,36 @@ mock_provider "aws" {
       type = "String"
       insecure_value = jsonencode({
         # <그룹> = { <키> = <값> }
+        iam = { distribution_ids = { www = "fake-www", dev = "fake-dev", admin = "fake-admin" } }
       })
     }
   }
 
   # 그룹별 override_resource 구역(그룹마다 한 블록. target은 module.<그룹>.<자원 주소>)
+
+  # iam
+  override_resource {
+    target = module.iam.aws_iam_openid_connect_provider.github
+  }
+  override_resource {
+    target = module.iam.aws_iam_role.this
+  }
+  override_resource {
+    target = module.iam.aws_iam_policy.this
+    # 정책 연결의 policy_arn 형식 검사를 통과하는 가짜 ARN(계정 ID 없음)
+    values = {
+      arn = "arn:aws:iam::aws:policy/fake-policy"
+    }
+  }
+  override_resource {
+    target = module.iam.aws_iam_role_policy_attachment.this
+  }
+  override_resource {
+    target = module.iam.aws_iam_role_policy.this
+  }
+  override_resource {
+    target = module.iam.aws_iam_instance_profile.ec2
+  }
 }
 
 mock_provider "aws" {
