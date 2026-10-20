@@ -557,7 +557,7 @@ module "cdn" {
 | iam | `ec2_instance_profile_name` | string | compute(EC2) |
 | iam | `codedeploy_service_role_arn` | string | deploy |
 | storage | `bucket_regional_domain_names` | map(string), 키 `www`·`admin` | cdn(S3 origin) |
-| storage | `bundle_bucket_name` | string | deploy(배포 번들) |
+| storage | `bundle_bucket_name` | string | deploy(배포 번들 output 전달, STA-10 계약 검사용). CodeDeploy 리소스는 참조하지 않으며 STO-01 머지 뒤 별도 PR에서 연결 |
 | compute | `ec2_a_id`, `ec2_b_id` | string | obs(상태 검사 경보) |
 | compute | `ec2_a_public_dns` | string, `sensitive = true` | cdn(api origin, CDN-02 1단계) |
 | compute | `alb_dns_name` | string, 시즌 off면 null | cdn(api origin, 시즌 on) |
