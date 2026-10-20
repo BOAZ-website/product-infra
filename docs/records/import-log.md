@@ -54,7 +54,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 | 5 | compute | EC2-A, EC2-B, EIP와 연결, Target Group과 EC2-A 등록(ALB는 `season_capacity = on`일 때만) | | | 대기 |
 | 6 | database | RDS(암호화 키 포함), subnet group, parameter group | | | 대기 |
 | 7 | cdn | CloudFront api·www·admin(`web_acl_id`·OAC·오류 응답 포함), OAC 2개, Route53 zone·record, ACM(us-east-1) | | | 대기 |
-| 8 | deploy | CodeDeploy app, deployment group(`ec2_tag_set` `app=boaz-api`, 자동 롤백) | | | 대기 |
+| 8 | deploy | CodeDeploy app, deployment group(`ec2_tag_set` `app=boaz-api`, 자동 롤백) | 인프라 담당 | 2026-10-20 | 작업 중 |
 
 ## 관리 제외 / 미확정 (조사 기준)
 

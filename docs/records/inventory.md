@@ -142,6 +142,7 @@ ap-northeast-2에는 인증서가 없음
 
 - 대상 지정은 `ec2TagFilters`(null)가 아니라 `ec2TagSet`에 설정되어 있으며, 계획서의 `app=boaz-api` 태그 타겟과 일치함
 - deploy 모듈은 `ec2_tag_filter`가 아니라 `ec2_tag_set` 블록으로 작성해야 plan diff가 생기지 않음
+- 2026-10-20 재조사(DEP-01 착수 전): 위 표와 같음. 추가 확인 값은 앱 compute platform `Server`, outdated instances strategy `UPDATE`, termination hook 꺼짐, 로드밸런서·알람·트리거·ASG 없음, 앱·배포 그룹 태그 없음. 번들 버킷은 배포 그룹 설정에 없음(backend `cd.yml`이 배포마다 지정)
 
 ## 11. IAM
 
