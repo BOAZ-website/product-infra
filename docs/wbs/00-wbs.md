@@ -133,7 +133,7 @@
 | 5 | DB | RDB | RDB-01 | `database.tf` | SEA-01, NET-01 |
 | 6 | 로드밸런싱(Target Group·ALB) | CMP | CMP-02, CMP-03 | `compute.tf`(CMP-01 담당이 이어서) | CMP-01 |
 | 7 | CDN·DNS·인증서 | CDN | CDN-01, CDN-02, CDN-03 | `cdn.tf` | STO-01(api 배포는 CMP-02) |
-| 8 | 배포(CodeDeploy) | DEP | DEP-01, DEP-02 | `deploy.tf` | IAM-02, STO-01 |
+| 8 | 배포(CodeDeploy) | DEP | DEP-01, DEP-02 | `deploy.tf` | IAM-02(번들 버킷 output만 STO-01) |
 
 - **8개 파트(OBS·NET·IAM·STO·CMP·RDB·CDN·DEP)는 Phase 2 1차 시작 시 동시에 배정·착수함.** 순서 열은 착수 순서가 아니라 머지·apply 순서
 - 1~3(Phase 2 1차)은 서로 선행 관계가 없어 바로 import까지 진행함. IAM만 IAM-01(전용 Role 신설 후 재조사)을 먼저 끝냄
@@ -197,7 +197,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | CDN-01 | cdn 모듈 작성 | CDN | 한 주 | STO-01 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 예 | 대기 |
 | CDN-02 | CloudFront·Route53·ACM import | CDN | 2~3주 | CDN-01, STO-01(1단계), CMP-02(2단계) | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
 | CDN-03 | 관리자 CloudFront 보안·SPA 설정 | CDN | 한 주 | CDN-02 1단계 | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
-| DEP-01 | deploy 모듈 작성 | DEP | 하루이틀 | IAM-02, STO-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
+| DEP-01 | deploy 모듈 작성 | DEP | 하루이틀 | IAM-02(번들 버킷 output만 STO-01) | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
 | DEP-02 | CodeDeploy import | DEP | 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
 | SEA-01 | 시즌 변수 모델 최소 구현 | SEA | 한 주 | STA-04 | 없음 | Phase 2 준비 | 예 | 완료(#34) |
 | SEA-02 | 시즌 시작(on) 순서 제어 + P4 | SEA | 한 주 | CMP-02, CDN-02, STA-09, STA-11 | 없음 | Phase 4 | 아니오 | 대기 |
