@@ -25,6 +25,10 @@ mock_provider "aws" {
   }
   override_resource {
     target = module.iam.aws_iam_role.this
+    # deploy 배포 그룹 service_role_arn 형식 검사를 통과하는 가짜 ARN(계정 ID 없음)
+    values = {
+      arn = "arn:aws:iam::aws:role/fake-role"
+    }
   }
   override_resource {
     target = module.iam.aws_iam_policy.this
@@ -41,6 +45,14 @@ mock_provider "aws" {
   }
   override_resource {
     target = module.iam.aws_iam_instance_profile.ec2
+  }
+
+  # deploy
+  override_resource {
+    target = module.deploy.aws_codedeploy_app.this
+  }
+  override_resource {
+    target = module.deploy.aws_codedeploy_deployment_group.this
   }
 
   # params: 경로 조회 결과를 관리 대상 12개(모두 String)로 대체함. 이름 목록은 envs/prod/params.tf와 같게 유지
