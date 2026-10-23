@@ -65,9 +65,13 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 | CloudFront 관리형 prefix list | data_source | AWS 관리형 |
 | RDS option group `default:mysql-8-4` | data_source | AWS 기본 |
 | Route53 NS/SOA/TXT/ACM 검증 CNAME | data_source | 도메인 검증·인증서 발급용 |
-| S3 `boaz-website`, `boaz-website-dev`, `boazweb`, `survey-da/dv.bigdataboaz.com` | unconfirmed | 관리 대상 여부 미결정 (decisions 참조) |
+| S3 `boaz-website` | excluded | 관리 대상 5개에 들지 않는 레거시 웹사이트 버킷이라 관리 제외, 삭제 아님 (decisions "관리 제외 버킷별 사유" 참조) |
+| S3 `boaz-website-dev` | excluded | 관리 대상 5개에 들지 않는 dev 웹사이트 버킷이라 관리 제외, 삭제 아님 (decisions "관리 제외 버킷별 사유" 참조) |
+| S3 `boazweb` | excluded | 관리 대상 5개에 들지 않는 구 홈페이지 버킷이라 관리 제외, 공개 읽기 정책은 Terraform 밖에 현행 유지 (decisions "관리 제외 버킷별 사유" 참조) |
+| S3 `survey-da.bigdataboaz.com` | excluded | 관리 대상 5개에 들지 않는 설문 버킷이라 관리 제외, 삭제 아님 (decisions "관리 제외 버킷별 사유" 참조) |
+| S3 `survey-dv.bigdataboaz.com` | excluded | 관리 대상 5개에 들지 않는 설문 버킷이라 관리 제외, 삭제 아님 (decisions "관리 제외 버킷별 사유" 참조) |
 | Route53 `dev`/`dev-back` A 레코드 | unconfirmed | 관리 대상 여부 미결정 (decisions 참조) |
-| S3 `boaz-dev-frontend` | unconfirmed | 서비스 중인 배포 없음, 삭제된 배포 참조 policy (decisions 참조) |
+| S3 `boaz-dev-frontend` | excluded | 서비스 중인 배포가 없는 dev 프론트 버킷이라 관리 제외, 삭제 아님 (decisions "관리 제외 버킷별 사유" 참조) |
 | WAF WebACL 3개 | unconfirmed | 관리 방식 미결정 (decisions 참조) |
 | 레거시 OAI 4개, ACM 검증 CNAME `back`/`cdn`/`server` | unconfirmed | 미사용·고아 추정, 정리 여부 미결정 |
 | default Network ACL | unconfirmed | 관리 여부 미결정 |
