@@ -197,8 +197,8 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | CDN-01 | cdn 모듈 작성 | CDN | 한 주 | STO-01 | 없음(admin 포함 여부 해소) | Phase 2 2차 | 예 | 대기 |
 | CDN-02 | CloudFront·Route53·ACM import | CDN | 2~3주 | CDN-01, STO-01(1단계), CMP-02(2단계) | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
 | CDN-03 | 관리자 CloudFront 보안·SPA 설정 | CDN | 한 주 | CDN-02 1단계 | WAF WebACL 관리 방식 | Phase 2 2차 | 예 | 대기 |
-| DEP-01 | deploy 모듈 작성 | DEP | 하루이틀 | IAM-02(번들 버킷 output만 STO-01) | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
-| DEP-02 | CodeDeploy import | DEP | 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 대기 |
+| DEP-01 | deploy 모듈 작성 | DEP | 하루이틀 | IAM-02(번들 버킷 output만 STO-01) | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 완료(#63·#81, 2026-10-23 머지. 모듈만 추가, apply 대상 없음) |
+| DEP-02 | CodeDeploy import | DEP | 한 주 | DEP-01 | CodeDeploy 태그 방식(거의 해소) | Phase 2 2차 | 예 | 완료(#64·#82, 2026-10-23 apply. 2건, 다시 plan No changes) |
 | SEA-01 | 시즌 변수 모델 최소 구현 | SEA | 한 주 | STA-04 | 없음 | Phase 2 준비 | 예 | 완료(#34) |
 | SEA-02 | 시즌 시작(on) 순서 제어 + P4 | SEA | 한 주 | CMP-02, CDN-02, STA-09, STA-11 | 없음 | Phase 4 | 아니오 | 대기 |
 | SEA-03 | 시즌 종료(off) 2단계 apply + P5 | SEA | 한 주 | SEA-02 | 없음 | Phase 4 | 아니오 | 대기 |
