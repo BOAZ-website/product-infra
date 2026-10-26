@@ -512,13 +512,15 @@ module "cdn" {
 
 | 그룹 | 키 | 타입 | 용도 |
 | --- | --- | --- | --- |
-| network | `vpc_id` | string | VPC import |
+| network | `vpc_id` | string | VPC import. main 라우트 테이블(`aws_default_route_table`)도 이 값으로 import |
 | network | `internet_gateway_id` | string | 인터넷 게이트웨이 import |
+| network | `default_network_acl_id` | string | 기본 Network ACL(`aws_default_network_acl`) import |
 | network | `public_subnet_ids`, `private_subnet_ids` | map(string), 키 `a`·`c` | 서브넷 import |
-| network | `route_table_ids` | map(string), 키 `main`·`public`·`private` | 라우트 테이블 import |
-| network | `security_group_ids` | map(string), 키는 보안 그룹 역할 | 보안 그룹 import |
-| network | `ssh_rule_ids`, `<보안 그룹 역할>_rule_ids` | map(string) | 규칙별 import |
-| network | `ssh_allowed_cidrs` | map(string), 키 `ops_1`·`ops_2` | SSH 허용 CIDR |
+| network | `route_table_ids` | map(string), 키 `public`·`private` | 라우트 테이블 import. main은 `aws_default_route_table`이라 키 없음 |
+| network | `security_group_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | 보안 그룹 import |
+| network | `ingress_rule_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds` | SSH 외 인바운드 규칙 import(보안 그룹마다 1개) |
+| network | `egress_rule_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | 아웃바운드 규칙 import(보안 그룹마다 1개) |
+| network | `ssh_rule_ids`, `ssh_allowed_cidrs` | map(string), 키 `ops_1` | SSH 인바운드 규칙 import·허용 CIDR. 허용 IP 1개 = 키 1개(2026-10-26 재조사 기준 1개) |
 | iam | `distribution_ids` | map(string), 키 `www`·`dev`·`admin` | 프론트 배포 정책의 CloudFront 무효화 대상 ARN 조립. `dev`는 이미 삭제된 배포이며 현행 정책 그대로 import함. 롤·정책·인라인 정책·인스턴스 프로파일은 이름 기반 import, ARN의 계정 ID는 `var.expected_account_id`로 조립함 |
 | params | 없음 | - | 파라미터 이름이 import `id` |
 | storage | `frontend_distribution_ids` | map(string), 키 `www`·`admin` | 버킷 정책용 CloudFront 배포 조회(STO-01-05) |
