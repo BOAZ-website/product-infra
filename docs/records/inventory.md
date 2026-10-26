@@ -31,8 +31,24 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | Route Table (public) | `rtb-09c3c941b458da9fb` | public subnet 2개 연결, `0.0.0.0/0`→IGW | managed |
 | Route Table (private) | `rtb-02a4df14844468ea8` | private subnet 2개 연결, local만 (NAT 없음) | managed |
 | Internet Gateway | `igw-0c71eb6adda55dbaf` | VPC attached, available | managed |
-| Network ACL | `acl-07ffd275e736d47f0` | default NACL 1개, subnet 4개 연결, 사용자 정의 NACL 없음 | unconfirmed (`aws_default_network_acl` 관리 여부) |
+| Network ACL | `acl-07ffd275e736d47f0` | default NACL 1개, subnet 4개 연결, 사용자 정의 NACL 없음 | managed (`aws_default_network_acl`, decisions.md "Network ACL 관리 방식") |
 | NAT Gateway | 없음 | private subnet은 외부 아웃바운드 경로 없음 | data_source |
+
+- 2026-10-26 재조사(NET-01 착수 후): 위 표와 같음. 추가 확인 값은 아래와 같음
+  - VPC: DNS 지원(`enableDnsSupport`)·DNS 호스트 이름(`enableDnsHostnames`) 켜짐, 네트워크 주소 사용량 지표 꺼짐, tenancy `default`, IPv6 없음, 태그 `Name`만. 계정에 default VPC 없음
+  - 서브넷 4개: 태그 `Name`만, IPv6 없음, 리소스 이름 DNS 레코드 꺼짐(hostname type `ip-name`)
+  - 라우트 테이블 태그: public·private는 `Name`(`boaz-rtb-public`·`boaz-rtb-private`), main은 태그 없음. 라우트는 각 테이블의 local과 public의 `0.0.0.0/0`→IGW 1개뿐
+  - 인터넷 게이트웨이 태그: `Name`(`boaz-igw`)
+  - Network ACL 규칙: ingress·egress 모두 100번 전체 허용, 32767번 기본 거부. 태그 없음
+  - EC2-A는 public subnet 2a, EC2-B는 public subnet 2c에 있음(compute 그룹은 `public_subnet_ids` 사용)
+
+| 라우트 테이블 연결 | 연결 ID | 대상 |
+|---|---|---|
+| main | `rtbassoc-0407c9d8d9766a933` | main 연결(서브넷 없음) |
+| public ↔ public subnet 2a | `rtbassoc-09c2a2719feac263a` | `subnet-092734d1357224a25` |
+| public ↔ public subnet 2c | `rtbassoc-0b2d01dc8648a9d46` | `subnet-02fd34391da42563b` |
+| private ↔ private subnet 2a | `rtbassoc-0f480ae5a1729cff4` | `subnet-000d98c349b771ee1` |
+| private ↔ private subnet 2c | `rtbassoc-028dbfe54a9bbe3c0` | `subnet-04cc7bdb725c4f5a6` |
 
 ## 3. 보안그룹
 
@@ -45,12 +61,39 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | CloudFront→EC2 SG | `sg-0f687731f48f23809` | `prod-cf-to-ec2-sg`, TCP 8080 ← prefix list `pl-22a6434b` | all → `0.0.0.0/0` | managed |
 | RDS SG | `sg-031dfbcef8f27664b` | `prod-rds-sg`, TCP 3306 ← EC2→RDS SG | all → `0.0.0.0/0` | managed |
 | EC2→RDS SG | `sg-0b85c4efb533a1fe4` | `prod-ec2-to-rds-sg`, 없음 | TCP 3306 → RDS SG만 (기본 egress 제거됨) | managed |
-| SSH SG | `sg-05b499bad8d9637d1` | `prod-ssh-sg`, TCP 22 ← 개인 IP `/32` 2개 | all → `0.0.0.0/0` | managed |
+| SSH SG | `sg-05b499bad8d9637d1` | `prod-ssh-sg`, TCP 22 ← 개인 IP `/32` 1개(2026-10-26 재조사, 2개에서 1개로 줄어듦) | all → `0.0.0.0/0` | managed |
 | default SG | `sg-07142d09e8f0ba4f1` | VPC default, self-ref | all → `0.0.0.0/0` | excluded (기본 SG) |
 | CloudFront prefix list | `pl-22a6434b` | AWS 관리형 `com.amazonaws.global.cloudfront.origin-facing` | - | data_source |
 
 - 기본 egress(`all → 0.0.0.0/0`)도 코드에 명시해야 함. 명시하지 않으면 plan이 egress 삭제를 제안할 수 있음
-- SSH ingress는 `/32` 2개로 제한되어 있음. EC2 role에 `AmazonSSMManagedInstanceCore`가 있으므로 Session Manager 대체 여부를 decisions에 기록함
+- SSH ingress는 `/32`로 제한되어 있음. EC2 role에 `AmazonSSMManagedInstanceCore`가 있으므로 Session Manager 대체 여부를 decisions에 기록함
+- 2026-10-26 재조사(NET-01 착수 후): SSH ingress가 `/32` 2개에서 1개로 줄어듦. 네트워크 담당이 외부 접속용으로 추가했던 임시 규칙을 콘솔에서 삭제함. 남은 규칙은 네트워크 담당 개인 IP이며 설명(description)에 개인 식별 표기가 있어 값은 기록하지 않음
+- 2026-10-26 재조사: 보안 그룹 설명·태그는 아래와 같음. 규칙에는 SSH 규칙 외 설명·태그 없음
+
+| 보안 그룹 | 설명(description) | 태그 |
+|---|---|---|
+| `boaz-alb-sg` | `for prod alb` | 없음 |
+| `prod-alb-to-ec2-sg` | `for alb to ec2` | 없음 |
+| `prod-cf-to-ec2-sg` | `cloudfront to ec2` | `Name` = 그룹 이름 |
+| `prod-rds-sg` | `sg for rds` | `Name` = 그룹 이름 |
+| `prod-ec2-to-rds-sg` | `ec2 to rds` | `Name` = 그룹 이름 |
+| `prod-ssh-sg` | `ec2 ssh` | `Name` = 그룹 이름 |
+
+규칙 ID(2026-10-26 재조사, NET-01-01). default SG 규칙은 관리 제외라 제외함
+
+| 보안 그룹 | 규칙 ID | 방향 | 프로토콜·포트 | 출발지·목적지 |
+|---|---|---|---|---|
+| `boaz-alb-sg` | `sgr-08cd179c6f3982e5b` | ingress | TCP 80 | prefix list `pl-22a6434b` |
+| `boaz-alb-sg` | `sgr-0056c43a05df279a0` | egress | all | `0.0.0.0/0` |
+| `prod-alb-to-ec2-sg` | `sgr-023b8f6d6329a4210` | ingress | TCP 8080 | `boaz-alb-sg` |
+| `prod-alb-to-ec2-sg` | `sgr-085f2abccb05f3c65` | egress | all | `0.0.0.0/0` |
+| `prod-cf-to-ec2-sg` | `sgr-02619855024459ff5` | ingress | TCP 8080 | prefix list `pl-22a6434b` |
+| `prod-cf-to-ec2-sg` | `sgr-019d7d199a405a17f` | egress | all | `0.0.0.0/0` |
+| `prod-rds-sg` | `sgr-087edd2b95c5401c9` | ingress | TCP 3306 | `prod-ec2-to-rds-sg` |
+| `prod-rds-sg` | `sgr-0a33dc805a1f4af49` | egress | all | `0.0.0.0/0` |
+| `prod-ec2-to-rds-sg` | `sgr-0a1bdd6d861a8157c` | egress | TCP 3306 | `prod-rds-sg` |
+| `prod-ssh-sg` | `sgr-095a471b2b78cbed7` | ingress | TCP 22 | 개인 IP `/32`(값 미기재) |
+| `prod-ssh-sg` | `sgr-0f533664843421d49` | egress | all | `0.0.0.0/0` |
 
 ## 4. 컴퓨팅 (EC2)
 

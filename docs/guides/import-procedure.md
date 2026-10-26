@@ -551,7 +551,7 @@ module "cdn" {
 | 출처 | output | 타입 | 소비 그룹·용도 |
 | --- | --- | --- | --- |
 | network | `vpc_id` | string | compute(ALB), database |
-| network | `public_subnet_ids` | map(string), 키 `a`·`c` | compute(ALB 서브넷, CMP-02) |
+| network | `public_subnet_ids` | map(string), 키 `a`·`c` | compute(EC2 서브넷 CMP-01, ALB 서브넷 CMP-02) |
 | network | `private_subnet_ids` | map(string), 키 `a`·`c` | database(DB 서브넷 그룹) |
 | network | `security_group_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | database(`rds`), compute(EC2·ALB용 키) |
 | iam | `ec2_instance_profile_name` | string | compute(EC2) |
@@ -566,7 +566,7 @@ module "cdn" {
 | deploy | `application_name`, `deployment_group_name` | string | backend workflow 배포 계약 검사(STA-10) |
 | params, obs | 없음 | - | - |
 
-- [확인 필요] compute 인스턴스(EC2-A·B)가 쓰는 서브넷: inventory에 public·private 구분이 없음. NET-01·CMP-01 재조사에서 확인한 뒤 `public_subnet_ids` 또는 `private_subnet_ids` 중 소비하는 쪽을 이 표에 적음
+- compute 인스턴스(EC2-A·B)가 쓰는 서브넷: EC2-A는 public subnet 2a, EC2-B는 public subnet 2c에 있음(2026-10-26 NET-01 재조사, `docs/records/inventory.md` 2절). compute는 `public_subnet_ids`를 사용함
 - Target Group ARN은 소비 그룹이 없어 output을 만들지 않음(그룹 값 `compute.target_group_arn`은 import용으로 별개)
 - storage ↔ cdn은 순환이므로 storage 쪽이 data source로 CloudFront를 조회함(1-1절 2번, `23-sto.md` STO-01-05). cdn → storage output 참조는 그대로 둠
 
