@@ -183,7 +183,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | STA-13 | 정적·통합 검증 구성 | STA | 한 주 | SEA-02, SEA-03, STA-12 | 없음 | Phase 4 | 아니오 | 일부 완료(fmt·validate·tflint) |
 | OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 1차 | 예 | 대기 |
 | OBS-02 | 접근 로그·대시보드 | OBS | 하루이틀 | OBS-01, CDN-02 | 없음 | Phase 3 | 아니오 | 대기 |
-| NET-01 | network 그룹 import | NET | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 예 | 대기 |
+| NET-01 | network 그룹 import | NET | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 예 | 완료(#49·#88, 2026-10-27 apply. import 32건, 다시 plan No changes) |
 | IAM-01 | 관리자 콘솔 배포 Role 신설 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 완료(#50, 2026-10-13 관리자 콘솔 배포 롤·정책 신설, IAM 재조사 반영) |
 | IAM-02 | IAM 롤·정책 그룹 import | IAM | 한 주 | IAM-01 | 없음 | Phase 2 1차 | 예 | 완료(#51·#69, 2026-10-19 apply. import 23건, 다시 plan No changes) |
 | IAM-03 | SSM 파라미터 그룹 import + P7 | IAM | 한 주 | IAM-01 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 완료(#52·#72, 2026-10-19 apply. import 12건, 다시 plan No changes. P7 테스트는 STA-08) |
