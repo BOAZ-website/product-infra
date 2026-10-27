@@ -520,7 +520,7 @@ module "cdn" {
 | network | `security_group_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | 보안 그룹 import |
 | network | `ingress_rule_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds` | SSH 외 인바운드 규칙 import(보안 그룹마다 1개) |
 | network | `egress_rule_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | 아웃바운드 규칙 import(보안 그룹마다 1개) |
-| network | `ssh_rule_ids`, `ssh_allowed_cidrs` | map(string), 키 `ops_1` | SSH 인바운드 규칙 import·허용 CIDR. 허용 IP 1개 = 키 1개(2026-10-26 재조사 기준 1개) |
+| network | `ssh_rule_ids`, `ssh_allowed_cidrs` | map(string), 키 `ops_1` | SSH 인바운드 규칙 import·허용 CIDR. 허용 IP 1개 = 키 1개(2026-10-26 재조사 기준 1개). 키를 추가·삭제할 때는 두 맵과 `envs/prod/network.tf`의 `ssh_rule_descriptions`(규칙 설명)를 함께 고침. 설명에 키가 없으면 plan이 사전 검사(precondition) 오류로 멈춤 |
 | iam | `distribution_ids` | map(string), 키 `www`·`dev`·`admin` | 프론트 배포 정책의 CloudFront 무효화 대상 ARN 조립. `dev`는 이미 삭제된 배포이며 현행 정책 그대로 import함. 롤·정책·인라인 정책·인스턴스 프로파일은 이름 기반 import, ARN의 계정 ID는 `var.expected_account_id`로 조립함 |
 | params | 없음 | - | 파라미터 이름이 import `id` |
 | storage | `frontend_distribution_ids` | map(string), 키 `www`·`admin` | 버킷 정책용 CloudFront 배포 조회(STO-01-05) |

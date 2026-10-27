@@ -27,6 +27,10 @@ resource "aws_subnet" "public" {
   tags = {
     Name = each.value.name
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # 프라이빗 서브넷: 외부 경로 없음(NAT 없음). RDS 서브넷 그룹이 사용
@@ -40,6 +44,10 @@ resource "aws_subnet" "private" {
   tags = {
     Name = each.value.name
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_internet_gateway" "main" {
@@ -47,5 +55,9 @@ resource "aws_internet_gateway" "main" {
 
   tags = {
     Name = var.internet_gateway_name
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }

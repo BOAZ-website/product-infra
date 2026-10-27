@@ -36,6 +36,11 @@ resource "aws_security_group" "main" {
 
   # alb·alb_to_ec2는 태그 없음, 나머지는 Name = 그룹 이름
   tags = each.value.name_tag ? { Name = each.value.name } : null
+
+  # 이름·설명을 고치면 교체가 잡히고, 참조 규칙만 먼저 지워진 채 멈출 수 있어 막음(RDS·EC2 ENI가 붙어 있어 삭제는 실패함)
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_vpc_security_group_ingress_rule" "main" {
@@ -69,5 +74,13 @@ resource "aws_vpc_security_group_ingress_rule" "ssh" {
   from_port         = 22
   to_port           = 22
   cidr_ipv4         = each.value
-  description       = var.ssh_rule_descriptions[each.key]
+  description       = lookup(var.ssh_rule_descriptions, each.key, null)
+
+  # 허용 IP를 늘릴 때 그룹 값 ssh_allowed_cidrs와 envs/prod/network.tf의 ssh_rule_descriptions를 함께 고침
+  lifecycle {
+    precondition {
+      condition     = contains(keys(var.ssh_rule_descriptions), each.key)
+      error_message = "ssh_allowed_cidrs의 키가 ssh_rule_descriptions에 없습니다. envs/prod/network.tf의 ssh_rule_descriptions에 같은 키를 추가해 주세요."
+    }
+  }
 }

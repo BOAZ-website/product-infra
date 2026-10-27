@@ -297,3 +297,22 @@ run "params_secure_string_is_rejected" {
 
   expect_failures = [output.params_infra_count]
 }
+
+# network: 다른 그룹이 쓰는 output의 키 구성 검사(NET-01-07, 공통 절차 1-1-2절 output 계약)
+run "network_outputs_match_contract" {
+  command = plan
+
+  variables {
+    season_capacity = "off"
+    api_origin      = "ec2"
+  }
+
+  assert {
+    condition     = keys(module.network.security_group_ids) == ["alb", "alb_to_ec2", "cf_to_ec2", "ec2_to_rds", "rds", "ssh"]
+    error_message = "security_group_ids의 키는 alb, alb_to_ec2, cf_to_ec2, ec2_to_rds, rds, ssh여야 합니다."
+  }
+  assert {
+    condition     = keys(module.network.public_subnet_ids) == ["a", "c"] && keys(module.network.private_subnet_ids) == ["a", "c"]
+    error_message = "public_subnet_ids·private_subnet_ids의 키는 a, c여야 합니다."
+  }
+}
