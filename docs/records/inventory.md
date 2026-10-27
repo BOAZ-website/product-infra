@@ -67,7 +67,7 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 
 - 기본 egress(`all → 0.0.0.0/0`)도 코드에 명시해야 함. 명시하지 않으면 plan이 egress 삭제를 제안할 수 있음
 - SSH ingress는 `/32`로 제한되어 있음. EC2 role에 `AmazonSSMManagedInstanceCore`가 있으므로 Session Manager 대체 여부를 decisions에 기록함
-- 2026-10-26 재조사(NET-01 착수 후): SSH ingress가 `/32` 2개에서 1개로 줄어듦. 네트워크 담당이 외부 접속용으로 추가했던 임시 규칙을 콘솔에서 삭제함. 남은 규칙은 네트워크 담당 개인 IP임. 같은 날 규칙 설명(description)의 개인 식별 표기를 역할 표기 `backend-pm-home`으로 바꿈(포트·허용 대상·규칙 ID 변경 없음, #49 코멘트)
+- 2026-10-26 재조사(NET-01 착수 후): SSH ingress가 `/32` 2개에서 1개로 줄어듦. 네트워크 담당이 외부 접속용으로 추가했던 임시 규칙을 콘솔에서 삭제함. 남은 규칙은 백엔드 PM 개인 IP임. 같은 날 규칙 설명(description)의 개인 식별 표기를 역할 표기 `backend-pm-home`으로 바꿈(포트·허용 대상·규칙 ID 변경 없음, #49 코멘트)
 - 2026-10-26 재조사: 보안 그룹 설명·태그는 아래와 같음. 규칙에는 SSH 인바운드 규칙 설명(`backend-pm-home`) 외 설명·태그 없음
 
 | 보안 그룹 | 설명(description) | 태그 |
