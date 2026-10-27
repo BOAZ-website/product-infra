@@ -34,3 +34,33 @@ variable "private_subnets" {
     availability_zone = string
   }))
 }
+
+variable "route_table_names" {
+  description = "public·private 라우트 테이블 이름(Name 태그). main 라우트 테이블은 태그 없음"
+  type = object({
+    public  = string
+    private = string
+  })
+}
+
+variable "security_groups" {
+  description = "보안 그룹. 역할 키(alb, alb_to_ec2, cf_to_ec2, rds, ec2_to_rds, ssh) → 이름·설명·Name 태그 여부"
+  type = map(object({
+    name        = string
+    description = string
+    name_tag    = bool
+  }))
+}
+
+variable "ssh_rule_descriptions" {
+  description = "SSH 인바운드 규칙 설명. 키는 group_vars.ssh_allowed_cidrs와 같음(ops_1 등)"
+  type        = map(string)
+}
+
+# 모듈이 쓰는 키만 타입에 적음. 나머지 키(import id 등)는 변환 때 버려짐
+variable "group_vars" {
+  description = "network 그룹 값(local.group_vars.network)"
+  type = object({
+    ssh_allowed_cidrs = map(string) # 역할 키(ops_1) → CIDR
+  })
+}

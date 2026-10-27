@@ -17,3 +17,8 @@ output "private_subnet_ids" {
   description = "프라이빗 서브넷 ID. 가용 영역 키(a, c) → ID"
   value       = { for k, s in aws_subnet.private : k => s.id }
 }
+
+output "security_group_ids" {
+  description = "보안 그룹 ID. 역할 키(alb, alb_to_ec2, cf_to_ec2, rds, ec2_to_rds, ssh) → ID"
+  value       = { for k, sg in aws_security_group.main : k => sg.id }
+}
