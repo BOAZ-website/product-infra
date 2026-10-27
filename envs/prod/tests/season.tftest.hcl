@@ -13,11 +13,78 @@ mock_provider "aws" {
       insecure_value = jsonencode({
         # <그룹> = { <키> = <값> }
         iam = { distribution_ids = { www = "fake-www", dev = "fake-dev", admin = "fake-admin" } }
+        network = {
+          vpc_id                 = "fake-vpc"
+          internet_gateway_id    = "fake-igw"
+          default_network_acl_id = "fake-acl"
+          public_subnet_ids      = { a = "fake-public-a", c = "fake-public-c" }
+          private_subnet_ids     = { a = "fake-private-a", c = "fake-private-c" }
+          route_table_ids        = { public = "fake-rtb-public", private = "fake-rtb-private" }
+          security_group_ids = {
+            alb = "fake-sg-alb", alb_to_ec2 = "fake-sg-alb-to-ec2", cf_to_ec2 = "fake-sg-cf-to-ec2",
+            rds = "fake-sg-rds", ec2_to_rds = "fake-sg-ec2-to-rds", ssh = "fake-sg-ssh",
+          }
+          ingress_rule_ids = { alb = "fake-in-alb", alb_to_ec2 = "fake-in-alb-to-ec2", cf_to_ec2 = "fake-in-cf-to-ec2", rds = "fake-in-rds" }
+          egress_rule_ids = {
+            alb = "fake-out-alb", alb_to_ec2 = "fake-out-alb-to-ec2", cf_to_ec2 = "fake-out-cf-to-ec2",
+            rds = "fake-out-rds", ec2_to_rds = "fake-out-ec2-to-rds", ssh = "fake-out-ssh",
+          }
+          ssh_rule_ids = { ops_1 = "fake-ssh-ops-1" }
+          # CIDR 형식이 필요해 사설 대역 값을 씀(공인 IP 금지)
+          ssh_allowed_cidrs = { ops_1 = "10.255.0.1/32" }
+        }
       })
     }
   }
 
   # 그룹별 override_resource 구역(그룹마다 한 블록. target은 module.<그룹>.<자원 주소>)
+
+  # network
+  override_resource {
+    target = module.network.aws_vpc.main
+  }
+  override_resource {
+    target = module.network.aws_subnet.public
+  }
+  override_resource {
+    target = module.network.aws_subnet.private
+  }
+  override_resource {
+    target = module.network.aws_internet_gateway.main
+  }
+  override_resource {
+    target = module.network.aws_default_route_table.main
+  }
+  override_resource {
+    target = module.network.aws_route_table.public
+  }
+  override_resource {
+    target = module.network.aws_route_table.private
+  }
+  override_resource {
+    target = module.network.aws_route.public_internet
+  }
+  override_resource {
+    target = module.network.aws_route_table_association.public
+  }
+  override_resource {
+    target = module.network.aws_route_table_association.private
+  }
+  override_resource {
+    target = module.network.aws_default_network_acl.main
+  }
+  override_resource {
+    target = module.network.aws_security_group.main
+  }
+  override_resource {
+    target = module.network.aws_vpc_security_group_ingress_rule.main
+  }
+  override_resource {
+    target = module.network.aws_vpc_security_group_egress_rule.main
+  }
+  override_resource {
+    target = module.network.aws_vpc_security_group_ingress_rule.ssh
+  }
 
   # iam
   override_resource {
@@ -229,4 +296,23 @@ run "params_secure_string_is_rejected" {
   }
 
   expect_failures = [output.params_infra_count]
+}
+
+# network: 다른 그룹이 쓰는 output의 키 구성 검사(NET-01-07, 공통 절차 1-1-2절 output 계약)
+run "network_outputs_match_contract" {
+  command = plan
+
+  variables {
+    season_capacity = "off"
+    api_origin      = "ec2"
+  }
+
+  assert {
+    condition     = keys(module.network.security_group_ids) == ["alb", "alb_to_ec2", "cf_to_ec2", "ec2_to_rds", "rds", "ssh"]
+    error_message = "security_group_ids의 키는 alb, alb_to_ec2, cf_to_ec2, ec2_to_rds, rds, ssh여야 합니다."
+  }
+  assert {
+    condition     = keys(module.network.public_subnet_ids) == ["a", "c"] && keys(module.network.private_subnet_ids) == ["a", "c"]
+    error_message = "public_subnet_ids·private_subnet_ids의 키는 a, c여야 합니다."
+  }
 }
