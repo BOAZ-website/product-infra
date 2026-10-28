@@ -512,13 +512,15 @@ module "cdn" {
 
 | 그룹 | 키 | 타입 | 용도 |
 | --- | --- | --- | --- |
-| network | `vpc_id` | string | VPC import |
+| network | `vpc_id` | string | VPC import. main 라우트 테이블(`aws_default_route_table`)도 이 값으로 import |
 | network | `internet_gateway_id` | string | 인터넷 게이트웨이 import |
+| network | `default_network_acl_id` | string | 기본 Network ACL(`aws_default_network_acl`) import |
 | network | `public_subnet_ids`, `private_subnet_ids` | map(string), 키 `a`·`c` | 서브넷 import |
-| network | `route_table_ids` | map(string), 키 `main`·`public`·`private` | 라우트 테이블 import |
-| network | `security_group_ids` | map(string), 키는 보안 그룹 역할 | 보안 그룹 import |
-| network | `ssh_rule_ids`, `<보안 그룹 역할>_rule_ids` | map(string) | 규칙별 import |
-| network | `ssh_allowed_cidrs` | map(string), 키 `ops_1`·`ops_2` | SSH 허용 CIDR |
+| network | `route_table_ids` | map(string), 키 `public`·`private` | 라우트 테이블 import. main은 `aws_default_route_table`이라 키 없음 |
+| network | `security_group_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | 보안 그룹 import |
+| network | `ingress_rule_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds` | SSH 외 인바운드 규칙 import(보안 그룹마다 1개) |
+| network | `egress_rule_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | 아웃바운드 규칙 import(보안 그룹마다 1개) |
+| network | `ssh_rule_ids`, `ssh_allowed_cidrs` | map(string), 키 `ops_1` | SSH 인바운드 규칙 import·허용 CIDR. 허용 IP 1개 = 키 1개(2026-10-26 재조사 기준 1개). 키를 추가·삭제할 때는 두 맵과 `envs/prod/network.tf`의 `ssh_rule_descriptions`(규칙 설명)를 함께 고침. 설명에 키가 없으면 plan이 사전 검사(precondition) 오류로 멈춤 |
 | iam | `distribution_ids` | map(string), 키 `www`·`dev`·`admin` | 프론트 배포 정책의 CloudFront 무효화 대상 ARN 조립. `dev`는 이미 삭제된 배포이며 현행 정책 그대로 import함. 롤·정책·인라인 정책·인스턴스 프로파일은 이름 기반 import, ARN의 계정 ID는 `var.expected_account_id`로 조립함 |
 | params | 없음 | - | 파라미터 이름이 import `id` |
 | storage | `frontend_distribution_ids` | map(string), 키 `www`·`admin` | 버킷 정책용 CloudFront 배포 조회(STO-01-05) |
@@ -551,7 +553,7 @@ module "cdn" {
 | 출처 | output | 타입 | 소비 그룹·용도 |
 | --- | --- | --- | --- |
 | network | `vpc_id` | string | compute(ALB), database |
-| network | `public_subnet_ids` | map(string), 키 `a`·`c` | compute(ALB 서브넷, CMP-02) |
+| network | `public_subnet_ids` | map(string), 키 `a`·`c` | compute(EC2 서브넷 CMP-01, ALB 서브넷 CMP-02) |
 | network | `private_subnet_ids` | map(string), 키 `a`·`c` | database(DB 서브넷 그룹) |
 | network | `security_group_ids` | map(string), 키 `alb`·`alb_to_ec2`·`cf_to_ec2`·`rds`·`ec2_to_rds`·`ssh` | database(`rds`), compute(EC2·ALB용 키) |
 | iam | `ec2_instance_profile_name` | string | compute(EC2) |
@@ -566,7 +568,7 @@ module "cdn" {
 | deploy | `application_name`, `deployment_group_name` | string | backend workflow 배포 계약 검사(STA-10) |
 | params, obs | 없음 | - | - |
 
-- [확인 필요] compute 인스턴스(EC2-A·B)가 쓰는 서브넷: inventory에 public·private 구분이 없음. NET-01·CMP-01 재조사에서 확인한 뒤 `public_subnet_ids` 또는 `private_subnet_ids` 중 소비하는 쪽을 이 표에 적음
+- compute 인스턴스(EC2-A·B)가 쓰는 서브넷: EC2-A는 public subnet 2a, EC2-B는 public subnet 2c에 있음(2026-10-26 NET-01 재조사, `docs/records/inventory.md` 2절). compute는 `public_subnet_ids`를 사용함
 - Target Group ARN은 소비 그룹이 없어 output을 만들지 않음(그룹 값 `compute.target_group_arn`은 import용으로 별개)
 - storage ↔ cdn은 순환이므로 storage 쪽이 data source로 CloudFront를 조회함(1-1절 2번, `23-sto.md` STO-01-05). cdn → storage output 참조는 그대로 둠
 
