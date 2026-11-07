@@ -33,6 +33,7 @@ mock_provider "aws" {
           # CIDR 형식이 필요해 사설 대역 값을 씀(공인 IP 금지)
           ssh_allowed_cidrs = { ops_1 = "10.255.0.1/32" }
         }
+        storage = { frontend_distribution_ids = { www = "fake-www", admin = "fake-admin" } }
       })
     }
   }
@@ -120,6 +121,23 @@ mock_provider "aws" {
   }
   override_resource {
     target = module.deploy.aws_codedeploy_deployment_group.this
+  }
+
+  # storage
+  override_resource {
+    target = module.storage.aws_s3_bucket.this
+  }
+  override_resource {
+    target = module.storage.aws_s3_bucket_server_side_encryption_configuration.this
+  }
+  override_resource {
+    target = module.storage.aws_s3_bucket_public_access_block.this
+  }
+  override_resource {
+    target = module.storage.aws_s3_bucket_policy.this
+  }
+  override_resource {
+    target = module.storage.aws_s3_bucket_lifecycle_configuration.recruitment
   }
 
   # params: 경로 조회 결과를 관리 대상 12개(모두 String)로 대체함. 이름 목록은 envs/prod/params.tf와 같게 유지
@@ -314,5 +332,20 @@ run "network_outputs_match_contract" {
   assert {
     condition     = keys(module.network.public_subnet_ids) == ["a", "c"] && keys(module.network.private_subnet_ids) == ["a", "c"]
     error_message = "public_subnet_ids·private_subnet_ids의 키는 a, c여야 합니다."
+  }
+}
+
+# storage: 다른 그룹이 쓰는 output의 키 구성 검사(STO-01, 공통 절차 1-1-2절 output 계약)
+run "storage_outputs_match_contract" {
+  command = plan
+
+  variables {
+    season_capacity = "off"
+    api_origin      = "ec2"
+  }
+
+  assert {
+    condition     = keys(module.storage.bucket_regional_domain_names) == ["admin", "www"]
+    error_message = "bucket_regional_domain_names의 키는 admin, www여야 합니다."
   }
 }
