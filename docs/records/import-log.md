@@ -50,7 +50,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 | 1 | network | VPC, Subnet 4개, Route Table 3개(+association), IGW, 기본 Network ACL, SG 6개와 규칙, prefix list(data_source)(import 32건, #49, #88) | 네트워크 담당 | 2026-10-26 | 완료 |
 | 2 | iam | OIDC provider, role 5개(IAM-01에서 신규 생성한 frontend_admin 배포 role 포함), 고객 관리형 정책 4개, role별 정책 연결 8개·인라인 정책 4개, EC2 instance profile(import 23건, #69) | IAM 담당 | 2026-10-13 | 완료 |
 | 3 | params | `/boaz/infra/*` 12개, 앱 시크릿 존재·타입 확인(값 제외)(#52) | IAM 담당 | 2026-10-14 | 완료 |
-| 4 | storage | S3 버킷(codedeploy·prod-frontend·frontend-admin·recruitment·archiving) + 버킷별 정책·퍼블릭 차단·암호화·lifecycle | | | 대기 |
+| 4 | storage | S3 버킷(codedeploy·prod-frontend·frontend-admin·recruitment·archiving) + 버킷별 정책·퍼블릭 차단·암호화·lifecycle(#54) | 스토리지 담당 | 2026-11-07 | 작업 중 |
 | 5 | compute | EC2-A, EC2-B, EIP와 연결, Target Group과 EC2-A 등록(ALB는 `season_capacity = on`일 때만) | | | 대기 |
 | 6 | database | RDS(암호화 키 포함), subnet group, parameter group | | | 대기 |
 | 7 | cdn | CloudFront api·www·admin(`web_acl_id`·OAC·오류 응답 포함), OAC 2개, Route53 zone·record, ACM(us-east-1) | | | 대기 |
