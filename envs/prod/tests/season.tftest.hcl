@@ -13,6 +13,8 @@ mock_provider "aws" {
       insecure_value = jsonencode({
         # <그룹> = { <키> = <값> }
         iam = { distribution_ids = { www = "fake-www", dev = "fake-dev", admin = "fake-admin" } }
+        # 이메일 형식이 필요해 예약 도메인(example.invalid)을 씀
+        obs = { alert_emails = { ops_1 = "fake-ops-1@example.invalid" }, distribution_ids = { api = "fake-api" } }
         network = {
           vpc_id                 = "fake-vpc"
           internet_gateway_id    = "fake-igw"

@@ -7,3 +7,27 @@
 # - 경보 수신 이메일은 코드에 적지 않고 SSM 그룹 값(local.group_vars.obs.<키>)으로 받음(docs/guides/import-procedure.md 1-1절)
 # - Discord 웹훅 URL은 시크릿이라 그룹 값에 넣지 않음. 수동 등록한 SecureString을 Lambda가 실행 시 읽음(OBS-01-06)
 # - 작업 절차: docs/guides/import-procedure.md
+
+module "obs" {
+  source = "../../modules/obs"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  name_prefix = "boaz-prod"
+
+  # 경보 대상 이름(inventory.md 4·5절). compute·database import 뒤 output 참조로 바꿈
+  ec2_a_name             = "boaz-api-prod-A"
+  db_instance_identifier = "boaz-prod-db"
+
+  # TODO(확인): 앱 로그 경로와 함께 CloudWatch Agent 설정에 맞춤(OBS-01-01·03)
+  app_log_group_name = "/boaz/api/application"
+  log_retention_days = 30
+
+  # 50MB(decisions.md "경보 수신 이메일·임계값")
+  rds_freeable_memory_threshold_bytes = 50 * 1024 * 1024
+
+  group_vars = local.group_vars.obs
+}
