@@ -30,7 +30,7 @@
 | OBS-01-01 | EC2에 CloudWatch Agent 설치·설정(기존 IAM 롤 권한 사용) | `aws cloudwatch list-metrics`에 사용자 지정 지표 조회됨 |
 | OBS-01-02 | RDS FreeableMemory 경보 생성 | 임계값을 낮춰 테스트 알림 수신 |
 | OBS-01-03 | 앱 로그 30일 보관, EC2 메모리·디스크 지표 수집. Agent 켜기 전에 로그 그룹을 먼저 만듦(자동 생성 시 무기한 보관) | 로그 그룹 보관 기간 30일 |
-| OBS-01-04 | 헬스체크·5xx 비율·EC2 상태 검사·RDS 저장 공간·CPU 경보 추가 | SNS 구독 이메일로 각 경보 테스트 수신 |
+| OBS-01-04 | 헬스체크·5xx 비율·EC2 상태 검사·RDS 저장 공간·CPU 경보 추가 | SNS 구독 이메일로 각 경보 테스트 수신. 알림 경로(SNS 주제)마다 대표 경보 1개를 `set-alarm-state`로 울려 확인함: 서울 `boaz-alerts`는 RDS 여유 메모리 경보, us-east-1은 CloudFront 5xx 경보(2026-11-15 확인) |
 | OBS-01-05 | 기존 운영 자원은 변경하지 않음. 콘솔로 만든 모니터링 자원은 import만 하고, 그 밖에는 새로 만들기만 함 | plan에 기존 자원 변경 없음, import와 생성만 존재 |
 | OBS-01-06 | Discord 알림 Lambda(SNS→Lambda→웹훅). 코드는 저장소 소스를 `archive_file`로 zip하고 버킷은 쓰지 않음. 웹훅 URL은 수동 등록한 SSM SecureString을 실행 시 읽음(Terraform 관리 제외). 실행 역할의 복호화 권한 확인 | 테스트 알림이 Discord에 도착, state·plan·환경 변수에 웹훅 URL 없음 |
 

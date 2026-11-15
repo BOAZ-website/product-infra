@@ -181,7 +181,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | STA-11 | 승인 후 apply | STA | 한 주 | STA-10 | apply 승인자 | Phase 3 | 아니오 | 대기 |
 | STA-12 | drift 감지 CI + P9 | STA | 하루이틀 | STA-11 | 없음 | Phase 3 | 아니오 | 대기 |
 | STA-13 | 정적·통합 검증 구성 | STA | 한 주 | SEA-02, SEA-03, STA-12 | 없음 | Phase 4 | 아니오 | 일부 완료(fmt·validate·tflint) |
-| OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 1차 | 예 | 진행 중(#95, 2026-11-15 apply. 기존 자원 import 16건·CloudFront 경보 등 생성 4건. 2026-11-15 RDS 여유 메모리 경보 수신 확인(OBS-01-02). 남은 일: 나머지 경보 테스트 수신(OBS-01-04), Discord 알림 Lambda) |
+| OBS-01 | 경보 자원 신규 생성 | OBS | 한 주 | STA-01 | 없음 | Phase 2 1차 | 예 | 진행 중(#95, 2026-11-15 apply. 기존 자원 import 16건·CloudFront 경보 등 생성 4건. 2026-11-15 RDS 여유 메모리 경보(OBS-01-02)·CloudFront 5xx 경보(OBS-01-04) 수신 확인. 남은 일: Discord 알림 Lambda(OBS-01-06), us-east-1 구독 2개 확인) |
 | OBS-02 | 접근 로그·대시보드 | OBS | 하루이틀 | OBS-01, CDN-02 | 없음 | Phase 3 | 아니오 | 대기 |
 | NET-01 | network 그룹 import | NET | 2~3주 | STA-07 | Network ACL 관리 방식 | Phase 2 1차 | 예 | 완료(#49·#88, 2026-10-27 apply. import 32건, 다시 plan No changes) |
 | IAM-01 | 관리자 콘솔 배포 Role 신설 + 재조사 | IAM | 한 주 | STA-07 | 없음 | Phase 2 1차 | 예 | 완료(#50, 2026-10-13 관리자 콘솔 배포 롤·정책 신설, IAM 재조사 반영) |
