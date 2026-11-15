@@ -46,7 +46,7 @@ secret 값·RDS password·복호화된 SSM 값은 어떤 필드에도 기록하�
 
 | 순서 | group | 주요 대상 | 담당자 | 시작 시각(KST) | 상태 |
 |---|---|---|---|---|---|
-| 0 | obs | 콘솔로 만든 SNS 주제 `boaz-alerts`·구독·앱 로그 그룹·경보 12개 import, CloudFront api 5xx 경보와 us-east-1 SNS 주제·구독 신규 생성(#48, #95. 2026-11-15 apply: import 16건·생성 4건, 같은 날 수신자 1명 추가로 구독 2건 생성, 다시 plan No changes). Discord 알림 Lambda(OBS-01-06)는 남음 | 모니터링·경보 담당 | 2026-11-08 | 작업 중 |
+| 0 | obs | 콘솔로 만든 SNS 주제 `boaz-alerts`·구독·앱 로그 그룹·경보 12개 import, CloudFront api 5xx 경보와 us-east-1 SNS 주제·구독 신규 생성(#48, #95. 2026-11-15 apply: import 16건·생성 4건, 같은 날 수신자 1명 추가로 구독 2건 생성, 다시 plan No changes). 2026-11-15 RDS 여유 메모리 경보를 `set-alarm-state`로 ALARM 전환해 수신 확인(OBS-01-02, 약 40초 뒤 OK 복귀). Discord 알림 Lambda(OBS-01-06)는 남음 | 모니터링·경보 담당 | 2026-11-08 | 작업 중 |
 | 1 | network | VPC, Subnet 4개, Route Table 3개(+association), IGW, 기본 Network ACL, SG 6개와 규칙, prefix list(data_source)(import 32건, #49, #88) | 네트워크 담당 | 2026-10-26 | 완료 |
 | 2 | iam | OIDC provider, role 5개(IAM-01에서 신규 생성한 frontend_admin 배포 role 포함), 고객 관리형 정책 4개, role별 정책 연결 8개·인라인 정책 4개, EC2 instance profile(import 23건, #69) | IAM 담당 | 2026-10-13 | 완료 |
 | 3 | params | `/boaz/infra/*` 12개, 앱 시크릿 존재·타입 확인(값 제외)(#52) | IAM 담당 | 2026-10-14 | 완료 |
