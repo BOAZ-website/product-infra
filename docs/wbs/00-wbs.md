@@ -189,7 +189,7 @@ Phase별 일정(기간·담당·목표·완료 기준)과 Phase별 티켓 순서
 | IAM-03 | SSM 파라미터 그룹 import + P7 | IAM | 한 주 | IAM-01 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 완료(#52·#72, 2026-10-19 apply. import 12건, 다시 plan No changes. P7 테스트는 STA-08) |
 | IAM-04 | 앱 시크릿 잔여 항목 결정·적용 | IAM | 하루이틀 | IAM-03 | 앱 시크릿 SecureString 범위 | Phase 2 1차 | 예 | 완료(#53, 2026-10-14 잔여 2개 현행 유지 확정, 후속 backend#219) |
 | STO-01 | storage 그룹 import | STO | 한 주 | STA-07 | 관리 대상 버킷·레코드 | Phase 2 1차 | 예 | 완료(#94, 2026-11-15 apply. import 19건, 다시 plan No changes) |
-| STO-02 | 관리 대상 외 버킷 확정 | STO | 하루이틀 | STO-01 | 관리 대상 버킷·레코드 | Phase 2 1차 | 예 | 대기 |
+| STO-02 | 관리 대상 외 버킷 확정 | STO | 하루이틀 | STO-01 | 관리 대상 버킷·레코드 | Phase 2 1차 | 예 | 완료(#55·#85, 2026-10-23 확정. 관리 제외 6개, decisions.md "관리 제외 버킷별 사유") |
 | CMP-01 | EC2·EIP 그룹 import | CMP | 2~3주 | SEA-01, IAM-02, NET-01 | EC2-A EIP 처리, EC2-B 제어 방식 | Phase 2 2차 | 예 | 대기 |
 | CMP-02 | Target Group·ALB 그룹 import | CMP | 한 주 | CMP-01 | 없음 | Phase 2 2차 | 예 | 대기 |
 | CMP-03 | EC2-B 재배포 순서 게이트 | CMP | 하루이틀 | CMP-02, DEP-02 | 없음 | Phase 2 2차 | 예 | 대기 |
