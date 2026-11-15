@@ -8,7 +8,8 @@ variable "buckets" {
   description = "관리 대상 버킷 5개. 역할 키(www, admin, recruitment, bundle, archiving) → 버킷 이름·퍼블릭 차단 여부(현행 값)"
   type = map(object({
     name                = string
-    block_public_access = bool # 퍼블릭 차단 4개 설정을 모두 켰으면 true, 모두 껐으면 false
+    block_public_access = bool                      # 퍼블릭 차단 4개 설정을 모두 켰으면 true, 모두 껐으면 false
+    tags                = optional(map(string), {}) # 현행 버킷 태그. 없으면 비움
   }))
 
   validation {
