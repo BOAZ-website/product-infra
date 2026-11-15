@@ -250,6 +250,10 @@ ap-northeast-2에는 인증서가 없음
 - `boaz-recruitment`의 lifecycle을 코드에 적지 않으면 삭제되어 데이터 보존 동작이 바뀜
 - `boaz-prod-frontend`는 실제로 공개되어 있지 않지만 PAB가 꺼져 있어 방어 계층이 하나 빠져 있음. admin 버킷과 같이 PAB를 켜는 것을 권고함(변경이므로 승인 필요)
 - 기존 Terraform state 후보 버킷은 11개 버킷 중에 없음
+- 관리 대상 5개 버킷 모두 기본 암호화에 S3 버킷 키가 켜져 있음(`BucketKeyEnabled = true`, 2026-11-15 재조사)
+- 버킷 태그는 `boaz-prod-frontend`에만 있음(`Environment = prod`). 나머지 4개는 태그 없음(2026-11-15 재조사)
+- 버킷 정책 조건: `boaz-prod-frontend`는 `StringEquals`, `boaz-prod-frontend-admin`은 `ArnLike`(`AWS:SourceArn`). `boaz-archiving` 공개 읽기 정책 Sid는 `Statement1`
+- 2026-11-15 storage 그룹 import 완료(STO-01, #94)
 
 ### Terraform으로 새로 만든 버킷 (조사 이후)
 
@@ -259,6 +263,39 @@ ap-northeast-2에는 인증서가 없음
 
 - state 키: `bootstrap/terraform.tfstate`(bootstrap), `envs/prod/terraform.tfstate`(STA-04에서 연결)
 - bootstrap을 다시 실행할 때 `bootstrap/terraform.tfvars`·`bootstrap/backend.hcl`(gitignore 대상)에 이 버킷 이름과 계정 ID를 넣음
+
+## 14. 모니터링 (CloudWatch·SNS)
+
+조사 시점 2026-11-15. 서울 자원은 2026-05~06 콘솔 생성이며 2026-11-15 obs 그룹으로 import함(OBS-01, #95)
+
+| 자원 | 리전 | 식별자·현재 설정 | ownership |
+|---|---|---|---|
+| SNS 주제 | ap-northeast-2 | `boaz-alerts`(표시 이름 같음, 기본 정책). 이메일 구독 3개(2026-11-15 1개 추가) | managed |
+| SNS 주제 | us-east-1 | `boaz-prod-alerts-us-east-1`(2026-11-15 Terraform 생성). 이메일 구독 3개 | managed |
+| 로그 그룹 | ap-northeast-2 | `/boaz/api/application`, 보관 30일, 2026-05-16 생성 | managed |
+| 로그 그룹 | ap-northeast-2 | `/aws/rds/instance/boaz-prod-db/error`(RDS log export) | unconfirmed (database 그룹에서 정함) |
+| CloudWatch Agent | - | EC2에서 동작 중. 사용자 지정 네임스페이스 `BOAZ/Backend`(`mem_used_percent`, `disk_used_percent`) | 해당 없음(EC2 안 설정) |
+
+경보(모두 `boaz-alerts`로 알림, 회복 알림은 RDS 저장 공간·여유 메모리만)
+
+| 경보 이름 | 지표 | 조건 |
+|---|---|---|
+| `EC2-A-StatusCheckFailed` | AWS/EC2 StatusCheckFailed | 평균 ≥ 1, 300초 1회 |
+| `EC2 - B -  StatusCheckFailed` | AWS/EC2 StatusCheckFailed | 평균 ≥ 1, 300초 1회 |
+| `EC2-A-CPU 과부하` | AWS/EC2 CPUUtilization | 평균 ≥ 80, 300초 1회 |
+| `EC2 - B - CPU 과부하` | AWS/EC2 CPUUtilization | 평균 ≥ 80, 600초 1회 |
+| `EC2-A-Memory-80 초과` | BOAZ/Backend mem_used_percent | 평균 ≥ 80, 600초 1회 |
+| `EC2-B-메모리 과부하` | BOAZ/Backend mem_used_percent | 평균 > 80, 600초 1회 |
+| `EC2-A-디스크 과부하` | BOAZ/Backend disk_used_percent(`/`) | 평균 > 80, 600초 1회 |
+| `EC2-B-디스크 과부하` | BOAZ/Backend disk_used_percent(`/`) | 평균 > 80, 600초 1회 |
+| `boaz-prod-db-High-CPUUtilization` | AWS/RDS CPUUtilization | 평균 > 80, 300초 1회 |
+| `boaz-prod-db-High-DatabaseConnections` | AWS/RDS DatabaseConnections | 평균 > 50, 300초 1회 |
+| `boaz-prod-db-Low-FreeStorageSpace` | AWS/RDS FreeStorageSpace | 최소 < 4GiB, 300초 1회, 데이터 없음은 정상 |
+| `boaz-prod-db-Low-FreeableMemory` | AWS/RDS FreeableMemory | 평균 < 80MB, 300초 3회 연속, 데이터 없음은 정상. decisions.md 결정값 50MB와 다름("RDS 여유 메모리 경보 임계값 차이" 행) |
+| `boaz-prod-cloudfront-api-5xx-rate-high`(us-east-1, 2026-11-15 생성) | AWS/CloudFront 5xxErrorRate(api 배포) | 평균 > 10%, 300초 2회, 데이터 없음은 정상 |
+
+- 경보 이름의 공백·한글은 콘솔 생성 그대로임. 이름이 import id라 바꾸면 교체가 됨
+- 수신 이메일 주소는 SSM 그룹 값 `obs.alert_emails`에만 둠(이 문서에 적지 않음)
 
 ## 계획서와의 차이 (요약)
 

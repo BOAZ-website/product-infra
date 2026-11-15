@@ -15,7 +15,9 @@
 
 ## OBS-01 경보 자원 신규 생성
 
-**목적:** CloudWatch Agent와 SNS 경보를 Terraform으로 새로 만듦
+**목적:** 모니터링·경보 자원을 Terraform으로 관리함. 콘솔로 이미 만든 자원은 import하고, 없는 경보만 새로 만듦
+
+> 2026-11-15 재조사 결과: 앱 로그 그룹(보관 30일), SNS 주제 `boaz-alerts`와 이메일 구독, EC2·RDS 경보 12개, CloudWatch Agent(네임스페이스 `BOAZ/Backend`, 메모리·디스크 지표)가 2026-05~06에 콘솔로 이미 만들어져 있었음. 같은 자원을 새로 만들면 로그 그룹 생성이 실패하고 알림이 중복되므로 현행 값 그대로 import함(#95). 새로 만든 자원은 CloudFront api 5xx 경보와 그 SNS 주제·구독(us-east-1)뿐임. 현황은 `docs/records/inventory.md` 14절
 
 | 규모 | 선행 | 차단 결정 | Phase | tasks.md | GitHub 이슈 |
 | --- | --- | --- | --- | --- | --- |
@@ -29,7 +31,7 @@
 | OBS-01-02 | RDS FreeableMemory 경보 생성 | 임계값을 낮춰 테스트 알림 수신 |
 | OBS-01-03 | 앱 로그 30일 보관, EC2 메모리·디스크 지표 수집. Agent 켜기 전에 로그 그룹을 먼저 만듦(자동 생성 시 무기한 보관) | 로그 그룹 보관 기간 30일 |
 | OBS-01-04 | 헬스체크·5xx 비율·EC2 상태 검사·RDS 저장 공간·CPU 경보 추가 | SNS 구독 이메일로 각 경보 테스트 수신 |
-| OBS-01-05 | 기존 운영 자원은 변경하지 않고 새로 만들기만 함 | plan에 기존 자원 변경 없음, 생성만 존재 |
+| OBS-01-05 | 기존 운영 자원은 변경하지 않음. 콘솔로 만든 모니터링 자원은 import만 하고, 그 밖에는 새로 만들기만 함 | plan에 기존 자원 변경 없음, import와 생성만 존재 |
 | OBS-01-06 | Discord 알림 Lambda(SNS→Lambda→웹훅). 코드는 저장소 소스를 `archive_file`로 zip하고 버킷은 쓰지 않음. 웹훅 URL은 수동 등록한 SSM SecureString을 실행 시 읽음(Terraform 관리 제외). 실행 역할의 복호화 권한 확인 | 테스트 알림이 Discord에 도착, state·plan·환경 변수에 웹훅 URL 없음 |
 
 ## OBS-02 접근 로그·대시보드
