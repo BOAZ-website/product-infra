@@ -532,7 +532,9 @@ module "cdn" {
 | cdn | `oac_ids` | map(string), 키 `www`·`admin` | OAC import |
 | cdn | `web_acl_arns` | map(string), 키 `api`·`www`·`admin` | 연결된 웹 ACL 지정 |
 | deploy | 없음 | - | 이름 기반 import |
-| obs | `alert_emails` | map(string), 키 `ops_1` 등 | 경보 수신 이메일(웹훅 URL은 시크릿이라 키 없음) |
+| obs | `alert_emails` | map(string), 키 `ops_1`·`ops_2` | 경보 수신 이메일(웹훅 URL은 시크릿이라 키 없음). 기존 서울 구독 2개와 같은 주소 |
+| obs | `alert_subscription_ids` | map(string), 키는 `alert_emails`와 같음 | 기존 서울 이메일 구독 import(구독 ARN 끝의 ID 부분) |
+| obs | `distribution_ids` | map(string), 키 `api` | CloudFront 5xx 경보 대상 배포(OBS-01-04). cdn 그룹 import 뒤 output 참조로 바꾸면 삭제 |
 
 - data source(`aws_route53_zone`, `aws_acm_certificate` 등)로 조회할 수 있는 값은 키를 만들지 않음(1-1절 2번)
 - 키 이름 변경·삭제는 그 키를 쓰는 코드가 없을 때만 하고, 파라미터 갱신은 관리자가 함
