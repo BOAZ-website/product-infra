@@ -12,7 +12,12 @@ data "aws_cloudfront_distribution" "frontend" {
 }
 
 locals {
-  # TODO(재조사): 콘솔이 만드는 OAC 정책 기본 모양으로 적음. www·admin 실제 정책과 대조해 Version·Id·Sid를 맞추고, 둘이 다르면 키별로 나눔
+  # 실제 정책(s3api get-bucket-policy, 2026-11-15 대조)과 같은 모양. 조건 연산자만 버킷마다 다름
+  frontend_source_arn_operators = {
+    www   = "StringEquals"
+    admin = "ArnLike"
+  }
+
   frontend_bucket_policies = {
     for k, distribution in data.aws_cloudfront_distribution.frontend : k => {
       Version = "2008-10-17"
@@ -24,18 +29,18 @@ locals {
         Action    = "s3:GetObject"
         Resource  = "${aws_s3_bucket.this[k].arn}/*"
         Condition = {
-          StringEquals = { "AWS:SourceArn" = distribution.arn }
+          (local.frontend_source_arn_operators[k]) = { "AWS:SourceArn" = distribution.arn }
         }
       }]
     }
   }
 
   # 공개 읽기 정책 현행 유지(STO-01-03, decisions.md "공개 읽기 S3 버킷"). 공개 범위 변경은 별도 PR
-  # TODO(재조사): 실제 정책과 대조해 Version·Sid를 맞춤
+  # Version·Sid는 실제 정책(2026-11-15 대조)과 같음
   archiving_bucket_policy = {
     Version = "2012-10-17"
     Statement = [{
-      Sid       = "PublicReadGetObject"
+      Sid       = "Statement1"
       Effect    = "Allow"
       Principal = "*"
       Action    = "s3:GetObject"
