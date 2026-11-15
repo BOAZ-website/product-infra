@@ -9,11 +9,16 @@ variable "name_prefix" {
   type        = string
 }
 
-# 경보 대상 조회용 이름. 자원 ID가 아니라 이름이라 코드에 적음(1-1절 2번 data source 조회)
-# - compute·database 그룹이 import되면 output(ec2_a_id, db_instance_identifier) 참조로 바꿈(1-1-2절)
-variable "ec2_a_name" {
-  description = "EC2-A의 Name 태그 값. 상태 검사 경보 대상 조회용"
+variable "alert_topic_name" {
+  description = "기존 서울 리전 경보 SNS 주제 이름(import). 표시 이름도 같음"
   type        = string
+}
+
+# 경보 대상 조회용 이름. 자원 ID가 아니라 이름이라 코드에 적음(1-1절 2번 data source 조회)
+# - compute·database 그룹이 import되면 output(instance_ids, db_instance_identifier) 참조로 바꿈(1-1-2절)
+variable "ec2_names" {
+  description = "EC2 Name 태그 값. 역할 키(ec2_a, ec2_b) → 이름. 경보 대상 조회용"
+  type        = map(string)
 }
 
 variable "db_instance_identifier" {
@@ -31,9 +36,29 @@ variable "log_retention_days" {
   type        = number
 }
 
-variable "rds_freeable_memory_threshold_bytes" {
-  description = "RDS 여유 메모리 경보 임계값(바이트). decisions.md \"경보 수신 이메일·임계값\""
-  type        = number
+variable "existing_alarms" {
+  description = "import하는 기존 경보. 역할 키 → 경보 설정(현행 값). target은 ec2_names의 키 또는 rds"
+  type = map(object({
+    name                = string
+    description         = optional(string)
+    target              = string
+    namespace           = string
+    metric              = string
+    statistic           = string
+    period              = number
+    evaluation_periods  = number
+    datapoints_to_alarm = optional(number)
+    operator            = string
+    threshold           = number
+    treat_missing_data  = optional(string, "missing")
+    ok_actions          = optional(bool, false)
+    extra_dimensions    = optional(map(string), {})
+  }))
+
+  validation {
+    condition     = alltrue([for a in var.existing_alarms : contains(["ec2_a", "ec2_b", "rds"], a.target)])
+    error_message = "existing_alarms의 target은 ec2_a, ec2_b, rds 중 하나여야 합니다."
+  }
 }
 
 # 모듈이 쓰는 키만 타입에 적음

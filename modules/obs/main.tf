@@ -7,13 +7,19 @@
 # - alarms.tf: RDS·EC2 경보(서울), CloudFront 경보(us-east-1)
 # - Discord 알림 Lambda(OBS-01-06)는 별도 PR에서 추가함(20-obs.md "진행 순서")
 #
-# - 기존 자원은 data source로 조회만 하고 바꾸지 않음(OBS-01-05). plan에는 create만 나와야 함
-# - 이메일 구독 주소를 나중에 바꾸면 교체로 잡히고 Phase 2 동안 G4에 막힘. 처음부터 정확한 주소로 만듦
-# - 이메일 구독은 apply 뒤 수신자가 확인 메일의 링크를 눌러야 활성화됨
+# - 콘솔로 만든 서울 SNS 주제·구독·로그 그룹·경보 12개는 import함(envs/prod/imports_obs.tf). 현행 값 그대로 적어 plan에 변경이 없어야 함
+# - 경보 대상 EC2·RDS는 data source로 조회만 하고 바꾸지 않음(OBS-01-05)
+# - 이메일 구독 주소를 나중에 바꾸면 교체로 잡히고 Phase 2 동안 G4에 막힘
+# - 새로 만드는 us-east-1 구독은 apply 뒤 수신자가 확인 메일의 링크를 눌러야 활성화됨
 
-# 서울 리전 경보용(RDS·EC2)
+# 서울 리전 경보용(RDS·EC2). 기존 주제 import, 정책은 기본 정책 그대로라 적지 않음
 resource "aws_sns_topic" "alerts" {
-  name = "${var.name_prefix}-alerts"
+  name         = var.alert_topic_name
+  display_name = var.alert_topic_name
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_sns_topic_subscription" "email" {
@@ -22,6 +28,11 @@ resource "aws_sns_topic_subscription" "email" {
   topic_arn = aws_sns_topic.alerts.arn
   protocol  = "email"
   endpoint  = each.value
+
+  # 두 값은 AWS에 없는 Terraform 전용 설정이라 import 뒤 state에 비어 있음. 무시하지 않으면 plan에 변경이 나옴
+  lifecycle {
+    ignore_changes = [confirmation_timeout_in_minutes, endpoint_auto_confirms]
+  }
 }
 
 # CloudFront 지표는 us-east-1에만 있어 경보와 주제를 us-east-1에 만듦
@@ -40,8 +51,12 @@ resource "aws_sns_topic_subscription" "email_us_east_1" {
   endpoint  = each.value
 }
 
-# 앱 로그 그룹(OBS-01-03). Agent가 먼저 로그를 보내면 보관 기간 무기한으로 자동 생성되므로 apply를 Agent 설정보다 먼저 함
+# 앱 로그 그룹(OBS-01-03). 기존 그룹 import(보관 30일). 삭제되면 로그가 사라지므로 prevent_destroy를 둠
 resource "aws_cloudwatch_log_group" "app" {
   name              = var.app_log_group_name
   retention_in_days = var.log_retention_days
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }

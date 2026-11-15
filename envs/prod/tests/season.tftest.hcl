@@ -14,7 +14,7 @@ mock_provider "aws" {
         # <그룹> = { <키> = <값> }
         iam = { distribution_ids = { www = "fake-www", dev = "fake-dev", admin = "fake-admin" } }
         # 이메일 형식이 필요해 예약 도메인(example.invalid)을 씀
-        obs = { alert_emails = { ops_1 = "fake-ops-1@example.invalid" }, distribution_ids = { api = "fake-api" } }
+        obs = { alert_emails = { ops_1 = "fake-ops-1@example.invalid" }, alert_subscription_ids = { ops_1 = "fake-sub-1" }, distribution_ids = { api = "fake-api" } }
         network = {
           vpc_id                 = "fake-vpc"
           internet_gateway_id    = "fake-igw"
@@ -122,6 +122,22 @@ mock_provider "aws" {
   }
   override_resource {
     target = module.deploy.aws_codedeploy_deployment_group.this
+  }
+
+  # obs: import 대상만(새로 만드는 us-east-1 주제·구독·CloudFront 경보는 제외)
+  # 경보 alarm_actions가 ARN 형식을 검사하므로 가짜 ARN을 줌(계정 ID 자리는 aws)
+  override_resource {
+    target = module.obs.aws_sns_topic.alerts
+    values = { arn = "arn:aws:sns:ap-northeast-2:aws:fake-alerts" }
+  }
+  override_resource {
+    target = module.obs.aws_sns_topic_subscription.email
+  }
+  override_resource {
+    target = module.obs.aws_cloudwatch_log_group.app
+  }
+  override_resource {
+    target = module.obs.aws_cloudwatch_metric_alarm.existing
   }
 
   # params: 경로 조회 결과를 관리 대상 12개(모두 String)로 대체함. 이름 목록은 envs/prod/params.tf와 같게 유지
