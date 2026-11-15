@@ -128,6 +128,16 @@ jobs:
                 lock_opt="-lockfile=readonly"
                 ;;
             esac
+            # 별칭 provider(aws.us_east_1)를 쓰는 모듈은 단독 검사 때 넘겨받을 설정이 없어 validate가 실패한다.
+            # 검사 때만 같은 이름의 provider 설정을 임시로 넣는다. AWS를 호출하지 않으므로 리전은 root(envs/prod/providers.tf)와 맞추기만 한다.
+            # 파일 이름이 _override.tf로 끝나면 override 파일로 처리되어 실패하므로 쓰지 않는다.
+            case "${d}" in
+              modules/*)
+                if grep -qE 'configuration_aliases.*aws\.us_east_1' "${d}"/*.tf; then
+                  printf 'provider "aws" {\n  alias  = "us_east_1"\n  region = "us-east-1"\n}\n' > "${d}/zz_ci_alias_provider.tf"
+                fi
+                ;;
+            esac
             if terraform -chdir="${d}" init -backend=false -input=false -no-color ${lock_opt}; then
               terraform -chdir="${d}" validate -no-color || rc=1
               # tests/*.tftest.hcl이 있으면 mock provider로 terraform test 실행(AWS 요청 없음. 예: envs/prod 시즌 변수 검사)
