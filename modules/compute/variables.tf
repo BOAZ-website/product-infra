@@ -7,10 +7,12 @@
 # - CMP-01 범위의 import id는 root(imports_compute.tf)에서만 쓰므로 모듈은 아직 group_vars를 받지 않음
 
 variable "season" {
-  description = "시즌 상태(local.season). EC2-B 전원 상태와 기능 태그만 씀"
+  description = "시즌 상태(local.season). EC2-B 전원 상태·기능 태그, ALB 유무, Target Group 등록 대상(역할 키)만 씀"
   type = object({
     ec2_b_state           = string
     ec2_b_functional_tags = map(string)
+    alb_enabled           = bool
+    target_keys           = list(string)
   })
 }
 
@@ -64,5 +66,30 @@ variable "security_group_ids" {
 
 variable "instance_profile_name" {
   description = "EC2 인스턴스 프로파일 이름(module.iam.ec2_instance_profile_name)"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "Target Group의 VPC ID(module.network.vpc_id). 다르면 Target Group이 교체됨"
+  type        = string
+}
+
+variable "target_group" {
+  description = "api Target Group. 이름·포트·상태 확인 경로·태그. 이름·포트가 다르면 교체됨"
+  type = object({
+    name              = string
+    port              = number
+    health_check_path = string
+    tags              = map(string)
+  })
+}
+
+variable "alb_name" {
+  description = "시즌 on일 때 만드는 ALB 이름"
+  type        = string
+}
+
+variable "alb_security_group_id" {
+  description = "ALB 보안 그룹 ID(module.network.security_group_ids[\"alb\"])"
   type        = string
 }

@@ -45,4 +45,17 @@ module "compute" {
     for k in ["ec2_to_rds", "ssh", "cf_to_ec2", "alb_to_ec2"] : k => module.network.security_group_ids[k]
   }
   instance_profile_name = module.iam.ec2_instance_profile_name
+
+  # Target Group은 실제 값과 같게 둠(2026-11-17 재조사, docs/records/inventory.md 6절)
+  vpc_id = module.network.vpc_id
+  target_group = {
+    name              = "boaz-api-tg"
+    port              = 8080
+    health_check_path = "/actuator/health"
+    tags              = { Environment = "prod", app = "boaz-api" }
+  }
+
+  # 시즌 on일 때만 만드는 ALB(docs/overview/current-infra.md "ALB")
+  alb_name              = "boaz-alb"
+  alb_security_group_id = module.network.security_group_ids["alb"]
 }

@@ -19,3 +19,9 @@ output "ec2_a_public_dns" {
   value       = aws_instance.this["ec2_a"].public_dns
   sensitive   = true
 }
+
+# Target Group ARN은 소비 그룹이 없어 output을 만들지 않음(import-procedure.md 1-1-2절)
+output "alb_dns_name" {
+  description = "ALB DNS 이름(cdn api origin, 시즌 on). 시즌 off면 null"
+  value       = one(aws_lb.api[*].dns_name)
+}

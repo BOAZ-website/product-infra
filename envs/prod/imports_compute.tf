@@ -25,3 +25,16 @@ import {
   to = module.compute.aws_eip_association.main
   id = local.group_vars.compute.eip_association_id
 }
+
+# CMP-02: Target Group과 EC2-A 등록. 평시에 있는 등록은 EC2-A뿐이라 EC2-B 등록은 import하지 않음
+import {
+  to = module.compute.aws_lb_target_group.api
+  id = local.group_vars.compute.target_group_arn
+}
+
+# 등록 import ID는 "Target Group ARN,인스턴스 ID,포트" 형식
+# identity 블록도 되지만 mock provider 테스트가 identity import를 처리하지 못해 ID 문자열을 씀
+import {
+  to = module.compute.aws_lb_target_group_attachment.api["ec2_a"]
+  id = "${local.group_vars.compute.target_group_arn},${local.group_vars.compute.instance_ids.ec2_a},8080"
+}

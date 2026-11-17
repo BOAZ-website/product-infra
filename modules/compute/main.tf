@@ -9,3 +9,4 @@
 # 파일 구성
 # - instances.tf: EC2-A·EC2-B, EC2-B 전원 상태(CMP-01)
 # - eip.tf: EC2-A Elastic IP와 연결(CMP-01)
+# - lb.tf: Target Group·등록, 시즌 on일 때만 있는 ALB·listener(CMP-02)

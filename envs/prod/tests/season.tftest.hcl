@@ -40,6 +40,7 @@ mock_provider "aws" {
           instance_ids       = { ec2_a = "fake-ec2-a", ec2_b = "fake-ec2-b" }
           eip_allocation_id  = "fake-eip-alloc"
           eip_association_id = "fake-eip-assoc"
+          target_group_arn   = "fake-tg"
         }
       })
     }
@@ -175,6 +176,14 @@ mock_provider "aws" {
   }
   override_resource {
     target = module.compute.aws_eip_association.main
+  }
+  override_resource {
+    target = module.compute.aws_lb_target_group.api
+    # 등록·listener가 ARN 형식을 검사하므로 가짜 ARN을 줌(계정 ID 자리는 aws)
+    values = { arn = "arn:aws:elasticloadbalancing:ap-northeast-2:aws:targetgroup/fake-tg/0" }
+  }
+  override_resource {
+    target = module.compute.aws_lb_target_group_attachment.api
   }
 
   # params: 경로 조회 결과를 관리 대상 12개(모두 String)로 대체함. 이름 목록은 envs/prod/params.tf와 같게 유지
