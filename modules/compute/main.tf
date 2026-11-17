@@ -5,3 +5,7 @@
 # - resource·data는 이 폴더에 작성함. 자원이 많으면 역할별 파일로 나눔(예: vpc.tf, security_groups.tf)
 # - 작성 규칙: docs/guides/import-procedure.md 1절 "모듈 작성 규칙"
 # - 이 파일은 비워 두거나 자원을 직접 적어도 됨
+#
+# 파일 구성
+# - instances.tf: EC2-A·EC2-B, EC2-B 전원 상태(CMP-01)
+# - eip.tf: EC2-A Elastic IP와 연결(CMP-01)

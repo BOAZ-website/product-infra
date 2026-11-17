@@ -36,6 +36,11 @@ mock_provider "aws" {
           ssh_allowed_cidrs = { ops_1 = "10.255.0.1/32" }
         }
         storage = { frontend_distribution_ids = { www = "fake-www", admin = "fake-admin" } }
+        compute = {
+          instance_ids       = { ec2_a = "fake-ec2-a", ec2_b = "fake-ec2-b" }
+          eip_allocation_id  = "fake-eip-alloc"
+          eip_association_id = "fake-eip-assoc"
+        }
       })
     }
   }
@@ -156,6 +161,20 @@ mock_provider "aws" {
   }
   override_resource {
     target = module.storage.aws_s3_bucket_lifecycle_configuration.recruitment
+  }
+
+  # compute
+  override_resource {
+    target = module.compute.aws_instance.this
+  }
+  override_resource {
+    target = module.compute.aws_ec2_instance_state.ec2_b
+  }
+  override_resource {
+    target = module.compute.aws_eip.main
+  }
+  override_resource {
+    target = module.compute.aws_eip_association.main
   }
 
   # params: 경로 조회 결과를 관리 대상 12개(모두 String)로 대체함. 이름 목록은 envs/prod/params.tf와 같게 유지
