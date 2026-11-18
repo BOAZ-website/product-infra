@@ -78,7 +78,7 @@
 1. (SEA-01은 Phase 2 준비에서 완료)
 2. CDN-01 cdn 모듈 작성 (STO-01 이후)
 3. CDN-02 1단계 admin·www·Route53·ACM import (CDN-01 이후)
-4. CDN-03 관리자 CloudFront 보안·SPA 설정 (CDN-02 1단계 직후). 2026-11-23까지 apply하지 못하면 decisions.md "CDN-03 지연 시 대응"에 따라 처리함
+4. CDN-03 관리자 CloudFront 보안·SPA 설정 (CDN-02 1단계 직후). 2026-11-23까지 apply하지 못하면 보안 헤더 정책·SPA 오류 응답을 콘솔로 먼저 적용하고 동결 종료 후 코드에 반영함(decisions.md "CDN-03 지연 시 대응")
 5. DEP-01 deploy 모듈 작성, DEP-02 CodeDeploy import (완료)
 
 **동결 후 묶음 (2027-02 착수 [추정])**
