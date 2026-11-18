@@ -19,14 +19,16 @@
 | Phase 1 저장소·state 기반 | 완료(2026-09-27) | 인프라 리드 | 문서 정리, 저장소 구조, state 저장소 | DOC-01~07, STA-01~04 | PR #9·#10·#12 머지, CI Terraform 1.11 이상, bootstrap apply 성공, envs/prod 초기화와 잠금 확인 |
 | Phase 2 준비 | ~2026-10-25 [추정] | 인프라 리드 | 팀원 PR을 받기 전 PR 검사·안전 게이트 구축, 시즌 변수 최소 구현 | STA-05, STA-06, STA-07, SEA-01 | 샘플 PR에 plan 코멘트 자동 게시, 교체·삭제 plan 차단 확인, 잘못된 시즌 변수 조합에서 plan 오류 |
 | Phase 2 1차 (위험 낮은 그룹) | ~2026-11-08 [추정] | 팀원(파트별, 8개 파트 동시 배정) | 1차 시작 시 8개 파트 전부 착수. 경보 신규 생성, 네트워크·IAM·SSM·스토리지 import 머지 | OBS-01, NET-01, IAM-01~04, STO-01~02 | 그룹별 plan "No changes", 삭제·교체 0건, import 기록 갱신, RDS 메모리 경보 수신 |
-| Phase 2 2차 (보호 자원 그룹) | ~2026-12-04(동결 시작 전) | 팀원(파트별, 1차 시작 시 착수) | 서버·DB·CDN·배포 import 머지, 관리자 CloudFront 설정 | CMP-01~03, RDB-01, CDN-01~03, DEP-01~02 | 그룹별 plan "No changes", EC2-B 재배포 순서 확인, RDS 사전 스냅샷, 관리자 페이지 접속 확인 |
-| Phase 2 마무리 | Phase 2 2차와 같음 | 노션에서 배정 | 그룹 간 연결 점검, 전체 일치 확인 | STA-08, STA-09 | 전체 plan "No changes" |
+| Phase 2 2차 (보호 자원 그룹) | 관리자 페이지 경로(CDN-01, CDN-02 1단계, CDN-03): apply ~2026-11-23. 나머지(CMP-01~03, RDB-01, CDN-02 2단계): 2027-02 착수 [추정] | 팀원(파트별, 1차 시작 시 착수) | 서버·DB·CDN·배포 import 머지, 관리자 CloudFront 설정 | CMP-01~03, RDB-01, CDN-01~03, DEP-01~02 | 그룹별 plan "No changes", EC2-B 재배포 순서 확인, RDS 사전 스냅샷, 관리자 페이지 접속 확인 |
+| Phase 2 마무리 | Phase 2 2차 나머지 완료 후 [추정, 2027-02 이후] | 노션에서 배정 | 그룹 간 연결 점검, 전체 일치 확인 | STA-08, STA-09 | 전체 plan "No changes" |
 | 운영 구간 | 12월 시즌 ~ 2027-01 | 인프라 리드 | 12월 동결, 시즌 직후 검증, 2027-01 앱 릴리스 월 | OPS-01, OPS-02, OPS-03 | 동결 기간 apply 0건, 시즌 후 plan "No changes" 재확인, 2027-01 import·설정 변경 0건 |
 | Phase 3 인프라 CI/CD | ~2027-02 중순 [추정] | 노션에서 배정 | 배포 계약 검사, 승인 후 apply, drift 감지 | STA-10~12, OBS-02 | 승인 없이 apply 불가, 일일 drift 감지 동작, 배포 계약 불일치 0건 |
 | Phase 4 시즌 전환 코드화 | ~2027-03 말 [추정] | 노션에서 배정 | 시즌 on/off를 Terraform으로 전환(승인 후 apply 사용), 정적·통합 검증 구성 | SEA-02~04, STA-13 | 테스트 통과, 비시즌 새벽 on→off 리허설 성공 |
 | Phase 5 리허설·이관 완료 | 차기 시즌 4주 전 [추정, 예: 2027-04-30] | 노션에서 배정 | 리허설 증적, 문서 완비, 구 스크립트 deprecated | DOC-08~12, OPS-04~10 | 완료 기준 8항목(→ `docs/overview/migration-plan.md` 8절) 증적, 리허설 2회 성공 |
 
-- 12월 전 목표는 Phase 2 완료. 인원이 1명 이하로 확정되면 Phase 2 2차·마무리를 동결 뒤로 미루고 12월 전 목표를 Phase 2 1차까지로 줄임
+- 12월 전 목표는 Phase 2 1차와 관리자 페이지 경로(CDN-01, CDN-02 1단계, CDN-03)까지로 함(2026-11-18 변경, decisions.md "Phase 2 2차 apply 마감"). 이전 목표는 Phase 2 전체였음
+- 2026-12 시즌의 `envs/prod` apply 금지는 2026-11-24(season-up 시작 7일 전, OPS-01-01)부터 시작함. 그 전날인 2026-11-23이 동결 전 마지막 apply 가능일임
+- CMP·RDB를 동결 전에 import하지 않는 이유: `envs/prod`는 모든 그룹이 state 하나를 같이 씀. compute를 import한 뒤 `season-up.sh`로 시즌을 켜면, 시즌 중 어느 그룹의 apply든 `season.auto.tfvars`(off) 기준으로 EC2-B를 중지하고 `app` 태그를 지움. 동결 전에는 비시즌 상태에서 재조사·코드·PR까지만 진행하고 apply하지 않음
 - 2027-01 배포 주에는 CodeDeploy·IAM apply 금지
 
 ---
@@ -69,17 +71,25 @@
 
 ### Phase 2 2차 (보호 자원 그룹, 팀원)
 
-착수는 1차 시작 시. 아래는 선행 그룹 머지 후의 plan 맞추기·PR·apply 순서
+착수는 1차 시작 시. 아래는 선행 그룹 머지 후의 plan 맞추기·PR·apply 순서. 2026-11-18부터 동결 전 묶음과 동결 후 묶음으로 나눔(decisions.md "Phase 2 2차 apply 마감")
+
+**동결 전 묶음 (apply ~2026-11-23, 12월 관리자 페이지 오픈 조건)**
 
 1. (SEA-01은 Phase 2 준비에서 완료)
-2. CMP-01 EC2·EIP 그룹 (SEA-01·IAM-02·NET-01 이후)
-3. RDB-01 RDS 그룹 (SEA-01·NET-01 이후, CMP-01과 동시 진행 가능)
-4. CMP-02 Target Group·ALB 그룹 (CMP-01 이후)
-5. CDN-01 cdn 모듈 작성 (STO-01 이후, CMP와 동시 진행 가능)
-6. CDN-02 CloudFront·Route53·ACM import. 1단계 admin·www·Route53·ACM (CDN-01 이후), 2단계 api (CMP-02 이후)
-7. CDN-03 관리자 CloudFront 보안·SPA 설정 (CDN-02 1단계 직후, 동결 시작 전 apply 완료. 12월 관리자 페이지 오픈 조건)
-8. DEP-01 deploy 모듈 작성 (IAM-02 이후, 번들 버킷 output만 STO-01 이후, CMP·RDB·CDN과 동시 진행 가능)
-9. DEP-02 CodeDeploy import (DEP-01 이후)
+2. CDN-01 cdn 모듈 작성 (STO-01 이후)
+3. CDN-02 1단계 admin·www·Route53·ACM import (CDN-01 이후)
+4. CDN-03 관리자 CloudFront 보안·SPA 설정 (CDN-02 1단계 직후). 2026-11-23까지 apply하지 못하면 decisions.md "CDN-03 지연 시 대응"에 따라 처리함
+5. DEP-01 deploy 모듈 작성, DEP-02 CodeDeploy import (완료)
+
+**동결 후 묶음 (2027-02 착수 [추정])**
+
+- 2027-01은 앱 릴리스 월이라 import·설정 변경을 하지 않음(OPS-03). 동결 전에는 비시즌 상태에서 재조사·코드·PR까지만 진행하고 apply하지 않음
+- 착수 전에 재조사를 다시 함. 시즌 전환으로 바뀐 값이 없는지 확인한 뒤 plan을 맞춤
+
+6. CMP-01 EC2·EIP 그룹 (SEA-01·IAM-02·NET-01 이후)
+7. RDB-01 RDS 그룹 (SEA-01·NET-01 이후, CMP-01과 동시 진행 가능)
+8. CMP-02 Target Group·ALB 그룹 (CMP-01 이후)
+9. CDN-02 2단계 api import (CMP-02 이후)
 10. CMP-03 EC2-B 재배포 순서 게이트 (CMP-02·DEP-02 이후)
 
 ### Phase 2 마무리
@@ -90,6 +100,7 @@
 ### 운영 구간 (2026-12 시즌 ~ 2027-01)
 
 > 시즌 전환은 공통 지침(`docs/records/decisions.md` "모집 시즌 전환 공통 지침")을 따름. 2026-12 리크루팅 적용 날짜:
+> - `envs/prod` apply 금지: 2026-11-24(화)부터(season-up 시작 7일 전, OPS-01-01). 마지막 apply 가능일 2026-11-23
 > - season-up 버퍼: 2026-12-01(화)~12-05(토). 둘째 주 2026-12-07(월)부터 동결(변동 금지)
 > - season-down: 2027-01 첫째 주 전환. 동결 종료는 season-down 후 3일
 
