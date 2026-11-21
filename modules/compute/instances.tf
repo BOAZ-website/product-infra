@@ -7,6 +7,9 @@
 
 # 인스턴스를 처음 만들 때 쓴 AMI. EC2-A는 Ubuntu 공개 이미지, EC2-B는 이 계정 소유 이미지라 서로 다름
 # 공개 이미지는 지원 종료(deprecated) 표시가 붙은 뒤에도 조회되도록 include_deprecated를 켬
+# 이미지가 등록 해제되어 조회 결과가 없으면 ignore_changes가 있어도 envs/prod plan이 실패함
+# 인프라 담당은 인스턴스의 AMI ID와 등록 상태를 재확인하고, 조회 기준 수정이 필요하면 별도 PR로 검토함
+# 조회 문제를 해결한 뒤 평시 plan에서 import 외 변경이 없는지 다시 확인함
 data "aws_ami" "this" {
   for_each = var.instances
 

@@ -16,7 +16,7 @@ output "ec2_b_id" {
 # EIP에서 나온 퍼블릭 DNS라 공인 IP가 들어 있음. PR CI plan 코멘트가 공개되므로 sensitive로 둠
 output "ec2_a_public_dns" {
   description = "EC2-A 퍼블릭 DNS(cdn api origin, CDN-02). EIP 연결 기준"
-  value       = aws_instance.this["ec2_a"].public_dns
+  value       = aws_eip.main.public_dns
   sensitive   = true
 }
 

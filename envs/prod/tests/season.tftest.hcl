@@ -173,6 +173,7 @@ mock_provider "aws" {
   }
   override_resource {
     target = module.compute.aws_eip.main
+    values = { public_dns = "fake-origin.example.invalid" }
   }
   override_resource {
     target = module.compute.aws_eip_association.main
@@ -223,6 +224,14 @@ run "off_ec2_is_offseason" {
   assert {
     condition     = local.season.alb_enabled == false && local.season.ec2_b_state == "stopped"
     error_message = "평시에는 ALB가 없고 EC2-B가 중지 상태여야 합니다."
+  }
+  assert {
+    condition     = module.compute.alb_dns_name == null
+    error_message = "평시에는 ALB DNS가 없어야 합니다."
+  }
+  assert {
+    condition     = nonsensitive(module.compute.ec2_a_public_dns) == "fake-origin.example.invalid"
+    error_message = "EC2-A 원본 DNS는 Elastic IP의 DNS와 같아야 합니다."
   }
   assert {
     condition     = length(local.season.ec2_b_functional_tags) == 0
