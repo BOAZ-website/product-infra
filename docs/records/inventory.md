@@ -108,6 +108,16 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 - EC2-A/B는 4개 SG를 공유한다: `prod-ec2-to-rds-sg`, `prod-ssh-sg`, `prod-cf-to-ec2-sg`, `prod-alb-to-ec2-sg`.
 - EC2-A에는 EIP가 연결되어 있음. api CloudFront origin(EC2 퍼블릭 DNS)은 EIP에서 파생된 주소이므로 stop/start 후에도 바뀌지 않음
 - EC2-A/B의 AMI가 서로 다름. drift 여부는 compute 코드 편입 시 확인함
+- 2026-11-17 재조사(CMP-01 착수 후, 05:18 UTC): 위 표의 식별자·상태·타입·서브넷·사설 IP·AMI·key pair·보안 그룹 4개·인스턴스 프로파일·EIP 연결이 모두 같음. Launch Template·ASG 0개. 추가 확인 값은 아래와 같음
+  - 태그: EC2-A는 `Name`·`app=boaz-api`·`Environment=prod`, EC2-B는 `Name`·`Environment=prod`(`app` 없음). 위 표에 없던 `Environment=prod` 태그가 두 인스턴스에 있음. 코드에 넣지 않으면 plan에 태그 삭제가 나옴
+  - AMI: EC2-A `ami-0fc2b553b2bbfaee0`은 Canonical 공개 이미지(`ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-20260421`, 소유자 Canonical). EC2-B `ami-071edff9d93c43c82`은 이 계정 소유 이미지(`boaz-api-prod-img`, 2026-05-24 생성)
+  - 공통 설정(EC2-A/B 같음): CPU 크레딧 `unlimited`, 종료 방지(`disableApiTermination`) 꺼짐, 중지 방지(`disableApiStop`) 꺼짐, OS 종료 시 동작 `stop`, 상세 모니터링 꺼짐, EBS 최적화 켜짐, 원본·대상 확인(source/dest check) 켜짐, CPU 1코어·코어당 2스레드, 최대 절전 꺼짐, Nitro Enclaves 꺼짐, tenancy `default`
+  - 메타데이터: IMDSv2 필수(`HttpTokens=required`), 엔드포인트 켜짐, 홉 제한 2, IPv6 엔드포인트 꺼짐, 인스턴스 태그 메타데이터 노출 꺼짐
+  - 호스트 이름: `ip-name`, 리소스 이름 DNS A·AAAA 레코드 꺼짐. 유지 관리 옵션 자동 복구·재부팅 마이그레이션 모두 `default`
+  - 루트 볼륨(`/dev/sda1`, EC2-A/B 같음): gp3 20GB, IOPS 3000, 처리량 125, **암호화 안 됨**, 인스턴스 종료 시 삭제 켜짐, 태그 없음. 추가 볼륨 없음
+  - 네트워크 인터페이스: EC2-A `eni-06b2c8487552453a9`(EIP 연결됨), EC2-B `eni-0211b139f57147dfc`(공인 IP 없음, stopped)
+  - Elastic IP: domain `vpc`, 주소 풀 `amazon`, 네트워크 경계 그룹 `ap-northeast-2`, 태그 없음. 연결 대상은 EC2-A 인스턴스(위 ENI)
+  - `user_data`는 조회하지 않음(시크릿 포함 가능성. 코드에서는 `ignore_changes` 대상, CMP-01-03)
 
 ## 5. 데이터베이스 (RDS)
 
@@ -136,6 +146,12 @@ ownership 구분: `managed`(Terraform 관리 대상) / `data_source`(참조만) 
 | Target Group | `arn:aws:elasticloadbalancing:ap-northeast-2:156312218841:targetgroup/boaz-api-tg/d42747d4f4ff49e6` | `boaz-api-tg`, HTTP 8080, HC `/actuator/health`, target type instance | managed |
 | TG 등록 대상 | `i-08bb34407c19504cf:8080` | EC2-A만 등록, 상태 `unused` (LB 없음) | managed (`aws_lb_target_group_attachment`) |
 | ALB / Listener | 없음 | `season_capacity = "on"`에서만 생성 | managed (조건부) |
+
+- 2026-11-17 재조사(CMP-01 착수 후, 05:18 UTC): Target Group 1개, 등록 대상은 EC2-A:8080 하나(상태 `unused`, 사유 `Target.NotInUse`), 연결된 로드 밸런서 없음, 계정에 ALB 0개. 위 표와 같음. 추가 확인 값은 아래와 같음
+  - 프로토콜 `HTTP`, 프로토콜 버전 `HTTP1`, IP 주소 유형 `ipv4`, VPC `vpc-0767ac83c72b3cf40`
+  - 상태 확인: 켜짐, `HTTP`, 포트 `traffic-port`, 경로 `/actuator/health`, 간격 30초, 제한 시간 5초, 정상 임계 2, 비정상 임계 3, 성공 코드 `200`
+  - 속성: 등록 해제 지연 300초, 고정 세션(stickiness) 꺼짐(`lb_cookie`, 86400초), 느린 시작 0초, 알고리즘 `round_robin`, 이상 완화 꺼짐, 교차 영역 `use_load_balancer_configuration`, 대상 그룹 상태 기반 DNS 장애 조치·비정상 라우팅 최소 정상 대상 수 1·비율 off(기본값)
+  - 태그: `app=boaz-api`, `Environment=prod`. 코드에 넣지 않으면 plan에 태그 삭제가 나옴
 
 ## 7. CDN (CloudFront)
 
