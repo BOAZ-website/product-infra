@@ -36,6 +36,12 @@ mock_provider "aws" {
           ssh_allowed_cidrs = { ops_1 = "10.255.0.1/32" }
         }
         storage = { frontend_distribution_ids = { www = "fake-www", admin = "fake-admin" } }
+        compute = {
+          instance_ids       = { ec2_a = "fake-ec2-a", ec2_b = "fake-ec2-b" }
+          eip_allocation_id  = "fake-eip-alloc"
+          eip_association_id = "fake-eip-assoc"
+          target_group_arn   = "fake-tg"
+        }
       })
     }
   }
@@ -158,6 +164,29 @@ mock_provider "aws" {
     target = module.storage.aws_s3_bucket_lifecycle_configuration.recruitment
   }
 
+  # compute
+  override_resource {
+    target = module.compute.aws_instance.this
+  }
+  override_resource {
+    target = module.compute.aws_ec2_instance_state.ec2_b
+  }
+  override_resource {
+    target = module.compute.aws_eip.main
+    values = { public_dns = "fake-origin.example.invalid" }
+  }
+  override_resource {
+    target = module.compute.aws_eip_association.main
+  }
+  override_resource {
+    target = module.compute.aws_lb_target_group.api
+    # 등록·listener가 ARN 형식을 검사하므로 가짜 ARN을 줌(계정 ID 자리는 aws)
+    values = { arn = "arn:aws:elasticloadbalancing:ap-northeast-2:aws:targetgroup/fake-tg/0" }
+  }
+  override_resource {
+    target = module.compute.aws_lb_target_group_attachment.api
+  }
+
   # params: 경로 조회 결과를 관리 대상 12개(모두 String)로 대체함. 이름 목록은 envs/prod/params.tf와 같게 유지
   override_data {
     target = module.params.data.aws_ssm_parameters_by_path.infra
@@ -195,6 +224,14 @@ run "off_ec2_is_offseason" {
   assert {
     condition     = local.season.alb_enabled == false && local.season.ec2_b_state == "stopped"
     error_message = "평시에는 ALB가 없고 EC2-B가 중지 상태여야 합니다."
+  }
+  assert {
+    condition     = module.compute.alb_dns_name == null
+    error_message = "평시에는 ALB DNS가 없어야 합니다."
+  }
+  assert {
+    condition     = nonsensitive(module.compute.ec2_a_public_dns) == "fake-origin.example.invalid"
+    error_message = "EC2-A 원본 DNS는 Elastic IP의 DNS와 같아야 합니다."
   }
   assert {
     condition     = length(local.season.ec2_b_functional_tags) == 0

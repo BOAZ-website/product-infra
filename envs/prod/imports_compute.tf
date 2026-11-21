@@ -3,3 +3,38 @@
 # - import 블록은 root 모듈(envs/prod) 바로 아래 파일에만 둘 수 있으므로 하위 폴더를 쓰지 않음
 # - 자원 ID는 코드에 직접 쓰지 않음(공개 저장소 규칙, README "보안 정보 공개 금지")
 # - 작업 절차: docs/guides/import-procedure.md
+# - EC2-B 전원 상태(aws_ec2_instance_state)는 인스턴스 ID로 import함. import 직후 plan이 no-op인지 꼭 확인함(다르면 apply 때 EC2-B가 켜지거나 꺼짐)
+
+import {
+  for_each = local.group_vars.compute.instance_ids
+  to       = module.compute.aws_instance.this[each.key]
+  id       = each.value
+}
+
+import {
+  to = module.compute.aws_ec2_instance_state.ec2_b
+  id = local.group_vars.compute.instance_ids.ec2_b
+}
+
+import {
+  to = module.compute.aws_eip.main
+  id = local.group_vars.compute.eip_allocation_id
+}
+
+import {
+  to = module.compute.aws_eip_association.main
+  id = local.group_vars.compute.eip_association_id
+}
+
+# CMP-02: Target Group과 EC2-A 등록. 평시에 있는 등록은 EC2-A뿐이라 EC2-B 등록은 import하지 않음
+import {
+  to = module.compute.aws_lb_target_group.api
+  id = local.group_vars.compute.target_group_arn
+}
+
+# 등록 import ID는 "Target Group ARN,인스턴스 ID,포트" 형식
+# identity 블록도 되지만 mock provider 테스트가 identity import를 처리하지 못해 ID 문자열을 씀
+import {
+  to = module.compute.aws_lb_target_group_attachment.api["ec2_a"]
+  id = "${local.group_vars.compute.target_group_arn},${local.group_vars.compute.instance_ids.ec2_a},8080"
+}
