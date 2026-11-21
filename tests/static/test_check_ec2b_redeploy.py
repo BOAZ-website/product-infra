@@ -29,6 +29,7 @@ def ok_facts(**changes) -> gate.Facts:
         deployments=[dep(5)],
         ec2b_registered=False,
         active_deployments=0,
+        deployment_list_changed=False,
     )
     return replace(base, **changes)
 
@@ -247,6 +248,25 @@ def test_collect_active_deployment_checks_entire_group():
     assert rules(gate.collect(fake)) == ["R4"]
     active_call = next(call for call in fake.calls if "--include-only-statuses" in call)
     assert "--create-time-range" not in active_call
+
+
+@pytest.mark.parametrize("second_listing,expected_exit", [
+    (["fake-d2", "fake-d1", "fake-new-deployment"], 1),
+    (["fake-d1", "fake-d2"], 0),
+], ids=["new-deployment-finished-between-reads", "same-ids-in-different-order"])
+def test_deployment_list_is_checked_again_before_passing(second_listing, expected_exit, monkeypatch):
+    class ChangingListing(FakeAws):
+        def __call__(self, args):
+            result = super().__call__(args)
+            if "--create-time-range" in args and sum("--create-time-range" in call for call in self.calls) == 2:
+                return {"deployments": second_listing}
+            return result
+
+    facts = gate.collect(ChangingListing())
+    monkeypatch.setattr(gate, "collect", lambda: facts)
+    assert facts.active_deployments == 0
+    assert gate.main(["check_ec2b_redeploy.py"]) == expected_exit
+    assert rules(facts) == (["R4"] if expected_exit else [])
 
 
 def test_collect_fails_when_deployment_details_are_missing():

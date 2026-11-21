@@ -17,7 +17,7 @@
 
 ## 0. 사전 조건
 
-- 전환 중 backend `main` 머지와 수동 배포 금지. `cd.yml`이 `main` CI 완료 시 자동 배포하므로, 전환 중 새 배포가 끼면 3단계 게이트가 실패함. 금지 방법은 백엔드 리드와 확정 [확인 필요](decisions.md "EC2-B 기동·재배포 연동")
+- 전환 중 backend `main` 머지와 수동 배포 금지. `cd.yml`이 `main` CI 완료 시 자동 배포하므로, 전환 중 새 배포가 끼면 3단계 게이트가 실패함. 금지 방법은 백엔드 리드와 확정해야 함. [결정 기록](../records/decisions.md)의 「EC2-B 기동·재배포 연동」 참조
 - **전환 중 `envs/prod` apply 금지**(SEA-02-04). 1~3단계 동안 Terraform 목표값은 `season_capacity = off`임. compute 그룹 import 뒤에 이 사이 apply를 하면 EC2-B `app` 태그가 지워지고 EC2-B가 다시 중지됨
 - 설정 값 불러오기. `/boaz/infra/*`는 String 파라미터라 복호화하지 않음(`season-up.sh` 0단계와 같음)
 
@@ -107,10 +107,12 @@ python3 scripts/check_ec2b_redeploy.py
 | R1 | EC2-B가 running | 1단계 다시 실행 |
 | R2 | EC2-B에 `app=boaz-api` 태그 있음 | 태그를 붙인 뒤 2단계부터 다시 실행 |
 | R3 | EC2-B를 켠 뒤 만든 배포가 있음 | 2단계 실행 |
-| R4 | 배포 그룹에 진행·대기 중인 배포 없음 | 배포가 끝날 때까지 기다린 뒤 다시 실행 |
+| R4 | 진행·대기 중인 배포가 없고 검증 중 배포 목록이 바뀌지 않음 | 배포가 끝나면 결과를 확인하고 다시 실행 |
 | R5 | 가장 최근 배포가 성공 | 실패 원인 확인 뒤 2단계 다시 실행 |
 | R6 | 가장 최근 배포에서 EC2-A·B 대상이 모두 성공 | 2-1, 2-2 확인 뒤 2단계 다시 실행 |
 | R7 | EC2-B가 아직 Target Group에 등록되지 않음 | 전환을 멈추고 현재 CloudFront origin과 등록 경위를 확인한 뒤 복구 절차를 정함 |
+
+게이트 통과 뒤에도 4단계가 끝날 때까지 backend 배포 금지를 유지함. 게이트는 조회할 때의 배포 상태를 확인함.
 
 ## 4. Target Group 등록(`season_capacity = on` apply)
 

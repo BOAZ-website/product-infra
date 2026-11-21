@@ -8,7 +8,7 @@
   R1 EC2-B가 running
   R2 EC2-B에 CodeDeploy 대상 태그(app=boaz-api)가 있음
   R3 EC2-B를 켠 뒤 배포 그룹에 만든 배포가 하나 이상 있음
-  R4 배포 그룹에 진행·대기 중인 배포가 없음
+  R4 배포 그룹에 진행·대기 중인 배포가 없고 조회 중 배포 목록이 바뀌지 않음
   R5 그 배포 가운데 가장 최근 배포가 성공(Succeeded)
   R6 가장 최근 배포에서 EC2-A·B 대상이 모두 성공
   R7 EC2-B가 아직 Target Group에 등록되어 있지 않음(재배포 확인 전에 등록한 경우를 실패로 판정)
@@ -69,6 +69,7 @@ class Facts:
     deployments: list[Deployment]  # 배포 그룹의 배포(EC2-B를 켠 뒤 만든 것)
     ec2b_registered: bool  # Target Group에 EC2-B가 등록되어 있는지
     active_deployments: int
+    deployment_list_changed: bool
 
 
 @dataclass(frozen=True)
@@ -99,7 +100,9 @@ def evaluate(facts: Facts) -> list[Violation]:
     if not after_launch:
         out.append(Violation("R3", "EC2-B를 켠 뒤 만든 배포가 없음. 최신 번들 재배포를 먼저 실행함"))
 
-    if facts.active_deployments:
+    if facts.deployment_list_changed:
+        out.append(Violation("R4", "검증 중 배포 목록이 바뀜. 배포 결과를 확인한 뒤 검증을 다시 실행함"))
+    elif facts.active_deployments:
         out.append(Violation("R4", f"진행·대기 중인 배포가 {facts.active_deployments}건 있음. 끝날 때까지 기다림"))
 
     if after_launch:
@@ -202,7 +205,8 @@ def collect(run: Runner = aws_cli) -> Facts:
 
     start = launch.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     group_query = ["deploy", "list-deployments", "--application-name", app, "--deployment-group-name", group]
-    ids = run([*group_query, "--create-time-range", f"start={start}"])["deployments"]
+    since_launch_query = [*group_query, "--create-time-range", f"start={start}"]
+    ids = run(since_launch_query)["deployments"]
 
     infos: list[dict] = []
     for chunk in _chunks(ids, 25):  # batch-get-deployments 한 번에 25건까지
@@ -228,7 +232,9 @@ def collect(run: Runner = aws_cli) -> Facts:
 
     health = target_health(run, tg)
     registered = any(row["Target"]["Id"] == ec2b for row in health)
-    return Facts(inst["State"]["Name"], launch, tags, deployments, registered, len(active))
+    # 진행 중인 배포 조회 전에 새 배포가 이미 종료됐더라도 처음 목록만으로 통과시키지 않음
+    deployment_list_changed = set(run(since_launch_query)["deployments"]) != set(ids)
+    return Facts(inst["State"]["Name"], launch, tags, deployments, registered, len(active), deployment_list_changed)
 
 
 def deployment_target_statuses(run: Runner, deployment_id: str, ec2a: str, ec2b: str) -> tuple[str | None, str | None]:
