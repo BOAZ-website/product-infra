@@ -22,7 +22,7 @@
 | --- | --- | --- |
 | `overview/` | 배경·목표·원칙·시즌 전환 모델(`migration-plan.md`), 현행 인프라(`current-infra.md`) | 저장소 |
 | `wbs/` | WBS, Phase 일정, 명세서 12개. 티켓 키 `NET-01`, 기능 ID `NET-01-01` | 노션(이 폴더는 노션 페이지 원본 마크다운) |
-| `guides/` | 팀원 공통 작업 절차 | 저장소 |
+| `guides/` | 팀원 공통 작업 절차(`import-procedure.md`), 시즌 전환 런북(`season-runbook.md`) | 저장소 |
 | `records/` | 조사 기록(inventory), 결정·확인 필요 레지스터(decisions), import 기록(import-log) | 저장소 |
 
 `wbs/` 파일 번호 앞자리 = 명세서의 주된 Phase: 0x 모두가 먼저 읽는 페이지 · 1x Phase 1(인프라 리드) · 2x Phase 2(준비 20, 1차 21~23, 2차 24~27) · 4x Phase 4 · 5x 운영 구간·Phase 5. Phase 3 티켓은 STA·OBS 명세서 안에 있음
