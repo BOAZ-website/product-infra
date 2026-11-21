@@ -8,14 +8,15 @@
   R1 EC2-B가 running
   R2 EC2-B에 CodeDeploy 대상 태그(app=boaz-api)가 있음
   R3 EC2-B를 켠 뒤 배포 그룹에 만든 배포가 하나 이상 있음
-  R4 그 배포 가운데 진행 중인 배포가 없음
+  R4 배포 그룹에 진행·대기 중인 배포가 없음
   R5 그 배포 가운데 가장 최근 배포가 성공(Succeeded)
-  R6 가장 최근 배포에서 EC2-B 대상이 성공
+  R6 가장 최근 배포에서 EC2-A·B 대상이 모두 성공
   R7 EC2-B가 아직 Target Group에 등록되어 있지 않음(재배포 확인 전에 등록한 경우를 실패로 판정)
 
 입력 값은 SSM `/boaz/infra/*` String 파라미터(EC2_B_ID, CODEDEPLOY_APP, CODEDEPLOY_GROUP,
-TARGET_GROUP_ARN)에서 읽는다. AWS 조회는 읽기 전용(describe·list·get)만 쓰고, 출력에는 규칙과 사유만
-쓰며 자원 ID는 쓰지 않는다(공개 저장소).
+TARGET_GROUP_ARN)과 /boaz/terraform/group-vars의 compute에서 읽는다. AWS 조회는 읽기 전용이며
+출력에는 규칙과 사유만 쓰고 자원 ID는 쓰지 않는다(공개 저장소).
+--wait-target-health는 origin 교체 전에 예상한 EC2-A·B의 등록과 상태를 확인한다.
 
   AWS_PROFILE=boaz python3 scripts/check_ec2b_redeploy.py
 
@@ -28,6 +29,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable
@@ -40,19 +42,23 @@ except ImportError:  # pragma: no cover
 REGION = "ap-northeast-2"
 PARAM_PREFIX = "/boaz/infra/"
 PARAM_KEYS = ("EC2_B_ID", "CODEDEPLOY_APP", "CODEDEPLOY_GROUP", "TARGET_GROUP_ARN")
+HEALTH_PARAM_KEYS = ("EC2_B_ID", "TARGET_GROUP_ARN", "EC2_A_PORT")
+GROUP_VARS_PARAMETER = "/boaz/terraform/group-vars"
+HEALTH_TIMEOUT_SECONDS = 900
+HEALTH_POLL_SECONDS = 15
 
 # CodeDeploy 대상 태그. 배포 그룹 ec2_tag_set과 같아야 EC2-B가 배포 대상에 들어감(DEP-02)
 TARGET_TAG = ("app", "boaz-api")
 
 # 끝나지 않은 배포 상태(CodeDeploy DeploymentStatus)
-IN_PROGRESS = frozenset({"Created", "Queued", "InProgress", "Baking", "Ready"})
+IN_PROGRESS = ("Created", "Queued", "InProgress", "Baking", "Ready")
 
 
 @dataclass(frozen=True)
 class Deployment:
     created: datetime
     status: str
-    ec2b_status: str | None  # 이 배포에서 EC2-B 대상의 상태. 대상에 없으면 None
+    target_statuses: tuple[str | None, str | None]  # EC2-A·B 순서. 대상에 없으면 None
 
 
 @dataclass(frozen=True)
@@ -62,6 +68,7 @@ class Facts:
     ec2b_tags: dict[str, str]
     deployments: list[Deployment]  # 배포 그룹의 배포(EC2-B를 켠 뒤 만든 것)
     ec2b_registered: bool  # Target Group에 EC2-B가 등록되어 있는지
+    active_deployments: int
 
 
 @dataclass(frozen=True)
@@ -91,18 +98,19 @@ def evaluate(facts: Facts) -> list[Violation]:
     after_launch = [d for d in facts.deployments if d.created >= facts.ec2b_launch]
     if not after_launch:
         out.append(Violation("R3", "EC2-B를 켠 뒤 만든 배포가 없음. 최신 번들 재배포를 먼저 실행함"))
-    else:
-        running = [d for d in after_launch if d.status in IN_PROGRESS]
-        if running:
-            out.append(Violation("R4", f"진행 중인 배포가 {len(running)}건 있음. 끝날 때까지 기다림"))
 
+    if facts.active_deployments:
+        out.append(Violation("R4", f"진행·대기 중인 배포가 {facts.active_deployments}건 있음. 끝날 때까지 기다림"))
+
+    if after_launch:
         latest = max(after_launch, key=lambda d: d.created)
         if latest.status != "Succeeded":
             out.append(Violation("R5", f"가장 최근 배포가 성공하지 않음(상태 {latest.status})"))
-        if latest.ec2b_status is None:
-            out.append(Violation("R6", "가장 최근 배포 대상에 EC2-B가 없음. 태그를 붙이기 전에 만든 배포일 수 있음"))
-        elif latest.ec2b_status != "Succeeded":
-            out.append(Violation("R6", f"가장 최근 배포에서 EC2-B 대상이 성공하지 않음(상태 {latest.ec2b_status})"))
+        for role, status in zip(("A", "B"), latest.target_statuses, strict=True):
+            if status is None:
+                out.append(Violation("R6", f"가장 최근 배포 대상에 EC2-{role}가 없음"))
+            elif status != "Succeeded":
+                out.append(Violation("R6", f"가장 최근 배포에서 EC2-{role} 대상이 성공하지 않음(상태 {status})"))
 
     if facts.ec2b_registered:
         out.append(
@@ -116,7 +124,7 @@ def render(violations: list[Violation]) -> str:
     if not violations:
         return (
             "#### EC2-B 재배포 순서 게이트: ✅ 통과\n\n"
-            "EC2-B 기동, 대상 태그, 기동 뒤 재배포 성공, Target Group 미등록 확인. 등록 단계로 진행 가능"
+            "EC2-B 기동, 대상 태그, 기동 뒤 EC2-A·B 재배포 성공, EC2-B Target Group 미등록 확인. 등록 단계로 진행 가능"
         )
     lines = ["#### EC2-B 재배포 순서 게이트: ❌ 실패", "", "Target Group 등록으로 진행하지 않음", ""]
     lines += [v.render() for v in violations]
@@ -139,7 +147,7 @@ Runner = Callable[[list[str]], dict]
 def aws_cli(args: list[str]) -> dict:
     """AWS CLI를 JSON 출력으로 실행한다. 실패 메시지는 식별자를 가린 뒤 넘긴다."""
     cmd = ["aws", *args, "--region", os.environ.get("AWS_REGION", REGION), "--output", "json"]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     if proc.returncode != 0:
         detail = redact(proc.stderr.strip().splitlines()[-1] if proc.stderr.strip() else "")
         raise CollectError(f"`aws {args[0]} {args[1]}` 실패: {detail}")
@@ -150,17 +158,39 @@ def _chunks(items: list[str], size: int) -> list[list[str]]:
     return [items[i : i + size] for i in range(0, len(items), size)]
 
 
-def collect(run: Runner = aws_cli) -> Facts:
-    """읽기 전용 AWS 조회로 판정에 필요한 값을 모은다."""
-    names = [PARAM_PREFIX + k for k in PARAM_KEYS]
+def read_parameters(run: Runner, keys: tuple[str, ...]) -> dict[str, str]:
+    names = [PARAM_PREFIX + key for key in keys]
     resp = run(["ssm", "get-parameters", "--names", *names])
-    params = {p["Name"].removeprefix(PARAM_PREFIX): p for p in resp.get("Parameters", [])}
-    missing = [k for k in PARAM_KEYS if k not in params]
+    params = {p["Name"].removeprefix(PARAM_PREFIX): p for p in resp["Parameters"]}
+    missing = [key for key in keys if key not in params]
     if missing:
         raise CollectError(f"SSM 파라미터 없음: {', '.join(missing)}")
-    if any(params[k].get("Type") != "String" for k in PARAM_KEYS):
-        raise CollectError("SSM 파라미터가 String 유형이 아님(SecureString은 읽지 않음)")
-    ec2b, app, group, tg = (params[k]["Value"] for k in PARAM_KEYS)
+    if any(params[key].get("Type") != "String" for key in keys):
+        raise CollectError("SSM 파라미터가 String 유형이 아님(SecureString은 복호화하지 않음)")
+    return {key: params[key]["Value"] for key in keys}
+
+
+def read_compute_ids(run: Runner, params: dict[str, str]) -> tuple[str, str]:
+    param = run(["ssm", "get-parameter", "--name", GROUP_VARS_PARAMETER])["Parameter"]
+    if param.get("Type") != "String":
+        raise CollectError("Terraform 그룹 값이 String 유형이 아님")
+    compute = json.loads(param["Value"])["compute"]
+    ids = compute["instance_ids"]
+    ec2a, ec2b = ids["ec2_a"], ids["ec2_b"]
+    if not ec2a or not ec2b or ec2a == ec2b:
+        raise CollectError("Terraform 그룹 값에 서로 다른 EC2-A·B ID가 필요함")
+    if ec2b != params["EC2_B_ID"] or compute["target_group_arn"] != params["TARGET_GROUP_ARN"]:
+        raise CollectError("시즌과 Terraform 파라미터의 EC2-B 또는 Target Group 값이 다름")
+    return ec2a, ec2b
+
+
+def collect(run: Runner = aws_cli) -> Facts:
+    """읽기 전용 AWS 조회로 판정에 필요한 값을 모은다."""
+    params = read_parameters(run, PARAM_KEYS)
+    ec2a, ec2b = read_compute_ids(run, params)
+    app = params["CODEDEPLOY_APP"]
+    group = params["CODEDEPLOY_GROUP"]
+    tg = params["TARGET_GROUP_ARN"]
 
     reservations = run(["ec2", "describe-instances", "--instance-ids", ec2b]).get("Reservations", [])
     instances = [i for r in reservations for i in r.get("Instances", [])]
@@ -171,56 +201,94 @@ def collect(run: Runner = aws_cli) -> Facts:
     tags = {t["Key"]: t["Value"] for t in inst.get("Tags", [])}
 
     start = launch.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    ids = run(
-        [
-            "deploy",
-            "list-deployments",
-            "--application-name",
-            app,
-            "--deployment-group-name",
-            group,
-            "--create-time-range",
-            f"start={start}",
-        ]
-    ).get("deployments", [])
+    group_query = ["deploy", "list-deployments", "--application-name", app, "--deployment-group-name", group]
+    ids = run([*group_query, "--create-time-range", f"start={start}"])["deployments"]
 
     infos: list[dict] = []
     for chunk in _chunks(ids, 25):  # batch-get-deployments 한 번에 25건까지
-        infos += run(["deploy", "batch-get-deployments", "--deployment-ids", *chunk]).get("deploymentsInfo", [])
-    infos.sort(key=lambda x: parse_time(x["createTime"]))
+        batch = run(["deploy", "batch-get-deployments", "--deployment-ids", *chunk])["deploymentsInfo"]
+        if sorted(info["deploymentId"] for info in batch) != sorted(chunk):
+            raise CollectError("요청한 배포의 상세 조회 결과가 누락되거나 중복됨")
+        infos.extend(batch)
+    infos.sort(key=lambda info: parse_time(info["createTime"]))
+    if len(infos) > 1 and parse_time(infos[-1]["createTime"]) == parse_time(infos[-2]["createTime"]):
+        raise CollectError("최근 배포의 생성 시각이 같아 어느 배포를 검증해야 하는지 구분할 수 없음")
 
     deployments: list[Deployment] = []
     for i, info in enumerate(infos):
-        is_latest = i == len(infos) - 1
-        # EC2-B 대상 상태는 판정에 쓰는 가장 최근 배포만 조회함
-        ec2b_status = _ec2b_target_status(run, info["deploymentId"], ec2b) if is_latest else None
-        deployments.append(Deployment(parse_time(info["createTime"]), info.get("status", ""), ec2b_status))
+        # 대상 상태는 판정에 쓰는 가장 최근 배포만 조회함
+        statuses = (None, None)
+        if i == len(infos) - 1:
+            statuses = deployment_target_statuses(run, info["deploymentId"], ec2a, ec2b)
+        deployments.append(Deployment(parse_time(info["createTime"]), info["status"], statuses))
 
-    health = run(["elbv2", "describe-target-health", "--target-group-arn", tg]).get("TargetHealthDescriptions", [])
-    registered = any(h.get("Target", {}).get("Id") == ec2b for h in health)
+    # 기동 전에 요청됐더라도 아직 진행 중인 배포는 등록을 막음
+    active = set(run([*group_query, "--include-only-statuses", *IN_PROGRESS])["deployments"])
+    active.update(info["deploymentId"] for info in infos if info["status"] in IN_PROGRESS)
 
-    return Facts(inst["State"]["Name"], launch, tags, deployments, registered)
+    health = target_health(run, tg)
+    registered = any(row["Target"]["Id"] == ec2b for row in health)
+    return Facts(inst["State"]["Name"], launch, tags, deployments, registered, len(active))
 
 
-def _ec2b_target_status(run: Runner, deployment_id: str, ec2b: str) -> str | None:
-    target_ids = run(["deploy", "list-deployment-targets", "--deployment-id", deployment_id]).get("targetIds", [])
-    if ec2b not in target_ids:
-        return None
-    target = run(["deploy", "get-deployment-target", "--deployment-id", deployment_id, "--target-id", ec2b])
-    return target.get("deploymentTarget", {}).get("instanceTarget", {}).get("status")
+def deployment_target_statuses(run: Runner, deployment_id: str, ec2a: str, ec2b: str) -> tuple[str | None, str | None]:
+    target_ids = run(["deploy", "list-deployment-targets", "--deployment-id", deployment_id])["targetIds"]
+
+    def status(instance_id: str) -> str | None:
+        if instance_id not in target_ids:
+            return None
+        target = run(["deploy", "get-deployment-target", "--deployment-id", deployment_id, "--target-id", instance_id])
+        return target["deploymentTarget"]["instanceTarget"]["status"]
+
+    return status(ec2a), status(ec2b)
+
+
+def target_health(run: Runner, target_group_arn: str) -> list[dict]:
+    return run(["elbv2", "describe-target-health", "--target-group-arn", target_group_arn])["TargetHealthDescriptions"]
+
+
+def expected_targets_are_healthy(rows: list[dict], ec2a: str, ec2b: str, port: int) -> bool:
+    expected = {(ec2a, port), (ec2b, port)}
+    healthy = {
+        (row["Target"]["Id"], row["Target"]["Port"])
+        for row in rows
+        if row["TargetHealth"]["State"] == "healthy"
+    }
+    return len(rows) == len(expected) and healthy == expected
+
+
+def wait_target_health(run: Runner = aws_cli) -> int:
+    params = read_parameters(run, HEALTH_PARAM_KEYS)
+    ec2a, ec2b = read_compute_ids(run, params)
+    port = int(params["EC2_A_PORT"])
+    deadline = time.monotonic() + HEALTH_TIMEOUT_SECONDS
+    print("EC2-A·B의 Target Group 상태를 최대 15분 동안 확인함", flush=True)
+
+    while True:
+        rows = target_health(run, params["TARGET_GROUP_ARN"])
+        if expected_targets_are_healthy(rows, ec2a, ec2b, port):
+            print("EC2-A·B가 예상 포트에 등록됐고 둘 다 healthy임. origin 교체 진행 가능")
+            return 0
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            print("15분 안에 EC2-A·B의 등록과 healthy 상태가 모두 확인되지 않음. origin 교체 중단")
+            return 1
+        time.sleep(min(HEALTH_POLL_SECONDS, remaining))
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 1:
+    args = argv[1:]
+    if args not in ([], ["--wait-target-health"]):
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        facts = collect()
-    except (CollectError, KeyError, ValueError) as exc:
+        if args:
+            return wait_target_health()
+        violations = evaluate(collect())
+    except (CollectError, KeyError, OSError, TypeError, ValueError, subprocess.TimeoutExpired) as exc:
         reason = str(exc) if isinstance(exc, CollectError) else f"응답 형식 오류({type(exc).__name__})"
-        print(f"#### EC2-B 재배포 순서 게이트: ❌ 조회 실패\n\n{reason}")
+        print(f"#### 시즌 전환 검증: ❌ 조회 실패\n\n{reason}")
         return 2
-    violations = evaluate(facts)
     print(render(violations))
     return 1 if violations else 0
 

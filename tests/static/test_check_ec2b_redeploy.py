@@ -5,6 +5,7 @@
 공개 저장소 검사에 걸리지 않도록 식별자는 실제 형식을 흉내 내지 않는다.
 """
 
+import json
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
@@ -17,7 +18,7 @@ LAUNCH = datetime(2026, 12, 1, 3, 0, tzinfo=timezone.utc)
 
 def dep(minutes: int, status: str = "Succeeded", ec2b: str | None = "Succeeded") -> gate.Deployment:
     """EC2-B를 켠 시각 기준 minutes분 뒤에 만든 배포."""
-    return gate.Deployment(LAUNCH + timedelta(minutes=minutes), status, ec2b)
+    return gate.Deployment(LAUNCH + timedelta(minutes=minutes), status, ("Succeeded", ec2b))
 
 
 def ok_facts(**changes) -> gate.Facts:
@@ -27,6 +28,7 @@ def ok_facts(**changes) -> gate.Facts:
         ec2b_tags={"Name": "fake-ec2-b", "Environment": "prod", "app": "boaz-api"},
         deployments=[dep(5)],
         ec2b_registered=False,
+        active_deployments=0,
     )
     return replace(base, **changes)
 
@@ -69,7 +71,11 @@ def test_deployment_before_launch_does_not_count():
 
 
 def test_deployment_in_progress_fails():
-    assert rules(ok_facts(deployments=[dep(5), dep(10, status="InProgress", ec2b="InProgress")])) == ["R4", "R5", "R6"]
+    facts = ok_facts(
+        deployments=[dep(5), dep(10, status="InProgress", ec2b="InProgress")],
+        active_deployments=1,
+    )
+    assert rules(facts) == ["R4", "R5", "R6"]
 
 
 def test_latest_failed_after_earlier_success_fails():
@@ -119,9 +125,13 @@ TG = "fake-tg"
 
 
 class FakeAws:
-    def __init__(self, *, params=None, registered=(EC2A,), deployments=None, latest_targets=(EC2A, EC2B)):
+    def __init__(
+        self, *, params=None, registered=(EC2A,), deployments=None,
+        latest_targets=(EC2A, EC2B), active=(), omitted=(), target_statuses=None,
+    ):
         self.calls: list[list[str]] = []
         self.params = params if params is not None else {
+            "EC2_A_PORT": "8080",
             "EC2_B_ID": EC2B,
             "CODEDEPLOY_APP": "fake-app",
             "CODEDEPLOY_GROUP": "fake-group",
@@ -134,6 +144,9 @@ class FakeAws:
             ("fake-d1", "2026-12-01T12:05:00+09:00", "Failed"),
         ]
         self.latest_targets = latest_targets
+        self.active = active
+        self.omitted = omitted
+        self.target_statuses = target_statuses or {EC2A: "Succeeded", EC2B: "Succeeded"}
 
     def __call__(self, args: list[str]) -> dict:
         self.calls.append(args)
@@ -145,6 +158,10 @@ class FakeAws:
                 ],
                 "InvalidParameters": [],
             }
+        if op == ("ssm", "get-parameter"):
+            return {"Parameter": {"Type": "String", "Value": json.dumps({
+                "compute": {"instance_ids": {"ec2_a": EC2A, "ec2_b": EC2B}, "target_group_arn": TG},
+            })}}
         if op == ("ec2", "describe-instances"):
             return {
                 "Reservations": [
@@ -160,20 +177,24 @@ class FakeAws:
                 ]
             }
         if op == ("deploy", "list-deployments"):
+            if "--include-only-statuses" in args:
+                return {"deployments": list(self.active)}
             return {"deployments": [d[0] for d in self.deployments]}
         if op == ("deploy", "batch-get-deployments"):
             wanted = set(args[args.index("--deployment-ids") + 1 :])
             return {
                 "deploymentsInfo": [
-                    {"deploymentId": i, "createTime": t, "status": s} for i, t, s in self.deployments if i in wanted
+                    {"deploymentId": i, "createTime": t, "status": s}
+                    for i, t, s in self.deployments if i in wanted and i not in self.omitted
                 ]
             }
         if op == ("deploy", "list-deployment-targets"):
             return {"targetIds": list(self.latest_targets)}
         if op == ("deploy", "get-deployment-target"):
-            return {"deploymentTarget": {"instanceTarget": {"targetId": EC2B, "status": "Succeeded"}}}
+            target = args[-1]
+            return {"deploymentTarget": {"instanceTarget": {"targetId": target, "status": self.target_statuses[target]}}}
         if op == ("elbv2", "describe-target-health"):
-            return {"TargetHealthDescriptions": [{"Target": {"Id": i, "Port": 8080}} for i in self.registered]}
+            return {"TargetHealthDescriptions": [healthy_target(i) for i in self.registered]}
         raise AssertionError(f"예상하지 않은 호출: {op}")
 
 
@@ -182,7 +203,7 @@ def test_collect_builds_facts_and_passes():
     facts = gate.collect(fake)
     assert facts.ec2b_state == "running" and facts.ec2b_launch == LAUNCH
     assert [d.status for d in facts.deployments] == ["Failed", "Succeeded"]  # 생성 시각 순
-    assert facts.deployments[-1].ec2b_status == "Succeeded"
+    assert facts.deployments[-1].target_statuses == ("Succeeded", "Succeeded")
     assert facts.ec2b_registered is False
     assert gate.evaluate(facts) == []
     # 배포 조회 범위를 EC2-B를 켠 시각부터로 좁힘
@@ -219,3 +240,58 @@ def test_collect_missing_parameter_is_error():
     params = {"EC2_B_ID": EC2B, "CODEDEPLOY_APP": "fake-app", "CODEDEPLOY_GROUP": "fake-group"}
     with pytest.raises(gate.CollectError, match="TARGET_GROUP_ARN"):
         gate.collect(FakeAws(params=params))
+
+
+def test_collect_active_deployment_checks_entire_group():
+    fake = FakeAws(active=("fake-deployment-before-launch",))
+    assert rules(gate.collect(fake)) == ["R4"]
+    active_call = next(call for call in fake.calls if "--include-only-statuses" in call)
+    assert "--create-time-range" not in active_call
+
+
+def test_collect_fails_when_deployment_details_are_missing():
+    with pytest.raises(gate.CollectError, match="상세 조회 결과"):
+        gate.collect(FakeAws(omitted=("fake-d2",)))
+
+
+def test_collect_fails_when_latest_deployment_is_ambiguous():
+    same_time = "2026-12-01T03:05:00+00:00"
+    fake = FakeAws(deployments=[("fake-d1", same_time, "Failed"), ("fake-d2", same_time, "Succeeded")])
+    with pytest.raises(gate.CollectError, match="생성 시각"):
+        gate.collect(fake)
+
+
+def test_collect_detects_failed_ec2a_even_if_deployment_succeeded():
+    facts = gate.collect(FakeAws(target_statuses={EC2A: "Failed", EC2B: "Succeeded"}))
+    violations = gate.evaluate(facts)
+    assert [v.rule for v in violations] == ["R6"]
+    assert "EC2-A" in violations[0].reason
+
+
+def healthy_target(instance_id, port=8080, state="healthy"):
+    return {"Target": {"Id": instance_id, "Port": port}, "TargetHealth": {"State": state}}
+
+
+@pytest.mark.parametrize(
+    ("rows", "ready"),
+    [
+        ([healthy_target(EC2B), healthy_target(EC2A)], True),
+        ([healthy_target(EC2A)], False),
+        ([healthy_target(EC2A), healthy_target("fake-other-ec2")], False),
+        ([healthy_target(EC2A), healthy_target(EC2B, port=80)], False),
+        ([healthy_target(EC2A), healthy_target(EC2B, state="initial")], False),
+        ([healthy_target(EC2A), healthy_target(EC2B), healthy_target("fake-other-ec2")], False),
+    ],
+    ids=["both", "one", "wrong-instance", "wrong-port", "unhealthy", "extra"],
+)
+def test_origin_requires_exact_healthy_targets(rows, ready):
+    assert gate.expected_targets_are_healthy(rows, EC2A, EC2B, 8080) is ready
+
+
+def test_wait_target_health_stops_if_one_target_is_missing(monkeypatch):
+    monkeypatch.setattr(gate, "HEALTH_TIMEOUT_SECONDS", 0)
+    assert gate.wait_target_health(FakeAws(registered=(EC2A,))) == 1
+
+
+def test_wait_target_health_passes_when_both_targets_are_healthy():
+    assert gate.wait_target_health(FakeAws(registered=(EC2A, EC2B))) == 0
