@@ -239,12 +239,14 @@ ap-northeast-2에는 인증서가 없음
 | `/boaz/infra/TARGET_GROUP_ARN` | String | 없음 |
 | `/boaz/infra/S3_BUCKET` | String | 없음 |
 
-앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있음. Terraform에서 값을 관리하지 않음. 2026-10-15 재조사에서 이름·type·KMS 변동 없음
+앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있음. Terraform에서 값을 관리하지 않음. 2026-10-15 재조사에서 이름·type·KMS 변동 없음. 2026-11-08 `DB_URL`, `DB_USERNAME`을 SecureString으로 전환했고(backend#219), 2026-11-23 재조사(값 미조회, 이름·type·KMS·버전만)에서 SecureString 8개, String 6개를 확인함
 
 | Type | 이름 | KMS |
 |---|---|---|
-| SecureString | `DB_PASSWORD`, `JWT_SECRET`, `GOOGLE_CLIENT_SECRET`, `KAKAO_CLIENT_SECRET`, `NAVER_CLIENT_SECRET`, `SWAGGER_PASSWORD` | `alias/aws/ssm` |
-| String | `DB_URL`, `DB_USERNAME`, `GOOGLE_CLIENT_ID`, `KAKAO_CLIENT_ID`, `NAVER_CLIENT_ID`, `SWAGGER_USER`, `S3_ARCHIVING_BUCKET_NAME`, `S3_RECRUITMENT_BUCKET_NAME` | 없음 |
+| SecureString | `DB_PASSWORD`, `DB_URL`, `DB_USERNAME`, `JWT_SECRET`, `GOOGLE_CLIENT_SECRET`, `KAKAO_CLIENT_SECRET`, `NAVER_CLIENT_SECRET`, `SWAGGER_PASSWORD` | `alias/aws/ssm` |
+| String | `GOOGLE_CLIENT_ID`, `KAKAO_CLIENT_ID`, `NAVER_CLIENT_ID`, `SWAGGER_USER`, `S3_ARCHIVING_BUCKET_NAME`, `S3_RECRUITMENT_BUCKET_NAME` | 없음 |
+
+- `DB_URL`, `DB_USERNAME`은 콘솔에서 삭제한 뒤 SecureString으로 다시 만들어 버전이 1이고 이전 String 버전 기록이 없음. 삭제로 없어진 태그(`Project`, `Environment`)는 다시 붙임
 
 ## 13. 스토리지 (S3)
 
