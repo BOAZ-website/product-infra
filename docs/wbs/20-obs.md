@@ -52,7 +52,7 @@
 ## 확인 필요 사항
 
 - 경보 수신: 이메일(SNS 직접, GitHub 알림 주소)과 Discord(SNS→Lambda→웹훅) 둘 다로 확정(2026-10-02, decisions.md "경보 수신 이메일·임계값"). 2026-11-23에 Discord를 기본 경로로 하고 이메일은 Discord 전달 실패 때만 쓰는 방식이 제안됨(decisions.md "경보 수신 경로", 상태 대기). 확정 전에는 이메일 직접 구독이 현행 경로이며, 2026-12 시즌 동안 Lambda가 없으므로 계속 이 경로를 씀
-- 경보 수신 이메일은 개인 주소 대신 팀 공용 Google 그룹 주소 1개로 바꾸는 방안이 제안됨(decisions.md "경보 수신 이메일 관리 방식", 상태 대기). 2026-11-24에 그룹 주소 구독을 추가로 만들었고, 개인 구독 정리는 같은 예외 범위에서 진행함(decisions.md "Phase 2 2차 apply 마감" 행의 예외 참조)
+- 경보 수신 이메일은 개인 주소 대신 팀 공용 Google 그룹 주소 1개로 바꿈(2026-11-24 시행, decisions.md "경보 수신 이메일 관리 방식"). 서울·us-east-1 경보 주제 모두 그룹 주소 구독 1개만 남고 개인 주소 구독은 삭제함(decisions.md "Phase 2 2차 apply 마감" 행의 예외). 수신자 교체는 그룹 멤버 추가·삭제로 하며 AWS·Terraform 변경이 필요 없음
 - RDS 여유 메모리 경보 임계값: 초기 FreeableMemory 50MB로 시작(최근 14일 최소 75.6MB·평균 107.9MB·과거 저점 약 25MB 근거). 구축 중 알림 빈도 보고 조정
 - 진행 순서: OBS-01-01~05(CloudWatch Agent·경보·SNS 이메일)를 먼저 끝내고 OBS-01-06(Discord Lambda)을 마지막에 함. plan 정책의 Lambda 코드 조회 거부 제거와 `archive` provider 추가는 2026-10-03 완료(decisions.md). 정책 제거는 bootstrap apply 후 적용되므로 Lambda를 state에 넣기 전에 apply 여부를 인프라 리드에게 확인함
 - state 저장소는 Phase 1에서 준비됨(#25·#26). 경보 자원은 처음부터 Terraform으로 만듦
