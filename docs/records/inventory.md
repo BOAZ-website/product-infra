@@ -288,8 +288,8 @@ ap-northeast-2에는 인증서가 없음
 
 | 자원 | 리전 | 식별자·현재 설정 | ownership |
 |---|---|---|---|
-| SNS 주제 | ap-northeast-2 | `boaz-alerts`(표시 이름 같음, 기본 정책). 이메일 구독 3개(2026-11-15 1개 추가) | managed |
-| SNS 주제 | us-east-1 | `boaz-prod-alerts-us-east-1`(2026-11-15 Terraform 생성). 이메일 구독 3개 | managed |
+| SNS 주제 | ap-northeast-2 | `boaz-alerts`(표시 이름 같음, 기본 정책). 이메일 구독 3개(2026-11-15 1개 추가). 2026-11-24 팀 공용 그룹 주소 구독 1개로 정리(개인 주소 구독 3개 삭제), 승인됨 | managed |
+| SNS 주제 | us-east-1 | `boaz-prod-alerts-us-east-1`(2026-11-15 Terraform 생성). 이메일 구독 3개. 2026-11-24 팀 공용 그룹 주소 구독 1개로 정리, 승인됨. 같은 날 만든 개인 주소 구독 2개는 승인 대기 상태라 삭제 API로 지울 수 없어 Terraform state에서만 빠짐(관리 대상 아님). 승인하지 않으면 생성 3일 뒤 AWS가 자동 삭제함 | managed |
 | 로그 그룹 | ap-northeast-2 | `/boaz/api/application`, 보관 30일, 2026-05-16 생성 | managed |
 | 로그 그룹 | ap-northeast-2 | `/aws/rds/instance/boaz-prod-db/error`(RDS log export) | unconfirmed (database 그룹에서 정함) |
 | CloudWatch Agent | - | EC2에서 동작 중. 사용자 지정 네임스페이스 `BOAZ/Backend`(`mem_used_percent`, `disk_used_percent`) | 해당 없음(EC2 안 설정) |
