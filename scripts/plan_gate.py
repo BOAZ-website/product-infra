@@ -214,12 +214,30 @@ _DELETE_REASONS = {
 }
 
 
+# 예외: 경보 수신 이메일 구독을 `alert_emails` 키 제거로 삭제하는 것만 통과시킨다(수신자 교체·정리용, 이메일 구독 삭제는
+# 알림 경로에서 수신자만 빼는 일이라 서비스 자원에 영향 없음). 교체(create 포함)·다른 사유·다른 모듈·다른 자원은 그대로 차단한다
+_ALLOWED_DELETE_TYPE = "aws_sns_topic_subscription"
+_ALLOWED_DELETE_MODULE_PREFIX = "module.obs."
+_ALLOWED_DELETE_REASON = "delete_because_each_key"
+
+
+def _is_allowed_obs_subscription_delete(rc: dict, actions: list[str]) -> bool:
+    return (
+        rc.get("type") == _ALLOWED_DELETE_TYPE
+        and str(rc.get("address", "")).startswith(_ALLOWED_DELETE_MODULE_PREFIX)
+        and actions == ["delete"]
+        and rc.get("action_reason") == _ALLOWED_DELETE_REASON
+    )
+
+
 def check_unprotected_delete(plan: dict) -> list[Violation]:
     out = []
     for rc in _managed(plan):
         if rc.get("type") in PROTECTED_TYPES:
             continue  # G1이 판정
         actions = _actions(rc)
+        if _is_allowed_obs_subscription_delete(rc, actions):
+            continue
         if "delete" in actions:
             kind = "교체" if "create" in actions else "삭제"
             why = _DELETE_REASONS.get(rc.get("action_reason", ""), "")
