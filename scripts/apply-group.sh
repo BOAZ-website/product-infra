@@ -23,6 +23,16 @@ if [[ -n "${issue}" && ! "${issue}" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
+# 동결 그룹: 시즌 전환(season-up.sh)이 Terraform 밖에서 바꾸는 자원을 가진 그룹은 동결 종료 전까지 apply하지 않는다
+# (decisions.md "Phase 2 2차 apply 마감", "2026-12 시즌 apply 금지 유예"). compute를 import한 뒤 시즌 상태에서 apply하면
+# EC2-B 정지·app 태그 제거가, database·cdn은 Multi-AZ 해제·api 원본 되돌림이 나온다.
+# 동결 종료 뒤 착수할 때만 ALLOW_FROZEN_GROUP=1을 붙여 실행한다.
+FROZEN_GROUPS="compute database cdn"
+if [[ " ${FROZEN_GROUPS} " == *" ${group} "* && "${ALLOW_FROZEN_GROUP:-}" != "1" ]]; then
+  echo "${group} 그룹은 동결 그룹이라 apply하지 않음. 동결 종료 뒤 착수 때만 ALLOW_FROZEN_GROUP=1로 실행" >&2
+  exit 3
+fi
+
 root="$(git rev-parse --show-toplevel)"
 cd "${root}"
 tf=(terraform -chdir=envs/prod)
