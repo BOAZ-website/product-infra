@@ -27,7 +27,7 @@
 | Phase 5 리허설·이관 완료 | 차기 시즌 4주 전 [추정, 예: 2027-04-30] | 노션에서 배정 | 리허설 증적, 문서 완비, 구 스크립트 deprecated | DOC-08~12, OPS-04~10 | 완료 기준 8항목(→ `docs/overview/migration-plan.md` 8절) 증적, 리허설 2회 성공 |
 
 - 12월 전 목표는 Phase 2 1차와 관리자 페이지 경로(CDN-01, CDN-02 1단계, CDN-03)까지로 함(2026-11-18 변경, decisions.md "Phase 2 2차 apply 마감"). 이전 목표는 Phase 2 전체였음
-- 2026-12 시즌의 `envs/prod` apply 금지는 2026-11-24(season-up 시작 7일 전, OPS-01-01)부터 시작함. 그 전날인 2026-11-23이 동결 전 마지막 apply 가능일임
+- 2026-12 시즌의 `envs/prod` apply 금지는 2026-11-30부터 시작함. 마지막 apply 가능일은 2026-11-29임. OPS-01-01 기준(season-up 시작 7일 전)으로는 2026-11-24부터였으나, 2026-11-24 PO 결정으로 `envs/prod` 전체 그룹에 대해 유예함(decisions.md "2026-12 시즌 apply 금지 유예")
 - CMP·RDB를 동결 전에 import하지 않는 이유: `envs/prod`는 모든 그룹이 state 하나를 같이 씀. compute를 import한 뒤 `season-up.sh`로 시즌을 켜면, 시즌 중 어느 그룹의 apply든 `season.auto.tfvars`(off) 기준으로 EC2-B를 중지하고 `app` 태그를 지움. 동결 전에는 비시즌 상태에서 재조사·코드·PR까지만 진행하고 apply하지 않음
 - 2027-01 배포 주에는 CodeDeploy·IAM apply 금지
 
@@ -100,7 +100,7 @@
 ### 운영 구간 (2026-12 시즌 ~ 2027-01)
 
 > 시즌 전환은 공통 지침(`docs/records/decisions.md` "모집 시즌 전환 공통 지침")을 따름. 2026-12 리크루팅 적용 날짜:
-> - `envs/prod` apply 금지: 2026-11-24(화)부터(season-up 시작 7일 전, OPS-01-01). 마지막 apply 가능일 2026-11-23
+> - `envs/prod` apply 금지: 2026-11-30(월)부터. 마지막 apply 가능일 2026-11-29. OPS-01-01 기준일 2026-11-24를 PO 결정으로 유예함(decisions.md "2026-12 시즌 apply 금지 유예")
 > - season-up 버퍼: 2026-12-01(화)~12-05(토). 둘째 주 2026-12-07(월)부터 동결(변동 금지)
 > - season-down: 2027-01 첫째 주 전환. 동결 종료는 season-down 후 3일
 
