@@ -113,6 +113,7 @@ data "aws_iam_policy_document" "terraform_plan" {
       "logs:StartQuery",
       "logs:GetQueryResults",
       "logs:StartLiveTail",
+      "logs:GetLogRecord",
       "ec2:GetPasswordData",
       "ec2:GetConsoleOutput",
       "ec2:GetConsoleScreenshot",
