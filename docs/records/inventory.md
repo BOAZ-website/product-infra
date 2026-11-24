@@ -239,12 +239,14 @@ ap-northeast-2에는 인증서가 없음
 | `/boaz/infra/TARGET_GROUP_ARN` | String | 없음 |
 | `/boaz/infra/S3_BUCKET` | String | 없음 |
 
-앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있음. Terraform에서 값을 관리하지 않음. 2026-10-15 재조사에서 이름·type·KMS 변동 없음
+앱 파라미터 14개는 루트 네임스페이스(`/boaz/app/*` 아님)에 있음. Terraform에서 값을 관리하지 않음. 2026-10-15 재조사에서 이름·type·KMS 변동 없음. 2026-11-08 `DB_URL`, `DB_USERNAME`을 SecureString으로 전환했고(backend#219), 2026-11-23 재조사(값 미조회, 이름·type·KMS·버전만)에서 SecureString 8개, String 6개를 확인함
 
 | Type | 이름 | KMS |
 |---|---|---|
-| SecureString | `DB_PASSWORD`, `JWT_SECRET`, `GOOGLE_CLIENT_SECRET`, `KAKAO_CLIENT_SECRET`, `NAVER_CLIENT_SECRET`, `SWAGGER_PASSWORD` | `alias/aws/ssm` |
-| String | `DB_URL`, `DB_USERNAME`, `GOOGLE_CLIENT_ID`, `KAKAO_CLIENT_ID`, `NAVER_CLIENT_ID`, `SWAGGER_USER`, `S3_ARCHIVING_BUCKET_NAME`, `S3_RECRUITMENT_BUCKET_NAME` | 없음 |
+| SecureString | `DB_PASSWORD`, `DB_URL`, `DB_USERNAME`, `JWT_SECRET`, `GOOGLE_CLIENT_SECRET`, `KAKAO_CLIENT_SECRET`, `NAVER_CLIENT_SECRET`, `SWAGGER_PASSWORD` | `alias/aws/ssm` |
+| String | `GOOGLE_CLIENT_ID`, `KAKAO_CLIENT_ID`, `NAVER_CLIENT_ID`, `SWAGGER_USER`, `S3_ARCHIVING_BUCKET_NAME`, `S3_RECRUITMENT_BUCKET_NAME` | 없음 |
+
+- `DB_URL`, `DB_USERNAME`은 콘솔에서 삭제한 뒤 SecureString으로 다시 만들어 버전이 1이고 이전 String 버전 기록이 없음. 삭제로 없어진 태그(`Project`, `Environment`)는 다시 붙임
 
 ## 13. 스토리지 (S3)
 
@@ -286,8 +288,8 @@ ap-northeast-2에는 인증서가 없음
 
 | 자원 | 리전 | 식별자·현재 설정 | ownership |
 |---|---|---|---|
-| SNS 주제 | ap-northeast-2 | `boaz-alerts`(표시 이름 같음, 기본 정책). 이메일 구독 3개(2026-11-15 1개 추가) | managed |
-| SNS 주제 | us-east-1 | `boaz-prod-alerts-us-east-1`(2026-11-15 Terraform 생성). 이메일 구독 3개 | managed |
+| SNS 주제 | ap-northeast-2 | `boaz-alerts`(표시 이름 같음, 기본 정책). 이메일 구독 3개(2026-11-15 1개 추가). 2026-11-24 팀 공용 그룹 주소 구독 1개로 정리(개인 주소 구독 3개 삭제), 승인됨 | managed |
+| SNS 주제 | us-east-1 | `boaz-prod-alerts-us-east-1`(2026-11-15 Terraform 생성). 이메일 구독 3개. 2026-11-24 팀 공용 그룹 주소 구독 1개로 정리, 승인됨. 같은 날 만든 개인 주소 구독 2개는 승인 대기 상태라 삭제 API로 지울 수 없어 Terraform state에서만 빠짐(관리 대상 아님). 승인하지 않으면 생성 3일 뒤 AWS가 자동 삭제함 | managed |
 | 로그 그룹 | ap-northeast-2 | `/boaz/api/application`, 보관 30일, 2026-05-16 생성 | managed |
 | 로그 그룹 | ap-northeast-2 | `/aws/rds/instance/boaz-prod-db/error`(RDS log export) | unconfirmed (database 그룹에서 정함) |
 | CloudWatch Agent | - | EC2에서 동작 중. 사용자 지정 네임스페이스 `BOAZ/Backend`(`mem_used_percent`, `disk_used_percent`) | 해당 없음(EC2 안 설정) |

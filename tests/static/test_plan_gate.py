@@ -105,6 +105,41 @@ def test_G4_moved_resource_passes():
     assert plan_gate.evaluate(plan(change)) == []
 
 
+def obs_subscription(actions, reason=None, address=None):
+    change = rc("aws_sns_topic_subscription", actions, name='email["ops_1"]')
+    change["address"] = address or 'module.obs.aws_sns_topic_subscription.email["ops_1"]'
+    if reason:
+        change["action_reason"] = reason
+    return change
+
+
+def test_G4_obs_subscription_key_removal_passes():
+    # 수신자 정리: alert_emails 키를 빼서 SNS 이메일 구독만 삭제하는 plan은 통과
+    change = obs_subscription(["delete"], "delete_because_each_key")
+    assert plan_gate.evaluate(plan(change)) == []
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        obs_subscription(["delete", "create"], "replace_because_cannot_update"),  # 교체(수신 주소 변경)
+        obs_subscription(["create", "delete"], "delete_because_each_key"),  # create가 함께 있으면 교체
+        obs_subscription(["delete"]),  # 사유 없음
+        obs_subscription(["delete"], "delete_because_no_resource_config"),  # 코드에서 사라진 경우
+        obs_subscription(["delete"], "delete_because_each_key", address='module.net.aws_sns_topic_subscription.email["ops_1"]'),  # 다른 모듈
+    ],
+)
+def test_G4_obs_subscription_other_delete_or_replace_is_blocked(change):
+    assert rules(plan_gate.evaluate(plan(change))) == ["G4"]
+
+
+def test_G4_obs_exception_does_not_cover_other_obs_resources():
+    change = rc("aws_sns_topic", ["delete"], name="alerts")
+    change["address"] = "module.obs.aws_sns_topic.alerts"
+    change["action_reason"] = "delete_because_each_key"
+    assert rules(plan_gate.evaluate(plan(change))) == ["G4"]
+
+
 def test_G1_data_source_ignored():
     assert plan_gate.evaluate(plan(rc("aws_instance", ["delete"], mode="data"))) == []
 
