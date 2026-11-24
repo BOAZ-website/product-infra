@@ -90,7 +90,7 @@
 - 동결 전 묶음에서 옮긴 CDN-01, CDN-02 1단계, CDN-03도 이 묶음에서 함. import 때 시즌 전 콘솔 변경 값(`docs/wbs/26-cdn.md` "시즌 전 콘솔 변경")으로 코드를 맞춤
 
 6. CMP-01 EC2·EIP 그룹 (SEA-01·IAM-02·NET-01 이후)
-7. RDB-01 RDS 그룹 (SEA-01·NET-01 이후, CMP-01과 동시 진행 가능). apply는 2027-01 season-down 뒤
+7. RDB-01 RDS 그룹 (SEA-01·NET-01 이후, CMP-01과 동시 진행 가능). apply는 season-down(서류 모집 마감 직후, 날짜 미정) 뒤
 8. CMP-02 Target Group·ALB 그룹 (CMP-01 이후)
 9. CDN-02 2단계 api import (CMP-02 이후)
 10. CMP-03 EC2-B 재배포 순서 게이트 (CMP-02·DEP-02 이후)
@@ -106,7 +106,7 @@
 > - `envs/prod` apply 금지: 2026-11-30(월)부터. 실제 apply 마감은 2026-11-26 밤(예외: 2026-11-27 12:00까지 정해진 obs 항목만). OPS-01-01 기준일 2026-11-24를 PO 결정으로 유예함(decisions.md "2026-12 시즌 apply 금지 유예")
 > - season-up 실행: 2026-11-27(금) 낮(28기 서류 접수 시작 2026-11-30 00:00 전, decisions.md "2026-12 season-up 시점·담당"). season-up 뒤에는 `envs/prod` apply를 하지 않음
 > - season-up 버퍼(기존 계획): 2026-12-01(화)~12-05(토). 둘째 주 2026-12-07(월)부터 동결(변동 금지)
-> - season-down: 2027-01 첫째 주 전환. 동결 종료는 season-down 후 3일
+> - season-down: 서류 모집 마감 직후 전환(2026-11-25 변경, 날짜 미정). 동결 종료는 season-down 후 3일
 
 1. OPS-01 2026-12 시즌 동결 시행(2026-12-07부터)
 2. OPS-02 시즌 종료 후 plan 재확인

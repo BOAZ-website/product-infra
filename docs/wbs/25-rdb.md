@@ -38,7 +38,7 @@
 
 ## 확인 필요 사항
 
-- import 시점: RDB-01 import·apply는 2027-01 season-down 뒤에 함(2026-11-24 PO 결정, decisions.md "RDB·CDN import 시즌 뒤 연기"). 코드와 PR은 미리 준비할 수 있음. season-up이 Terraform 밖에서 Multi-AZ를 켜므로, 시즌 중 import하면 plan에 Multi-AZ를 끄는 변경이 나옴
+- import 시점: RDB-01 import·apply는 season-down(서류 모집 마감 직후, 날짜 미정) 뒤에 함(2026-11-24 PO 결정, decisions.md "RDB·CDN import 시즌 뒤 연기"). 코드와 PR은 미리 준비할 수 있음. season-up이 Terraform 밖에서 Multi-AZ를 켜므로, 시즌 중 import하면 plan에 Multi-AZ를 끄는 변경이 나옴
 - 암호화 키: AWS 관리형 기본 RDS 키(`alias/aws/rds`)로 확인(2026-10-02 조사). 고객 생성 키 아님 → Terraform 키 관리 불필요, `storage_encrypted = true`와 현행 키로 맞춰 교체 방지
 - 파라미터 그룹 `boaz-prod-mysql84`: 기본값과 다른 값은 `time_zone = Asia/Seoul`(immediate) 하나뿐으로 확인(2026-10-02 조사). 엔진 MySQL 8.4.11
 - 느린 쿼리 로그: import 연기 중이라 콘솔로 켜고 당일 decisions.md에 기록함. season-up(2026-11-27) 전에 끝내지 못하면 내보내기는 시즌 뒤로 미룸
