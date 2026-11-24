@@ -79,3 +79,4 @@
   - CloudFront가 보내는 원본 검증 헤더를 원본에서 검사해 요청을 차단하는 작업은 평시 EC2-A의 HTTPS 전환과 함께 진행함. 평시 원본이 HTTP인 상태에서 검증 헤더를 보내면 헤더 값도 평문으로 전달되기 때문임
   - 순서: EC2-A HTTPS와 인증서 자동 갱신 준비 → 시즌 전환(season-up·season-down)과 배포 헬스체크 정상 동작 확인 → 검증 헤더 차단 적용
   - `CloudFront-Viewer-Address`는 검증 헤더 검사를 통과한 요청에서만 사용자 IP로 사용함
+  - 예외: api의 `CloudFront-Viewer-Address` 전달(원본 요청 정책 변경)만 2026-11-25 콘솔로 먼저 적용함. 검증 헤더 검사 전까지 로그 기록에만 씀(decisions.md "api 클라이언트 IP 헤더 전달(시즌 전)")
