@@ -22,9 +22,13 @@ RETRY_AFTER_CAP_SECONDS = 5
 DEFAULT_RETRY_WAIT_SECONDS = 1
 MAX_ATTEMPTS = 2  # 처음 1번 + 다시 보내기 1번
 DISCORD_CONTENT_LIMIT = 2000
-# SSM 조회 제한. 연결·응답 각 2초, SDK 시도 2번(최악 약 8초)
+# SSM 조회 제한. 연결·응답 각 2초, SDK 총 시도 2번(첫 요청 포함, total_max_attempts)
+# - 최악 약 8초 + 재시도 전 대기 최대 1초(standard 모드 첫 재시도 대기 상한)
 SSM_TIMEOUT_SECONDS = 2
 SSM_MAX_ATTEMPTS = 2
+SSM_RETRY_WAIT_MAX_SECONDS = 1
+# 웹훅 URL은 이 접두사로 시작해야 함. 아니면 URL 없이 실패시킴(토큰이 오류 메시지에 남지 않게)
+WEBHOOK_PREFIXES = ("https://discord.com/api/webhooks/", "https://discordapp.com/api/webhooks/")
 
 # 제목 형식. 나중에 바꾸기 쉽게 한 곳에 둠
 TITLE_FORMAT = "### {label} · {name}"
@@ -61,10 +65,17 @@ def _webhook_url() -> str:
     config = Config(
         connect_timeout=SSM_TIMEOUT_SECONDS,
         read_timeout=SSM_TIMEOUT_SECONDS,
-        retries={"max_attempts": SSM_MAX_ATTEMPTS, "mode": "standard"},
+        retries={"total_max_attempts": SSM_MAX_ATTEMPTS, "mode": "standard"},
     )
     response = boto3.client("ssm", config=config).get_parameter(Name=os.environ["WEBHOOK_PARAMETER_NAME"], WithDecryption=True)
-    return response["Parameter"]["Value"]
+    return check_webhook_url(response["Parameter"]["Value"])
+
+
+def check_webhook_url(url) -> str:
+    """웹훅 URL 형식 검사. 틀리면 URL을 넣지 않은 DeliveryError."""
+    if not isinstance(url, str) or not url.startswith(WEBHOOK_PREFIXES):
+        raise DeliveryError("웹훅 파라미터 형식이 잘못됨")
+    return url
 
 
 def with_wait(url: str) -> str:
@@ -244,6 +255,9 @@ def send(content: str, url: str, post=_post, sleep=time.sleep) -> None:
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             status, retry_after = post(url, content)
+        except ValueError:
+            # urllib의 URL 처리 오류 메시지에는 URL 원문(토큰 포함)이 들어감. 원문과 예외 체인을 버림
+            raise DeliveryError("웹훅 URL 처리 실패") from None
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             status, retry_after, last = None, None, f"연결 실패: {type(error).__name__}"
         else:
