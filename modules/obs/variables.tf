@@ -36,6 +36,16 @@ variable "discord_webhook_parameter_name" {
   type        = string
 }
 
+variable "health_check_url" {
+  description = "api 헬스체크 주소(OBS-01-08). 사용자와 같은 경로로 부르도록 api CloudFront 도메인을 씀"
+  type        = string
+
+  validation {
+    condition     = startswith(var.health_check_url, "https://")
+    error_message = "health_check_url은 https 주소여야 합니다."
+  }
+}
+
 variable "lambda_log_retention_days" {
   description = "Lambda 로그 그룹 보관 기간(일)"
   type        = number
