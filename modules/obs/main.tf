@@ -1,9 +1,9 @@
 # obs 모듈
 # 담당 명세서: OBS (docs/wbs/20-obs.md) · 이슈: #48 OBS-01
-# 관리 자원: SNS 주제·구독, CloudWatch 경보, 로그 그룹(30일), Discord 알림 Lambda·실행 역할. CloudFront 지표 경보와 그 SNS 주제는 us-east-1
+# 관리 자원: SNS 주제·구독, CloudWatch 경보, 로그 그룹(앱·RDS 90일), Discord 알림 Lambda·실행 역할. CloudFront 지표 경보와 그 SNS 주제는 us-east-1
 #
 # 파일 구성
-# - main.tf: SNS 주제·이메일 구독(서울, us-east-1), 앱 로그 그룹
+# - main.tf: SNS 주제·이메일 구독(서울, us-east-1), 앱 로그 그룹, RDS 로그 그룹
 # - alarms.tf: RDS·EC2 경보(서울), CloudFront 경보(us-east-1)
 # - Discord 알림 Lambda(OBS-01-06)는 별도 PR에서 추가함(20-obs.md "진행 순서")
 #
@@ -51,7 +51,7 @@ resource "aws_sns_topic_subscription" "email_us_east_1" {
   endpoint  = each.value
 }
 
-# 앱 로그 그룹(OBS-01-03). 기존 그룹 import(보관 30일). 삭제되면 로그가 사라지므로 prevent_destroy를 둠
+# 앱 로그 그룹(OBS-01-03). 기존 그룹 import(보관 90일, 2026-11-24 30일에서 변경). 삭제되면 로그가 사라지므로 prevent_destroy를 둠
 resource "aws_cloudwatch_log_group" "app" {
   name              = var.app_log_group_name
   retention_in_days = var.log_retention_days
