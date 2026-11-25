@@ -49,9 +49,13 @@ module "obs" {
   ec2_names              = { ec2_a = "boaz-api-prod-A", ec2_b = "boaz-api-prod-B" }
   db_instance_identifier = "boaz-prod-db"
 
-  # CloudWatch Agent가 쓰는 기존 로그 그룹(2026-05-16 생성, 보관 30일)
+  # CloudWatch Agent가 쓰는 기존 로그 그룹(2026-05-16 생성). 2026-11-24 30일에서 90일로 변경(OBS-01-03, 사후 원인 조사용)
   app_log_group_name = "/boaz/api/application"
-  log_retention_days = 30
+  log_retention_days = 90
+
+  # RDS 로그 그룹(OBS-01-07). error는 import, slowquery는 새로 만듦(2026-11-25 조회 시 없음)
+  rds_log_types          = ["error", "slowquery"]
+  rds_log_retention_days = 90
 
   existing_alarms = local.obs_existing_alarms
   group_vars      = local.group_vars.obs

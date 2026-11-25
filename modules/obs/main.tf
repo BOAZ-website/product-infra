@@ -60,3 +60,17 @@ resource "aws_cloudwatch_log_group" "app" {
     prevent_destroy = true
   }
 }
+
+# RDS 로그 그룹(OBS-01-07). RDS 로그 내보내기가 쓰는 이름이라 바꾸면 안 됨
+# - error: 기존 그룹 import(무기한 보관이었음). slowquery: 새로 만듦. 내보내기는 이 apply 뒤에 콘솔로 켬(docs/wbs/25-rdb.md)
+# - obs 그룹에서만 관리하고 database 코드에는 넣지 않음(RDB-01-06)
+resource "aws_cloudwatch_log_group" "rds" {
+  for_each = toset(var.rds_log_types)
+
+  name              = "/aws/rds/instance/${var.db_instance_identifier}/${each.key}"
+  retention_in_days = var.rds_log_retention_days
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}

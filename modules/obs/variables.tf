@@ -32,7 +32,17 @@ variable "app_log_group_name" {
 }
 
 variable "log_retention_days" {
-  description = "로그 그룹 보관 기간(일)"
+  description = "앱 로그 그룹 보관 기간(일)"
+  type        = number
+}
+
+variable "rds_log_types" {
+  description = "로그 그룹을 관리할 RDS 로그 종류. RDS 로그 내보내기 이름(error, slowquery 등)과 같음"
+  type        = list(string)
+}
+
+variable "rds_log_retention_days" {
+  description = "RDS 로그 그룹 보관 기간(일). 앱 로그와 따로 둠(OBS-01-07)"
   type        = number
 }
 
