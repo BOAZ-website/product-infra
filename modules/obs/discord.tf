@@ -58,8 +58,9 @@ resource "aws_sns_topic_subscription" "alert_failures_email" {
 
 # 정책은 jsonencode로 씀(mock provider 테스트에서 aws_iam_policy_document data가 JSON을 만들지 않음)
 resource "aws_iam_role" "discord_notify" {
-  name        = "${local.discord_function_name}-role"
-  description = "Discord 경보 전달 Lambda 실행 역할(OBS-01-06)"
+  name = "${local.discord_function_name}-role"
+  # IAM 역할 설명은 라틴 문자만 허용됨(한글 불가)
+  description = "Execution role for the Discord alert notifier Lambda (OBS-01-06)"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
