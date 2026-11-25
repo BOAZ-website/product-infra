@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import pathlib
+import re
 import urllib.error
 
 import pytest
@@ -110,6 +111,13 @@ def test_ok_message_is_short():
     assert text.startswith("### 🟢 복구 · EC2-A-CPU 과부하\n- 현재 값: 12.4%")
     assert "- 상태 변화: 경보 → 정상" in text
     assert "조건" not in text and "먼저 볼 것" not in text and "요약" not in text
+
+
+@pytest.mark.parametrize("old", ["INSUFFICIENT_DATA", None])
+def test_ok_not_from_alarm_is_normal_not_recovery(old):
+    # 새 경보 생성·데이터 재개(데이터 부족 → 정상)는 장애 복구가 아님
+    text = _format(NewStateValue="OK", OldStateValue=old)
+    assert text.startswith("### 🟢 정상 · EC2-A-CPU 과부하")
 
 
 def test_insufficient_data_label():
@@ -244,12 +252,38 @@ def test_handler_sends_each_record(monkeypatch):
     event = _alarm_event()
     event["Records"].append({"Sns": {"Subject": "두 번째", "Message": "본문"}})
     assert handler.lambda_handler(event, None) == {"delivered": 2}
-    assert len(sent) == 2 and all(url == URL for _, url in sent)
+    assert len(sent) == 2 and all(url == URL + "?wait=true" for _, url in sent)
+
+
+def test_handler_reads_webhook_every_invocation(monkeypatch):
+    # 캐시하지 않아 시즌 중 SSM의 웹훅을 바꾸면 다음 호출부터 바로 반영됨
+    urls = iter(["https://discord.invalid/old", "https://discord.invalid/new"])
+    sent = []
+    monkeypatch.setattr(handler, "_webhook_url", lambda: next(urls))
+    monkeypatch.setattr(handler, "send", lambda content, url: sent.append(url))
+    handler.lambda_handler(_alarm_event(), None)
+    handler.lambda_handler(_alarm_event(), None)
+    assert sent == ["https://discord.invalid/old?wait=true", "https://discord.invalid/new?wait=true"]
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://discord.invalid/api/webhooks/1/t", "https://discord.invalid/api/webhooks/1/t?wait=true"),
+        ("https://discord.invalid/w?thread_id=9", "https://discord.invalid/w?thread_id=9&wait=true"),
+        ("https://discord.invalid/w?wait=false", "https://discord.invalid/w?wait=true"),
+    ],
+)
+def test_with_wait_keeps_existing_query(url, expected):
+    assert handler.with_wait(url) == expected
 
 
 def test_timeout_budget_fits_lambda_timeout():
-    # Lambda timeout 15초(modules/obs/discord.tf) 안에 HTTP 2번 + 최대 대기가 들어가야 함
-    worst = handler.HTTP_TIMEOUT_SECONDS * handler.MAX_ATTEMPTS + handler.RETRY_AFTER_CAP_SECONDS
+    # Lambda timeout(modules/obs/discord.tf) 안에 SSM 조회 최악 + HTTP 2번 + 최대 대기가 들어가야 함
+    ssm_worst = handler.SSM_TIMEOUT_SECONDS * 2 * handler.SSM_MAX_ATTEMPTS
+    worst = ssm_worst + handler.HTTP_TIMEOUT_SECONDS * handler.MAX_ATTEMPTS + handler.RETRY_AFTER_CAP_SECONDS
     tf = (_PATH.parents[2] / "discord.tf").read_text(encoding="utf-8")
-    assert "timeout          = 15" in tf
-    assert worst < 15
+    timeout = int(re.search(r"^\s*timeout\s*=\s*(\d+)", tf, re.M).group(1))
+    assert timeout == 30
+    # 콜드 스타트(boto3 import 등) 여유로 5초 이상 남김
+    assert worst + 5 <= timeout
