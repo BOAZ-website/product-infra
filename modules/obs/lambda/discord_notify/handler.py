@@ -171,12 +171,12 @@ def _format_alarm(alarm: dict) -> str:
         fields.append(("리전", _escape(alarm["Region"])))
     if alarm.get("StateChangeTime"):
         fields.append(("시각", _kst(alarm["StateChangeTime"])))
-    lines += [f"- **{label}:** {text}" for label, text in fields]
+    lines += [f"- {label}: {text}" for label, text in fields]
 
     guide = description[1:]
     if state != "OK" and guide:
         # 대처 항목은 '먼저 볼 것' 아래에 4칸 들여 써서 하위 목록으로 보임
-        lines.append("- **먼저 볼 것**")
+        lines.append("- 먼저 볼 것")
         for number, line in enumerate(guide, start=1):
             body = re.sub(r"^([-*] |[0-9]+\. )", "", line)
             lines.append(f"    {number}. {_escape(body)}")

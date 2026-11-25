@@ -87,12 +87,12 @@ def test_alarm_message_layout():
     assert text.splitlines() == [
         "### 🔴 경보 · EC2-A-CPU 과부하",
         "EC2-A 서버 CPU 사용률이 높음",
-        "- **현재 값:** 85.2%",
-        "- **조건:** 5분 평균 CPUUtilization ≥ 80%, 2번 연속",
-        "- **상태 변화:** 정상 → 경보",
-        "- **리전:** 서울",
-        "- **시각:** 2026-11-25 12:00 KST",
-        "- **먼저 볼 것**",
+        "- 현재 값: 85.2%",
+        "- 조건: 5분 평균 CPUUtilization ≥ 80%, 2번 연속",
+        "- 상태 변화: 정상 → 경보",
+        "- 리전: 서울",
+        "- 시각: 2026-11-25 12:00 KST",
+        "- 먼저 볼 것",
         "    1. 앱 로그 그룹 확인",
         "    2. WAF 차단 수 확인",
         "",
@@ -107,27 +107,27 @@ def test_ok_message_is_short():
         AlarmDescription="요약\n대처",
         NewStateReason="Threshold Crossed: 1 datapoint [12.4 (25/11/25 03:10:00)] was not greater than or equal to the threshold (80.0).",
     )
-    assert text.startswith("### 🟢 복구 · EC2-A-CPU 과부하\n- **현재 값:** 12.4%")
-    assert "- **상태 변화:** 경보 → 정상" in text
+    assert text.startswith("### 🟢 복구 · EC2-A-CPU 과부하\n- 현재 값: 12.4%")
+    assert "- 상태 변화: 경보 → 정상" in text
     assert "조건" not in text and "먼저 볼 것" not in text and "요약" not in text
 
 
 def test_insufficient_data_label():
     text = _format(NewStateValue="INSUFFICIENT_DATA", NewStateReason="Insufficient Data: 1 datapoint was unknown.")
     assert text.startswith("### ⚪ 데이터 부족 · ")
-    assert "- **사유:** Insufficient Data: 1 datapoint was unknown." in text
+    assert "- 사유: Insufficient Data: 1 datapoint was unknown." in text
 
 
 def test_us_east_1_region_and_link():
     text = _format(AlarmArn="arn:aws:cloudwatch:us-east-1:fake-account:alarm:x")
-    assert "- **리전:** 버지니아 북부(us-east-1)" in text
+    assert "- 리전: 버지니아 북부(us-east-1)" in text
     assert "https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#" in text
 
 
 def test_missing_optional_fields_still_formats():
     alarm = {"AlarmName": "x", "NewStateValue": "ALARM", "NewStateReason": "사유"}
     text = handler.format_message({"Message": json.dumps(alarm)})
-    assert text == "### 🔴 경보 · x\n- **사유:** 사유"
+    assert text == "### 🔴 경보 · x\n- 사유: 사유"
 
 
 @pytest.mark.parametrize(
