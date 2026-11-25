@@ -3,7 +3,8 @@
 - SNS가 비동기로 호출함. Lambda 비동기 재시도는 0회이고, 이 코드 안에서 한 번만 다시 보냄
 - Discord 응답이 2xx가 아니면(429 포함) 예외를 냄. 실패 시 대상(on-failure destination)이 원래 이벤트를 이메일 전용 주제로 넘김
 - 형식이 틀린 이벤트(SNS 메시지 구조가 아닌 입력)도 예외를 냄
-- 웹훅 URL은 SSM SecureString을 실행 시 읽음. URL을 로그에 남기지 않음
+- 웹훅 URL은 SSM SecureString을 호출마다 읽음(시즌 중 웹훅을 바꿔도 바로 반영됨). URL을 로그에 남기지 않음
+- 웹훅에 wait=true를 붙여 Discord가 메시지를 저장한 뒤 응답하게 함(기본값 false면 저장되지 않아도 2xx가 올 수 있음)
 - 표준 라이브러리만 씀(boto3는 Lambda 런타임에 포함). boto3는 함수 안에서 import해 테스트가 AWS 없이 돌게 함
 """
 
@@ -21,15 +22,19 @@ RETRY_AFTER_CAP_SECONDS = 5
 DEFAULT_RETRY_WAIT_SECONDS = 1
 MAX_ATTEMPTS = 2  # 처음 1번 + 다시 보내기 1번
 DISCORD_CONTENT_LIMIT = 2000
+# SSM 조회 제한. 연결·응답 각 2초, SDK 시도 2번(최악 약 8초)
+SSM_TIMEOUT_SECONDS = 2
+SSM_MAX_ATTEMPTS = 2
 
 # 제목 형식. 나중에 바꾸기 쉽게 한 곳에 둠
 TITLE_FORMAT = "### {label} · {name}"
 
 STATE_TITLES = {
     "ALARM": "🔴 경보",
-    "OK": "🟢 복구",
+    "OK": "🟢 정상",  # 경보 → 정상만 "복구"로 바꿔 씀(_title)
     "INSUFFICIENT_DATA": "⚪ 데이터 부족",
 }
+RECOVERED_TITLE = "🟢 복구"
 STATE_NAMES = {"ALARM": "경보", "OK": "정상", "INSUFFICIENT_DATA": "데이터 부족"}
 REGION_NAMES = {"ap-northeast-2": "서울", "us-east-1": "버지니아 북부(us-east-1)"}
 # SNS 경보 메시지의 Statistic은 대문자(AVERAGE)로 옴. 대문자로 맞춰 찾음
@@ -44,21 +49,36 @@ PERCENT_METRICS = {"CPUUtilization", "mem_used_percent", "disk_used_percent", "5
 BYTE_METRICS = {"FreeStorageSpace", "FreeableMemory"}
 KST = timezone(timedelta(hours=9))
 
-_webhook_url_cache = None
-
-
 class DeliveryError(Exception):
     """Discord 전달 실패. 실패 시 대상으로 넘기기 위해 Lambda 밖으로 던짐."""
 
 
 def _webhook_url() -> str:
-    global _webhook_url_cache
-    if _webhook_url_cache is None:
-        import boto3  # Lambda 런타임에만 있음
+    """SSM에서 웹훅 URL을 읽음. 캐시하지 않음(경보가 적어 호출마다 읽어도 됨)."""
+    import boto3  # Lambda 런타임에만 있음
+    from botocore.config import Config
 
-        response = boto3.client("ssm").get_parameter(Name=os.environ["WEBHOOK_PARAMETER_NAME"], WithDecryption=True)
-        _webhook_url_cache = response["Parameter"]["Value"]
-    return _webhook_url_cache
+    config = Config(
+        connect_timeout=SSM_TIMEOUT_SECONDS,
+        read_timeout=SSM_TIMEOUT_SECONDS,
+        retries={"max_attempts": SSM_MAX_ATTEMPTS, "mode": "standard"},
+    )
+    response = boto3.client("ssm", config=config).get_parameter(Name=os.environ["WEBHOOK_PARAMETER_NAME"], WithDecryption=True)
+    return response["Parameter"]["Value"]
+
+
+def with_wait(url: str) -> str:
+    """기존 쿼리를 지키면서 wait=true를 붙임."""
+    parts = urllib.parse.urlsplit(url)
+    query = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query, keep_blank_values=True) if k != "wait"]
+    query.append(("wait", "true"))
+    return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
+
+
+def _title(state: str, old: str | None) -> str:
+    if state == "OK" and old == "ALARM":
+        return RECOVERED_TITLE
+    return STATE_TITLES.get(state, state)
 
 
 def parse_sns_records(event) -> list[dict]:
@@ -149,7 +169,8 @@ def _format_alarm(alarm: dict) -> str:
     region = _region(alarm)
     description = [line.strip() for line in str(alarm.get("AlarmDescription") or "").splitlines() if line.strip()]
 
-    lines = [TITLE_FORMAT.format(label=STATE_TITLES.get(state, state), name=_escape(alarm["AlarmName"]))]
+    old = alarm.get("OldStateValue")
+    lines = [TITLE_FORMAT.format(label=_title(state, old), name=_escape(alarm["AlarmName"]))]
     if state != "OK" and description:
         lines.append(_escape(description[0]))
 
@@ -162,7 +183,6 @@ def _format_alarm(alarm: dict) -> str:
     condition = _condition(trigger)
     if state != "OK" and condition:
         fields.append(("조건", condition))
-    old = alarm.get("OldStateValue")
     if old:
         fields.append(("상태 변화", f"{STATE_NAMES.get(old, old)} → {STATE_NAMES.get(state, state)}"))
     if region:
@@ -243,7 +263,7 @@ def send(content: str, url: str, post=_post, sleep=time.sleep) -> None:
 
 def lambda_handler(event, context):
     records = parse_sns_records(event)
-    url = _webhook_url()
+    url = with_wait(_webhook_url())
     for sns in records:
         send(format_message(sns), url)
     print(json.dumps({"delivered": len(records)}))

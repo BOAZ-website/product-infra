@@ -89,14 +89,8 @@ resource "aws_iam_role_policy" "discord_notify" {
         Action   = "ssm:GetParameter"
         Resource = local.discord_webhook_parameter_arn
       },
-      {
-        # AWS 관리형 키(alias/aws/ssm)로 암호화된 값 복호화. SSM을 거친 요청만 허용함
-        Sid       = "DecryptViaSsm"
-        Effect    = "Allow"
-        Action    = "kms:Decrypt"
-        Resource  = "*"
-        Condition = { StringEquals = { "kms:ViaService" = "ssm.${data.aws_region.current.region}.amazonaws.com" } }
-      },
+      # kms:Decrypt는 넣지 않음. 웹훅 파라미터는 AWS 관리형 키(alias/aws/ssm)로 암호화돼 있고(2026-11-25 확인),
+      # 이 키의 키 정책이 같은 계정에서 SSM을 거친 복호화를 이미 허용함. 고객 관리형 키로 바꾸면 그 키 ARN으로 좁혀 추가함
       {
         Sid      = "PublishDeliveryFailures"
         Effect   = "Allow"
@@ -117,7 +111,7 @@ resource "aws_lambda_function" "discord_notify" {
   handler          = "handler.lambda_handler"
   filename         = data.archive_file.discord_notify.output_path
   source_code_hash = data.archive_file.discord_notify.output_base64sha256
-  timeout          = 15 # Discord HTTP 제한 3초 × 2번 + Retry-After 대기 상한 5초보다 크게
+  timeout          = 30 # SSM 조회(최악 약 8초) + Discord HTTP 제한 3초 × 2번 + Retry-After 대기 상한 5초 + 콜드 스타트보다 크게
   memory_size      = 128
 
   environment {
@@ -158,7 +152,8 @@ resource "aws_sns_topic_subscription" "discord_seoul" {
   protocol  = "lambda"
   endpoint  = aws_lambda_function.discord_notify.arn
 
-  depends_on = [aws_lambda_permission.discord_notify]
+  # 첫 apply에서 비동기 설정(재시도 0회, 실패 시 대상)보다 먼저 이벤트가 들어오지 않게 함
+  depends_on = [aws_lambda_permission.discord_notify, aws_lambda_function_event_invoke_config.discord_notify]
 }
 
 resource "aws_sns_topic_subscription" "discord_us_east_1" {
@@ -168,5 +163,6 @@ resource "aws_sns_topic_subscription" "discord_us_east_1" {
   protocol  = "lambda"
   endpoint  = aws_lambda_function.discord_notify.arn
 
-  depends_on = [aws_lambda_permission.discord_notify]
+  # 첫 apply에서 비동기 설정(재시도 0회, 실패 시 대상)보다 먼저 이벤트가 들어오지 않게 함
+  depends_on = [aws_lambda_permission.discord_notify, aws_lambda_function_event_invoke_config.discord_notify]
 }
