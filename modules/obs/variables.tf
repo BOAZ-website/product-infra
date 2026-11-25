@@ -31,6 +31,16 @@ variable "app_log_group_name" {
   type        = string
 }
 
+variable "discord_webhook_parameter_name" {
+  description = "Discord 웹훅 URL을 담은 SSM SecureString 이름(수동 등록, Terraform 관리 밖). 값은 Lambda가 실행 시 읽음"
+  type        = string
+}
+
+variable "lambda_log_retention_days" {
+  description = "Lambda 로그 그룹 보관 기간(일)"
+  type        = number
+}
+
 variable "log_retention_days" {
   description = "로그 그룹 보관 기간(일)"
   type        = number

@@ -53,6 +53,10 @@ module "obs" {
   app_log_group_name = "/boaz/api/application"
   log_retention_days = 30
 
+  # Discord 경보 전달 Lambda(OBS-01-06). 웹훅 파라미터는 수동 등록한 SecureString
+  discord_webhook_parameter_name = "/boaz/obs/discord-webhook-url"
+  lambda_log_retention_days      = 30
+
   existing_alarms = local.obs_existing_alarms
   group_vars      = local.group_vars.obs
 }
