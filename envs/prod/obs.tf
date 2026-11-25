@@ -12,6 +12,9 @@ locals {
   # 기존 SNS 주제 이름(import id 조립에도 씀)
   obs_alert_topic_name = "boaz-alerts"
 
+  # RDS 인스턴스 식별자. 경보 대상 조회와 RDS 로그 그룹 이름(import id 포함)에 같이 씀
+  obs_db_instance_identifier = "boaz-prod-db"
+
   # 기존 경보 12개. 이름·설명·조건은 현행 값 그대로(describe-alarms, 2026-11-15)
   # - 이름은 import id라 바꾸면 교체가 됨. 공백·한글도 현행 그대로 둠
   # - target: 지표 차원 대상. ec2_a·ec2_b는 InstanceId(Name 태그로 조회), rds는 DBInstanceIdentifier
@@ -47,11 +50,15 @@ module "obs" {
 
   # 경보 대상 이름(inventory.md 4·5절). compute·database import 뒤 output 참조로 바꿈
   ec2_names              = { ec2_a = "boaz-api-prod-A", ec2_b = "boaz-api-prod-B" }
-  db_instance_identifier = "boaz-prod-db"
+  db_instance_identifier = local.obs_db_instance_identifier
 
-  # CloudWatch Agent가 쓰는 기존 로그 그룹(2026-05-16 생성, 보관 30일)
+  # CloudWatch Agent가 쓰는 기존 로그 그룹(2026-05-16 생성). 2026-11-24 30일에서 90일로 변경(OBS-01-03, 사후 원인 조사용)
   app_log_group_name = "/boaz/api/application"
-  log_retention_days = 30
+  log_retention_days = 90
+
+  # RDS 로그 그룹(OBS-01-07). error는 import, slowquery는 새로 만듦(2026-11-25 조회 시 없음)
+  rds_log_types          = ["error", "slowquery"]
+  rds_log_retention_days = 90
 
   existing_alarms = local.obs_existing_alarms
   group_vars      = local.group_vars.obs
