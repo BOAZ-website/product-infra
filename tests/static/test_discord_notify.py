@@ -278,9 +278,37 @@ def test_with_wait_keeps_existing_query(url, expected):
     assert handler.with_wait(url) == expected
 
 
+SECRET_URL = "discord.com/api/webhooks/1/fake-secret-token"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [SECRET_URL, "http://discord.com/api/webhooks/1/fake-secret-token", "https://evil.invalid/api/webhooks/1/fake-secret-token", "", None],
+)
+def test_check_webhook_url_rejects_without_leaking(value):
+    with pytest.raises(handler.DeliveryError) as info:
+        handler.check_webhook_url(value)
+    assert "fake-secret-token" not in str(info.value)
+
+
+@pytest.mark.parametrize("value", ["https://discord.com/api/webhooks/1/t", "https://discordapp.com/api/webhooks/1/t"])
+def test_check_webhook_url_accepts_discord(value):
+    assert handler.check_webhook_url(value) == value
+
+
+def test_send_hides_url_when_urllib_rejects_it():
+    # 스킴이 빠진 URL이면 urllib.request.Request가 URL 원문이 든 ValueError를 냄(네트워크 호출 전)
+    with pytest.raises(handler.DeliveryError) as info:
+        handler.send("x", SECRET_URL, sleep=lambda s: None)
+    assert "fake-secret-token" not in str(info.value)
+    assert info.value.__cause__ is None and info.value.__suppress_context__
+
+
 def test_timeout_budget_fits_lambda_timeout():
     # Lambda timeout(modules/obs/discord.tf) 안에 SSM 조회 최악 + HTTP 2번 + 최대 대기가 들어가야 함
-    ssm_worst = handler.SSM_TIMEOUT_SECONDS * 2 * handler.SSM_MAX_ATTEMPTS
+    # SSM_MAX_ATTEMPTS는 첫 요청을 포함한 총 시도 횟수(total_max_attempts)
+    assert re.search(r'"total_max_attempts":\s*SSM_MAX_ATTEMPTS', _PATH.read_text(encoding="utf-8"))
+    ssm_worst = handler.SSM_TIMEOUT_SECONDS * 2 * handler.SSM_MAX_ATTEMPTS + handler.SSM_RETRY_WAIT_MAX_SECONDS
     worst = ssm_worst + handler.HTTP_TIMEOUT_SECONDS * handler.MAX_ATTEMPTS + handler.RETRY_AFTER_CAP_SECONDS
     tf = (_PATH.parents[2] / "discord.tf").read_text(encoding="utf-8")
     timeout = int(re.search(r"^\s*timeout\s*=\s*(\d+)", tf, re.M).group(1))

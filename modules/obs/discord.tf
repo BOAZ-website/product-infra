@@ -111,8 +111,13 @@ resource "aws_lambda_function" "discord_notify" {
   handler          = "handler.lambda_handler"
   filename         = data.archive_file.discord_notify.output_path
   source_code_hash = data.archive_file.discord_notify.output_base64sha256
-  timeout          = 30 # SSM 조회(최악 약 8초) + Discord HTTP 제한 3초 × 2번 + Retry-After 대기 상한 5초 + 콜드 스타트보다 크게
+  timeout          = 30 # SSM 조회(최악 약 9초, 재시도 대기 포함) + Discord HTTP 제한 3초 × 2번 + Retry-After 대기 상한 5초 + 콜드 스타트보다 크게
   memory_size      = 128
+
+  # 동시 실행 1. 경보가 한꺼번에 울려도 Discord에 차례로 보내 요청 제한(429)을 피함
+  # - SNS 호출은 비동기라 제한에 걸린 호출은 버려지지 않고 Lambda 대기열에서 다시 실행됨(함수 오류 재시도 0회와 별개)
+  # - 계정 동시 실행 한도 1000, 다른 예약 없음(2026-11-25 확인)
+  reserved_concurrent_executions = 1
 
   environment {
     variables = {

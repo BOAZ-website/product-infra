@@ -96,7 +96,7 @@ variable "existing_alarms" {
     operator            = string
     threshold           = number
     treat_missing_data  = optional(string, "missing")
-    ok_actions          = optional(bool, true)
+    ok_actions          = optional(bool, false) # 기본은 꺼 둠(현행 값 그대로 import). 켜는 경보는 root에서 지정
     extra_dimensions    = optional(map(string), {})
   }))
 
