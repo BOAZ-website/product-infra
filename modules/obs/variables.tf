@@ -42,8 +42,33 @@ variable "lambda_log_retention_days" {
 }
 
 variable "log_retention_days" {
-  description = "로그 그룹 보관 기간(일)"
+  description = "앱 로그 그룹 보관 기간(일)"
   type        = number
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.log_retention_days)
+    error_message = "log_retention_days는 CloudWatch Logs가 허용하는 보관 일수여야 합니다."
+  }
+}
+
+variable "rds_log_types" {
+  description = "로그 그룹을 관리할 RDS 로그 종류. RDS 로그 내보내기 이름(error, slowquery 등)과 같음"
+  type        = list(string)
+
+  validation {
+    condition     = alltrue([for t in var.rds_log_types : contains(["error", "slowquery", "general", "audit"], t)])
+    error_message = "rds_log_types는 error, slowquery, general, audit 중에서만 고를 수 있습니다."
+  }
+}
+
+variable "rds_log_retention_days" {
+  description = "RDS 로그 그룹 보관 기간(일). 앱 로그와 따로 둠(OBS-01-07)"
+  type        = number
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.rds_log_retention_days)
+    error_message = "rds_log_retention_days는 CloudWatch Logs가 허용하는 보관 일수여야 합니다."
+  }
 }
 
 variable "existing_alarms" {

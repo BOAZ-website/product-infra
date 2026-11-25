@@ -24,6 +24,12 @@ import {
   id = "/boaz/api/application"
 }
 
+# RDS 오류 로그 그룹(RDS 로그 내보내기가 만든 기존 그룹). slowquery는 없어서 새로 만듦
+import {
+  to = module.obs.aws_cloudwatch_log_group.rds["error"]
+  id = "/aws/rds/instance/${local.obs_db_instance_identifier}/error"
+}
+
 import {
   for_each = local.obs_existing_alarms
   to       = module.obs.aws_cloudwatch_metric_alarm.existing[each.key]
