@@ -18,6 +18,21 @@ variable "buckets" {
   }
 }
 
+variable "waf_log_bucket_name" {
+  description = "WAF 로그 버킷 이름(STO-01-06). WAF가 S3로 로그를 보내려면 aws-waf-logs-로 시작해야 함"
+  type        = string
+
+  validation {
+    condition     = startswith(var.waf_log_bucket_name, "aws-waf-logs-")
+    error_message = "waf_log_bucket_name은 aws-waf-logs-로 시작해야 합니다."
+  }
+}
+
+variable "waf_log_retention_days" {
+  description = "WAF 로그 보관 기간(일). 지나면 수명 주기 규칙이 지움"
+  type        = number
+}
+
 # 모듈이 쓰는 키만 타입에 적음
 variable "group_vars" {
   description = "storage 그룹 값(local.group_vars.storage)"

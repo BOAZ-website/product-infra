@@ -28,4 +28,8 @@ module "storage" {
 
   buckets    = local.storage_buckets
   group_vars = local.group_vars.storage
+
+  # api 웹 ACL의 WAF 로그 버킷(STO-01-06, 서울). 로깅 설정은 콘솔(20-obs.md "WAF 로그 설정")
+  waf_log_bucket_name    = "aws-waf-logs-boaz-prod-api"
+  waf_log_retention_days = 90
 }
