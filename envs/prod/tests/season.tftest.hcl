@@ -144,6 +144,9 @@ mock_provider "aws" {
     target = module.obs.aws_cloudwatch_log_group.app
   }
   override_resource {
+    target = module.obs.aws_cloudwatch_log_group.rds
+  }
+  override_resource {
     target = module.obs.aws_cloudwatch_metric_alarm.existing
   }
 
