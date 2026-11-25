@@ -18,7 +18,8 @@ locals {
   # 기존 경보 12개. 이름·설명·조건은 현행 값 그대로(describe-alarms, 2026-11-15)
   # - 이름은 import id라 바꾸면 교체가 됨. 공백·한글도 현행 그대로 둠
   # - target: 지표 차원 대상. ec2_a·ec2_b는 InstanceId(Name 태그로 조회), rds는 DBInstanceIdentifier
-  # - 생략한 값: datapoints_to_alarm·description null, treat_missing_data "missing", ok_actions 끔
+  # - 생략한 값: datapoints_to_alarm·description null, treat_missing_data "missing"
+  # - 정상 복구 알림(ok_actions)은 모든 경보에 켬(2026-11-25, #115). 콘솔 현행은 RDS 경보 2개만 켜져 있었음
   obs_existing_alarms = {
     ec2_a_status    = { name = "EC2-A-StatusCheckFailed", description = "EC2-A-StatusCheckFailed 발생", target = "ec2_a", namespace = "AWS/EC2", metric = "StatusCheckFailed", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 1 }
     ec2_b_status    = { name = "EC2 - B -  StatusCheckFailed", description = "EC2 - B - StatusCheckFailed 1 이상 ", target = "ec2_b", namespace = "AWS/EC2", metric = "StatusCheckFailed", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 1 }

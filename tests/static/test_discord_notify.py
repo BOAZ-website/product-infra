@@ -17,14 +17,30 @@ URL = "https://discord.invalid/webhook"
 
 def _alarm_event(**overrides):
     alarm = {
-        "AlarmName": "boaz-prod-db-High-CPUUtilization",
+        "AlarmName": "EC2-A-CPU 과부하",
+        "AlarmArn": "arn:aws:cloudwatch:ap-northeast-2:fake-account:alarm:EC2-A-CPU 과부하",
+        "AlarmDescription": "EC2-A 서버 CPU 사용률이 높음",
         "NewStateValue": "ALARM",
-        "NewStateReason": "Threshold Crossed",
+        "OldStateValue": "OK",
+        "NewStateReason": "Threshold Crossed: 2 datapoints [85.2 (25/11/25 02:55:00), 83.1 (25/11/25 02:50:00)] were greater than or equal to the threshold (80.0).",
         "Region": "Asia Pacific (Seoul)",
         "StateChangeTime": "2026-11-25T03:00:00.000+0000",
+        "Trigger": {
+            "MetricName": "CPUUtilization",
+            "Statistic": "AVERAGE",
+            "Period": 300,
+            "EvaluationPeriods": 2,
+            "DatapointsToAlarm": 2,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "Threshold": 80.0,
+        },
     }
     alarm.update(overrides)
     return {"Records": [{"Sns": {"Subject": "ALARM", "Message": json.dumps(alarm)}}]}
+
+
+def _format(**overrides):
+    return handler.format_message(handler.parse_sns_records(_alarm_event(**overrides))[0])
 
 
 class FakePost:
@@ -66,13 +82,77 @@ def test_malformed_event_fails_before_reading_webhook(monkeypatch):
 # --- 메시지 ---
 
 
-def test_alarm_message_summary():
-    sns = handler.parse_sns_records(_alarm_event(AlarmDescription="RDS CPU 80% 초과"))[0]
-    text = handler.format_message(sns)
-    assert "🔴 경보" in text
-    assert "boaz-prod-db-High-CPUUtilization" in text
-    assert "RDS CPU 80% 초과" in text
-    assert "Threshold Crossed" in text
+def test_alarm_message_layout():
+    text = _format(AlarmDescription="EC2-A 서버 CPU 사용률이 높음\n앱 로그 그룹 확인\n2. WAF 차단 수 확인")
+    assert text.splitlines() == [
+        "### 🔴 경보 · EC2-A-CPU 과부하",
+        "EC2-A 서버 CPU 사용률이 높음",
+        "- **현재 값:** 85.2%",
+        "- **조건:** 5분 평균 CPUUtilization ≥ 80%, 2번 연속",
+        "- **상태 변화:** 정상 → 경보",
+        "- **리전:** 서울",
+        "- **시각:** 2026-11-25 12:00 KST",
+        "- **먼저 볼 것**",
+        "    1. 앱 로그 그룹 확인",
+        "    2. WAF 차단 수 확인",
+        "",
+        "[경보 보기](https://ap-northeast-2.console.aws.amazon.com/cloudwatch/home?region=ap-northeast-2#alarmsV2:alarm/EC2-A-CPU%20%EA%B3%BC%EB%B6%80%ED%95%98)",
+    ]
+
+
+def test_ok_message_is_short():
+    text = _format(
+        NewStateValue="OK",
+        OldStateValue="ALARM",
+        AlarmDescription="요약\n대처",
+        NewStateReason="Threshold Crossed: 1 datapoint [12.4 (25/11/25 03:10:00)] was not greater than or equal to the threshold (80.0).",
+    )
+    assert text.startswith("### 🟢 복구 · EC2-A-CPU 과부하\n- **현재 값:** 12.4%")
+    assert "- **상태 변화:** 경보 → 정상" in text
+    assert "조건" not in text and "먼저 볼 것" not in text and "요약" not in text
+
+
+def test_insufficient_data_label():
+    text = _format(NewStateValue="INSUFFICIENT_DATA", NewStateReason="Insufficient Data: 1 datapoint was unknown.")
+    assert text.startswith("### ⚪ 데이터 부족 · ")
+    assert "- **사유:** Insufficient Data: 1 datapoint was unknown." in text
+
+
+def test_us_east_1_region_and_link():
+    text = _format(AlarmArn="arn:aws:cloudwatch:us-east-1:fake-account:alarm:x")
+    assert "- **리전:** 버지니아 북부(us-east-1)" in text
+    assert "https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#" in text
+
+
+def test_missing_optional_fields_still_formats():
+    alarm = {"AlarmName": "x", "NewStateValue": "ALARM", "NewStateReason": "사유"}
+    text = handler.format_message({"Message": json.dumps(alarm)})
+    assert text == "### 🔴 경보 · x\n- **사유:** 사유"
+
+
+@pytest.mark.parametrize(
+    ("metric", "threshold", "expected"),
+    [
+        ("FreeStorageSpace", 4 * 1024**3, "FreeStorageSpace < 4.0GiB"),
+        ("FreeableMemory", 80 * 1024**2, "FreeableMemory < 80MiB"),
+        ("DatabaseConnections", 50, "DatabaseConnections < 50"),
+    ],
+)
+def test_condition_units(metric, threshold, expected):
+    trigger = {"MetricName": metric, "Statistic": "MINIMUM", "Period": 300, "EvaluationPeriods": 3, "DatapointsToAlarm": 2,
+               "ComparisonOperator": "LessThanThreshold", "Threshold": threshold}
+    assert handler._condition(trigger) == f"5분 최소 {expected}, 3번 중 2번"
+
+
+def test_markdown_in_names_is_escaped():
+    text = _format(AlarmName="a*b_c", AlarmDescription="[링크](x) **굵게**")
+    assert r"a\*b\_c" in text
+    assert r"\[링크\](x) \*\*굵게\*\*" in text
+
+
+def test_kst_conversion_falls_back_to_raw():
+    assert handler._kst("2026-11-25T15:30:00.000+0000") == "2026-11-26 00:30 KST"
+    assert handler._kst("이상한 값") == "이상한 값"
 
 
 def test_plain_message_uses_subject():
@@ -80,8 +160,12 @@ def test_plain_message_uses_subject():
     assert text == "**테스트**\n본문"
 
 
-def test_message_is_truncated_to_discord_limit():
-    text = handler.format_message({"Subject": None, "Message": "가" * 5000})
+@pytest.mark.parametrize(
+    "sns",
+    [{"Subject": None, "Message": "가" * 5000}, {"Message": json.dumps({"AlarmName": "x", "NewStateValue": "ALARM", "AlarmDescription": "요약\n" + "가" * 5000})}],
+)
+def test_message_is_truncated_to_discord_limit(sns):
+    text = handler.format_message(sns)
     assert len(text) == handler.DISCORD_CONTENT_LIMIT
     assert text.endswith("...")
 

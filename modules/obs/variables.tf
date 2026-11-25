@@ -86,7 +86,7 @@ variable "existing_alarms" {
     operator            = string
     threshold           = number
     treat_missing_data  = optional(string, "missing")
-    ok_actions          = optional(bool, false)
+    ok_actions          = optional(bool, true)
     extra_dimensions    = optional(map(string), {})
   }))
 
