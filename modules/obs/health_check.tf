@@ -1,7 +1,8 @@
 # api 헬스체크(OBS-01-08, 이슈 #118)
 # - EventBridge 규칙(서울, 1분 주기) → Lambda가 api CloudFront 도메인의 /actuator/health를 부름 → 사용자 지정 지표(성공 1, 실패 0) → 경보
 # - 경보는 1분 단위 3번 연속 실패면 울림. 배포 때 약 50초 중단과 일정 실행 시각의 흔들림이 겹쳐 2번 연속 실패가 나는 것을 피함
-# - 점검이 멈춰 지표가 비는 것도 실패로 봄(treat_missing_data = "breaching")
+# - 점검이 멈춰 지표가 비는 것도 실패로 봄(treat_missing_data = "breaching"). 단, 데이터가 끊긴 경우 CloudWatch는 더 이전 값까지 보고
+#   판단하므로 연속 실패(값 0)와 울리는 시간이 다를 수 있음. 경보 요약도 "연속 실패 또는 점검 데이터 끊김"으로 씀
 # - EventBridge Scheduler는 쓰지 않음(IAM 역할이 하나 더 필요함)
 # - 모두 새로 만드는 자원임. 이름을 바꾸면 교체가 되어 G4에 막히므로 처음부터 확정함
 # - 되돌리기: 경보 동작을 먼저 끈 뒤 EventBridge 규칙을 끔(규칙만 끄면 데이터 누락으로 경보가 울림). 당일 기록(20-obs.md "되돌리기")
@@ -107,6 +108,9 @@ resource "aws_cloudwatch_event_rule" "health_check" {
 resource "aws_cloudwatch_event_target" "health_check" {
   rule = aws_cloudwatch_event_rule.health_check.name
   arn  = aws_lambda_function.health_check.arn
+
+  # 첫 apply에서 호출 권한·비동기 설정(재시도 0회)보다 먼저 호출이 들어오지 않게 함
+  depends_on = [aws_lambda_permission.health_check, aws_lambda_function_event_invoke_config.health_check]
 }
 
 resource "aws_lambda_permission" "health_check" {
@@ -124,7 +128,7 @@ resource "aws_cloudwatch_metric_alarm" "api_health" {
   alarm_name = "${var.name_prefix}-api-health-check-failed"
   # 첫 줄은 Discord 메시지의 요약, 둘째 줄부터는 "먼저 볼 것"으로 표시됨(Discord Lambda handler.py)
   alarm_description = join("\n", [
-    "api 헬스체크(/actuator/health)가 3분 연속 실패함. 앱이 멈췄거나 CloudFront·WAF에서 막힘 (OBS-01-08)",
+    "api 헬스체크(/actuator/health)가 연속 실패했거나 점검 데이터가 끊김. 앱이 멈췄거나 CloudFront·WAF에서 막혔거나, 점검 자체가 멈춤 (OBS-01-08)",
     "헬스체크 Lambda 로그(/aws/lambda/${local.health_check_function_name})에서 실패 사유(HTTP 코드, 연결 실패) 확인",
     "502·504 경보가 함께 울렸으면 EC2-A 앱 상태(서비스·CodeDeploy 배포 중인지) 확인",
     "WAF 차단 경보가 함께 울렸으면 헬스체크 요청이 막혔는지 WAF 샘플 요청 확인",

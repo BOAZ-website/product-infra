@@ -84,6 +84,8 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_5xx" {
 locals {
   api_distribution_id = var.group_vars.distribution_ids["api"]
   # web_acl_id는 WAFv2 웹 ACL ARN(arn:aws:wafv2:us-east-1:<계정>:global/webacl/<이름>/<ID>). 지표 차원에는 이름을 씀
+  # WAF 지표 차원 WebACL·Rule은 각각의 지표 이름(VisibilityConfig.MetricName)임. api 웹 ACL은 지표 이름이 웹 ACL 이름과 같고,
+  # RateLimitPerIP 규칙도 지표 이름이 규칙 이름과 같으며 둘 다 지표 발행이 켜져 있음(2026-11-25 get-web-acl로 확인)
   api_web_acl_name = split("/", data.aws_cloudfront_distribution.api.web_acl_id)[2]
 }
 
@@ -107,6 +109,8 @@ data "aws_cloudfront_distribution" "api" {
 }
 
 # 건수 = (502 비율 + 504 비율) ÷ 100 × 요청 수. 근사값이라 실제 1건이 0.97처럼 나올 수 있어 기준은 0.5 이상
+# 1분 단위로 같은 분의 비율과 요청 수를 곱함. 5분 단위로 하면 분별 비율의 단순 평균에 5분 요청 수를 곱하게 되어
+# 요청이 몰린 1분의 1건이 0.5 아래로 계산될 수 있음. 최근 5분 중 1번이라도 넘으면 울림
 resource "aws_cloudwatch_metric_alarm" "cloudfront_api_502_504" {
   provider = aws.us_east_1
 
@@ -119,7 +123,8 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_api_502_504" {
   ])
   comparison_operator = "GreaterThanOrEqualToThreshold"
   threshold           = 0.5
-  evaluation_periods  = 1
+  evaluation_periods  = 5
+  datapoints_to_alarm = 1
   treat_missing_data  = "notBreaching"
   alarm_actions       = local.alarm_actions_us
   ok_actions          = local.alarm_actions_us
@@ -140,7 +145,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_api_502_504" {
         metric_name = metric_query.value
         dimensions  = { DistributionId = local.api_distribution_id, Region = "Global" }
         stat        = "Average"
-        period      = 300
+        period      = 60
       }
     }
   }
@@ -152,7 +157,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_api_502_504" {
       metric_name = "Requests"
       dimensions  = { DistributionId = local.api_distribution_id, Region = "Global" }
       stat        = "Sum"
-      period      = 300
+      period      = 60
     }
   }
 
