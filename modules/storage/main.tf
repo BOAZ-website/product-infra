@@ -16,6 +16,7 @@
 #
 # - 버전 관리: 5개 모두 켠 적 없음(None)이라 aws_s3_bucket_versioning을 두지 않음
 # - 정책은 policies.tf, 수명 주기는 lifecycle.tf
+# - WAF 로그 버킷(새로 만듦, STO-01-06)은 위 5개와 따로 waf_logs.tf에 둠
 # - 버킷과 하위 리소스 전부에 prevent_destroy를 둠(bootstrap state 버킷과 같은 방식, STA-03-02). 하위 리소스를 지우는 변경은 prevent_destroy를 먼저 푸는 별도 PR로 함
 
 resource "aws_s3_bucket" "this" {
