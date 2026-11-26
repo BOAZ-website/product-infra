@@ -8,6 +8,7 @@
 - 표준 라이브러리만 씀(boto3는 Lambda 런타임에 포함). boto3는 함수 안에서 import해 테스트가 AWS 없이 돌게 함
 """
 
+import http.client
 import json
 import os
 import re
@@ -29,6 +30,8 @@ SSM_MAX_ATTEMPTS = 2
 SSM_RETRY_WAIT_MAX_SECONDS = 1
 # 웹훅 URL은 이 접두사로 시작해야 함. 아니면 URL 없이 실패시킴(토큰이 오류 메시지에 남지 않게)
 WEBHOOK_PREFIXES = ("https://discord.com/api/webhooks/", "https://discordapp.com/api/webhooks/")
+# 공백·제어 문자가 있으면 http.client가 URL 경로(토큰 포함)를 넣은 InvalidURL을 냄. 검사 단계에서 거부함
+WEBHOOK_FORBIDDEN_CHARS = re.compile(r"[\x00-\x20\x7f]")
 
 # 제목 형식. 나중에 바꾸기 쉽게 한 곳에 둠
 TITLE_FORMAT = "### {label} · {name}"
@@ -73,7 +76,7 @@ def _webhook_url() -> str:
 
 def check_webhook_url(url) -> str:
     """웹훅 URL 형식 검사. 틀리면 URL을 넣지 않은 DeliveryError."""
-    if not isinstance(url, str) or not url.startswith(WEBHOOK_PREFIXES):
+    if not isinstance(url, str) or not url.startswith(WEBHOOK_PREFIXES) or WEBHOOK_FORBIDDEN_CHARS.search(url):
         raise DeliveryError("웹훅 파라미터 형식이 잘못됨")
     return url
 
@@ -267,8 +270,8 @@ def send(content: str, url: str, post=_post, sleep=time.sleep) -> None:
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             status, retry_after = post(url, content)
-        except ValueError:
-            # urllib의 URL 처리 오류 메시지에는 URL 원문(토큰 포함)이 들어감. 원문과 예외 체인을 버림
+        except (ValueError, http.client.HTTPException):
+            # urllib의 ValueError와 http.client의 InvalidURL 메시지에는 URL 원문(토큰 포함)이 들어감. 원문과 예외 체인을 버림
             raise DeliveryError("웹훅 URL 처리 실패") from None
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             status, retry_after, last = None, None, f"연결 실패: {type(error).__name__}"

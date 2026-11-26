@@ -298,7 +298,16 @@ SECRET_URL = "discord.com/api/webhooks/1/fake-secret-token"
 
 @pytest.mark.parametrize(
     "value",
-    [SECRET_URL, "http://discord.com/api/webhooks/1/fake-secret-token", "https://evil.invalid/api/webhooks/1/fake-secret-token", "", None],
+    [
+        SECRET_URL,
+        "http://discord.com/api/webhooks/1/fake-secret-token",
+        "https://evil.invalid/api/webhooks/1/fake-secret-token",
+        "https://discord.com/api/webhooks/1/fake secret-token",
+        "https://discord.com/api/webhooks/1/fake-secret-token\n",
+        "https://discord.com/api/webhooks/1/fake\x7fsecret-token",
+        "",
+        None,
+    ],
 )
 def test_check_webhook_url_rejects_without_leaking(value):
     with pytest.raises(handler.DeliveryError) as info:
@@ -316,6 +325,14 @@ def test_send_hides_url_when_urllib_rejects_it():
     with pytest.raises(handler.DeliveryError) as info:
         handler.send("x", SECRET_URL, sleep=lambda s: None)
     assert "fake-secret-token" not in str(info.value)
+    assert info.value.__cause__ is None and info.value.__suppress_context__
+
+
+def test_send_hides_url_when_http_client_rejects_it():
+    # 접두사는 맞지만 공백이 있으면 http.client가 토큰이 든 경로로 InvalidURL을 냄(.invalid 주소, 연결 전에 실패)
+    with pytest.raises(handler.DeliveryError) as info:
+        handler.send("x", "https://discord.invalid/api/webhooks/1/fake secret-token", sleep=lambda s: None)
+    assert "secret-token" not in str(info.value)
     assert info.value.__cause__ is None and info.value.__suppress_context__
 
 
