@@ -30,8 +30,9 @@ SSM_MAX_ATTEMPTS = 2
 SSM_RETRY_WAIT_MAX_SECONDS = 1
 # 웹훅 URL은 이 접두사로 시작해야 함. 아니면 URL 없이 실패시킴(토큰이 오류 메시지에 남지 않게)
 WEBHOOK_PREFIXES = ("https://discord.com/api/webhooks/", "https://discordapp.com/api/webhooks/")
-# 공백·제어 문자가 있으면 http.client가 URL 경로(토큰 포함)를 넣은 InvalidURL을 냄. 검사 단계에서 거부함
-WEBHOOK_FORBIDDEN_CHARS = re.compile(r"[\x00-\x20\x7f]")
+# 공백·제어 문자가 있으면 http.client가 URL 경로(토큰 포함)를 넣은 InvalidURL을 냄. 비 ASCII 문자도 웹훅 URL에 없음
+# - 출력 가능한 ASCII(! ~ ~) 밖의 문자는 검사 단계에서 거부함
+WEBHOOK_FORBIDDEN_CHARS = re.compile(r"[^\x21-\x7e]")
 
 # 제목 형식. 나중에 바꾸기 쉽게 한 곳에 둠
 TITLE_FORMAT = "### {label} · {name}"
@@ -270,10 +271,12 @@ def send(content: str, url: str, post=_post, sleep=time.sleep) -> None:
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             status, retry_after = post(url, content)
-        except (ValueError, http.client.HTTPException):
+        except (ValueError, http.client.InvalidURL):
             # urllib의 ValueError와 http.client의 InvalidURL 메시지에는 URL 원문(토큰 포함)이 들어감. 원문과 예외 체인을 버림
+            # - 바로 실패시키는 것은 URL 형식 오류만. 연결 끊김(RemoteDisconnected는 OSError이자 HTTPException)은 아래에서 다시 보냄
             raise DeliveryError("웹훅 URL 처리 실패") from None
-        except (urllib.error.URLError, TimeoutError, OSError) as error:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
+            # 응답 전 연결 끊김, 잘못된 상태 줄(BadStatusLine) 등. 메시지에 URL이 없어 이름만 남김
             status, retry_after, last = None, None, f"연결 실패: {type(error).__name__}"
         else:
             if 200 <= status < 300:
