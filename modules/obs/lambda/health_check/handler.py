@@ -7,6 +7,7 @@
 - 표준 라이브러리만 씀(boto3는 Lambda 런타임에 포함). boto3는 함수 안에서 import해 테스트가 AWS 없이 돌게 함
 """
 
+import http.client
 import json
 import os
 import urllib.error
@@ -26,7 +27,8 @@ def check(url: str, opener=urllib.request.urlopen) -> tuple[bool, str]:
             body = response.read(MAX_BODY_BYTES)
     except urllib.error.HTTPError as error:
         return False, f"HTTP {error.code}"
-    except (urllib.error.URLError, TimeoutError, OSError) as error:
+    except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
+        # HTTPException(BadStatusLine, IncompleteRead 등)은 OSError가 아님. 잡지 않으면 그 분 지표가 비고 사유가 남지 않음
         return False, f"연결 실패: {type(error).__name__}"
 
     if status != 200:

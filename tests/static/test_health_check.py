@@ -1,5 +1,6 @@
 """api 헬스체크 Lambda 단위 테스트(OBS-01-08). AWS·네트워크 없이 돈다."""
 
+import http.client
 import importlib.util
 import io
 import pathlib
@@ -76,7 +77,16 @@ def test_http_error_is_unhealthy(code):
     assert handler.check(URL, opener=_opener(error)) == (False, f"HTTP {code}")
 
 
-@pytest.mark.parametrize("error", [urllib.error.URLError("down"), TimeoutError(), ConnectionResetError()])
+@pytest.mark.parametrize(
+    "error",
+    [
+        urllib.error.URLError("down"),
+        TimeoutError(),
+        ConnectionResetError(),
+        http.client.RemoteDisconnected("closed"),
+        http.client.BadStatusLine("x"),
+    ],
+)
 def test_connection_error_is_unhealthy_without_raising(error):
     healthy, reason = handler.check(URL, opener=_opener(error))
     assert healthy is False
@@ -148,3 +158,14 @@ def test_names_and_timeout_match_terraform():
     # HTTP 제한 + 지표 쓰기 여유가 Lambda timeout 안에 들어가고, 1분 주기보다 충분히 짧아야 함
     assert handler.HTTP_TIMEOUT_SECONDS + 3 <= timeout < 60
     assert 'schedule_expression = "rate(1 minute)"' in tf
+
+
+class BrokenBodyResponse(FakeResponse):
+    def read(self, limit):
+        raise http.client.IncompleteRead(b"{")
+
+
+def test_incomplete_body_is_unhealthy_without_raising():
+    # 본문을 읽다 끊기면 IncompleteRead(HTTPException, OSError 아님)가 남
+    healthy, reason = handler.check(URL, opener=_opener(BrokenBodyResponse(200, b"")))
+    assert (healthy, reason) == (False, "연결 실패: IncompleteRead")
