@@ -172,8 +172,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_api_502_504" {
   depends_on = [aws_cloudfront_monitoring_subscription.api]
 }
 
-# WAF 요청 수 제한 규칙(IP당 5분 200건) 차단. 정상 사용자가 막혔는지는 WAF 샘플 요청·로그로 확인함
-# WAF 요청 수 제한 차단: 5분 10건 이상(PR #119 리뷰)
+# WAF 요청 수 제한 규칙(IP당 5분 200건) 차단: 5분 10건 이상(PR #119 리뷰). 정상 사용자가 막혔는지는 WAF 샘플 요청·로그로 확인함
 # - 1건 기준이면 접수 기간에 봇 차단만으로 경보·복구가 반복될 수 있음
 # - 정상 사용자 차단(2026-06-28 사례)은 같은 IP의 요청이 여러 건 함께 막히므로 10건 기준으로도 잡힘
 resource "aws_cloudwatch_metric_alarm" "waf_api_rate_limit" {
