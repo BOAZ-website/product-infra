@@ -1,0 +1,2 @@
+# Lambda 소스는 OS와 관계없이 LF로 체크아웃함. zip 해시(source_code_hash)가 Windows·Linux에서 같아야 plan에 변경이 생기지 않음
+modules/obs/lambda/** text eol=lf

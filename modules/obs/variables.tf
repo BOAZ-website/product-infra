@@ -31,6 +31,16 @@ variable "app_log_group_name" {
   type        = string
 }
 
+variable "discord_webhook_parameter_name" {
+  description = "Discord 웹훅 URL을 담은 SSM SecureString 이름(수동 등록, Terraform 관리 밖). 값은 Lambda가 실행 시 읽음"
+  type        = string
+}
+
+variable "lambda_log_retention_days" {
+  description = "Lambda 로그 그룹 보관 기간(일)"
+  type        = number
+}
+
 variable "log_retention_days" {
   description = "앱 로그 그룹 보관 기간(일)"
   type        = number
@@ -76,7 +86,7 @@ variable "existing_alarms" {
     operator            = string
     threshold           = number
     treat_missing_data  = optional(string, "missing")
-    ok_actions          = optional(bool, false)
+    ok_actions          = optional(bool, false) # 기본은 꺼 둠(현행 값 그대로 import). 켜는 경보는 root에서 지정
     extra_dimensions    = optional(map(string), {})
   }))
 
