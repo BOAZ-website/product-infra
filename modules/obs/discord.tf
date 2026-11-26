@@ -14,8 +14,8 @@ locals {
   discord_function_name  = "${var.name_prefix}-discord-notify"
   discord_log_group_name = "/aws/lambda/${local.discord_function_name}"
   discord_webhook_parameter_arn = join("", [
-    "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter",
-    var.discord_webhook_parameter_name,
+    "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/",
+    trimprefix(var.discord_webhook_parameter_name, "/"), # 이름이 /로 시작하든 안 하든 ARN은 parameter/<이름>
   ])
 
   # Lambda를 호출하는 경보 주제. 키는 구독·권한 자원 주소에 씀
@@ -45,7 +45,10 @@ resource "aws_sns_topic" "alert_failures" {
   name = "${var.name_prefix}-alert-delivery-failures"
 }
 
-# 경보 주제와 같은 그룹 주소. apply 직후 그룹 소유자가 확인 메일을 승인해야 활성화됨(3일 안에 승인하지 않으면 만료)
+# 경보 주제와 같은 그룹 주소. apply 직후 그룹 소유자가 확인 메일을 승인해야 활성화됨(48시간 안에 승인하지 않으면 SNS가 구독을 지움)
+# - 승인 전에는 Discord 전달이 실패해도 실패 메일이 오지 않음. Terraform은 이메일 승인을 기다리지 못하므로 이 공백은 허용함
+#   시즌 동안 경보 주제의 그룹 직접 구독이 남아 있어 경보 메일 자체는 받음. apply 직후 바로 승인함
+# - 기한을 넘기면 콘솔에서 구독 확인을 다시 요청(Request confirmation)함
 resource "aws_sns_topic_subscription" "alert_failures_email" {
   for_each = var.group_vars.alert_emails
 

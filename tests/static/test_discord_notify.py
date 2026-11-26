@@ -169,6 +169,21 @@ def test_plain_message_uses_subject():
 
 
 @pytest.mark.parametrize(
+    "body",
+    [
+        {"AlarmName": "deployment", "NewStateValue": {"status": "failed"}},
+        {"AlarmName": "x", "NewStateValue": "ALARM", "OldStateValue": ["OK"]},
+        {"AlarmName": 1, "NewStateValue": "ALARM"},
+    ],
+)
+def test_non_alarm_shaped_json_is_sent_as_plain_message(body):
+    # 경보처럼 보이지만 상태 값 형식이 다르면 Lambda 실패 대신 제목·본문 그대로 보냄
+    raw = json.dumps(body)
+    text = handler.format_message({"Subject": "배포", "Message": raw})
+    assert text.startswith("**배포**\n")
+
+
+@pytest.mark.parametrize(
     "sns",
     [{"Subject": None, "Message": "가" * 5000}, {"Message": json.dumps({"AlarmName": "x", "NewStateValue": "ALARM", "AlarmDescription": "요약\n" + "가" * 5000})}],
 )
