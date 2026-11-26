@@ -368,3 +368,49 @@ def test_timeout_budget_fits_lambda_timeout():
     assert timeout == 30
     # 콜드 스타트(boto3 import 등) 여유로 5초 이상 남김
     assert worst + 5 <= timeout
+
+
+def test_send_retries_ssl_error_that_is_also_value_error():
+    # SSLCertVerificationError는 OSError이자 ValueError. URL 오류로 보고 바로 실패시키지 않고 연결 오류처럼 다시 보냄
+    import ssl
+
+    post = FakePost(ssl.SSLCertVerificationError("cert"), (204, None))
+    handler.send("x", URL, post=post, sleep=lambda s: None)
+    assert post.calls == 2
+
+
+def test_send_wraps_unexpected_exception_without_message():
+    post = FakePost(RuntimeError("https://discord.com/api/webhooks/1/fake-secret-token"))
+    with pytest.raises(handler.DeliveryError) as info:
+        handler.send("x", URL, post=post, sleep=lambda s: None)
+    assert "fake-secret-token" not in str(info.value) and "RuntimeError" in str(info.value)
+    assert info.value.__cause__ is None and info.value.__suppress_context__
+
+
+@pytest.mark.parametrize(("value", "expected"), [("1.5", 1.5), ("0", 0.0), ("nan", None), ("-1", None), ("inf", None), ("abc", None), (None, None)])
+def test_retry_after_seconds(value, expected):
+    assert handler._retry_after_seconds(value) == expected
+
+
+def test_send_waits_default_when_retry_after_is_invalid():
+    # nan·음수 Retry-After를 그대로 time.sleep에 넘기면 ValueError가 남. 기본 대기 시간으로 바꿈
+    waits = []
+    post = FakePost((429, handler._retry_after_seconds("nan")), (204, None))
+    handler.send("x", URL, post=post, sleep=waits.append)
+    assert waits == [handler.DEFAULT_RETRY_WAIT_SECONDS]
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"Trigger": {"MetricName": {"x": 1}, "ComparisonOperator": "GreaterThanThreshold", "Threshold": 1}},
+        {"Trigger": {"MetricName": "CPUUtilization", "ComparisonOperator": ["GreaterThanThreshold"], "Threshold": 1}},
+        {"AlarmArn": 123},
+        {"NewStateReason": {"x": 1}},
+    ],
+)
+def test_alarm_with_unexpected_field_types_falls_back_to_plain_message(overrides):
+    event = _alarm_event(**overrides)
+    sns = event["Records"][0]["Sns"]
+    text = handler.format_message(sns)
+    assert text.startswith("**ALARM**\n")
