@@ -66,6 +66,9 @@ module "obs" {
   discord_webhook_parameter_name = "/boaz/obs/discord-webhook-url"
   lambda_log_retention_days      = 30
 
+  # api 헬스체크(OBS-01-08). 사용자와 같은 경로(api CloudFront)로 부름
+  health_check_url = "https://api.bigdataboaz.com/actuator/health"
+
   existing_alarms = local.obs_existing_alarms
   group_vars      = local.group_vars.obs
 }
