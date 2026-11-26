@@ -10,11 +10,13 @@ data "aws_caller_identity" "current" {}
 locals {
   # 로그 전달 서비스가 쓰는 경로(AWSLogs/<계정>/WAFLogs/...)와 출처 조건
   waf_log_account_id = data.aws_caller_identity.current.account_id
-  waf_log_source_arn = "arn:aws:logs:*:${local.waf_log_account_id}:*" # 웹 ACL은 us-east-1, 버킷은 서울이라 리전은 고정하지 않음
+  # 로그는 웹 ACL 리전에서 만들어짐. api 웹 ACL은 CloudFront용이라 us-east-1(버킷은 서울)
+  waf_log_source_arn = "arn:aws:logs:us-east-1:${local.waf_log_account_id}:*"
 }
 
 resource "aws_s3_bucket" "waf_logs" {
   bucket = var.waf_log_bucket_name
+  tags   = var.waf_log_bucket_tags
 
   lifecycle {
     prevent_destroy = true
@@ -63,7 +65,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "waf_logs" {
   }
 }
 
-# 90일 뒤 삭제(개선안 4.F). filter는 지원서 버킷과 같은 이유로 적지 않음(lifecycle.tf 주석)
+# 90일 뒤 삭제(개선안 4.F). filter는 지원서 버킷과 같은 패턴을 따라 적지 않음(버킷 전체에 적용, lifecycle.tf 주석)
 resource "aws_s3_bucket_lifecycle_configuration" "waf_logs" {
   bucket = aws_s3_bucket.waf_logs.id
 

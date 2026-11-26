@@ -31,6 +31,16 @@ variable "waf_log_bucket_name" {
 variable "waf_log_retention_days" {
   description = "WAF 로그 보관 기간(일). 지나면 수명 주기 규칙이 지움"
   type        = number
+
+  validation {
+    condition     = var.waf_log_retention_days >= 1 && floor(var.waf_log_retention_days) == var.waf_log_retention_days
+    error_message = "waf_log_retention_days는 1 이상 정수여야 합니다."
+  }
+}
+
+variable "waf_log_bucket_tags" {
+  description = "WAF 로그 버킷 태그"
+  type        = map(string)
 }
 
 # 모듈이 쓰는 키만 타입에 적음
