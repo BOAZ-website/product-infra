@@ -209,6 +209,12 @@ mock_provider "aws" {
 
 mock_provider "aws" {
   alias = "us_east_1"
+
+  # obs: api 배포에 연결된 웹 ACL 조회(WAF 차단 경보 차원). 웹 ACL ARN 형식이 필요함(계정 ID 자리는 aws)
+  override_data {
+    target = module.obs.data.aws_cloudfront_distribution.api
+    values = { web_acl_id = "arn:aws:wafv2:us-east-1:aws:global/webacl/fake-api-acl/fake-id" }
+  }
 }
 
 variables {

@@ -74,3 +74,126 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_5xx" {
   alarm_actions       = local.alarm_actions_us
   ok_actions          = local.alarm_actions_us
 }
+
+# --- api CloudFront 추가 지표와 502·504·WAF 차단 경보(OBS-01-09, 이슈 #118) ---
+# - 추가 지표는 obs에서만 관리함. cdn 코드에는 선언하지 않음(같은 자원을 두 번 선언하면 충돌). 배포 자원은 바꾸지 않음
+# - 추가 지표는 켠 시점부터만 수집됨. 지표 8개 × 월 $0.30
+# - 새 경보는 데이터가 쌓이기 전에 만들고 요청이 없는 구간도 있어 데이터 없음은 정상으로 봄(notBreaching)
+# - 기존 5xx 비율 경보(위)는 시즌 뒤까지 유지함(decisions.md "api 5xx 경보 교체 방식")
+
+locals {
+  api_distribution_id = var.group_vars.distribution_ids["api"]
+  # web_acl_id는 WAFv2 웹 ACL ARN(arn:aws:wafv2:us-east-1:<계정>:global/webacl/<이름>/<ID>). 지표 차원에는 이름을 씀
+  # WAF 지표 차원 WebACL·Rule은 각각의 지표 이름(VisibilityConfig.MetricName)임. api 웹 ACL은 지표 이름이 웹 ACL 이름과 같고,
+  # RateLimitPerIP 규칙도 지표 이름이 규칙 이름과 같으며 둘 다 지표 발행이 켜져 있음(2026-11-25 get-web-acl로 확인)
+  api_web_acl_name = split("/", data.aws_cloudfront_distribution.api.web_acl_id)[2]
+}
+
+resource "aws_cloudfront_monitoring_subscription" "api" {
+  provider = aws.us_east_1
+
+  distribution_id = local.api_distribution_id
+
+  monitoring_subscription {
+    realtime_metrics_subscription_config {
+      realtime_metrics_subscription_status = "Enabled"
+    }
+  }
+}
+
+# 연결된 웹 ACL을 찾으려고 조회만 함. 자원 ID를 코드에 적지 않음
+data "aws_cloudfront_distribution" "api" {
+  provider = aws.us_east_1
+
+  id = local.api_distribution_id
+
+  # 웹 ACL이 없으면 아래 split(...)[2]가 인덱스 오류로 실패함. 원인을 바로 알 수 있게 먼저 검사함
+  lifecycle {
+    postcondition {
+      condition     = can(regex("^arn:aws:wafv2:[^:]*:[^:]*:global/webacl/[^/]+/[^/]+$", self.web_acl_id))
+      error_message = "api CloudFront 배포에 WAFv2 웹 ACL이 연결돼 있지 않습니다. WAF 차단 경보의 WebACL 차원을 만들 수 없습니다."
+    }
+  }
+}
+
+# 건수 = (502 비율 + 504 비율) ÷ 100 × 요청 수. 근사값이라 실제 1건이 0.97처럼 나올 수 있어 기준은 0.5 이상
+# 1분 단위로 같은 분의 비율과 요청 수를 곱함. 5분 단위로 하면 분별 비율의 단순 평균에 5분 요청 수를 곱하게 되어
+# 요청이 몰린 1분의 1건이 0.5 아래로 계산될 수 있음. 최근 5분 중 1번이라도 넘으면 울림
+resource "aws_cloudwatch_metric_alarm" "cloudfront_api_502_504" {
+  provider = aws.us_east_1
+
+  alarm_name = "${var.name_prefix}-cloudfront-api-502-504-count"
+  alarm_description = join("\n", [
+    "api CloudFront가 502·504를 응답함. 앱(EC2-A, 시즌에는 ALB)이 응답하지 못함 (OBS-01-09)",
+    "CodeDeploy 배포 직후라면 재시작 중 502일 수 있음. 헬스체크 경보가 함께 울렸는지 확인",
+    "앱 로그 그룹(/boaz/api/application)에서 같은 시각의 오류·재시작 기록 확인",
+    "EC2-A 상태 검사·CPU·메모리 경보가 함께 울렸는지 확인",
+  ])
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = 0.5
+  evaluation_periods  = 5
+  datapoints_to_alarm = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_actions_us
+  ok_actions          = local.alarm_actions_us
+
+  metric_query {
+    id          = "count"
+    expression  = "(rate502 + rate504) / 100 * requests"
+    label       = "502·504 건수"
+    return_data = true
+  }
+
+  dynamic "metric_query" {
+    for_each = { rate502 = "502ErrorRate", rate504 = "504ErrorRate" }
+    content {
+      id = metric_query.key
+      metric {
+        namespace   = "AWS/CloudFront"
+        metric_name = metric_query.value
+        dimensions  = { DistributionId = local.api_distribution_id, Region = "Global" }
+        stat        = "Average"
+        period      = 60
+      }
+    }
+  }
+
+  metric_query {
+    id = "requests"
+    metric {
+      namespace   = "AWS/CloudFront"
+      metric_name = "Requests"
+      dimensions  = { DistributionId = local.api_distribution_id, Region = "Global" }
+      stat        = "Sum"
+      period      = 60
+    }
+  }
+
+  depends_on = [aws_cloudfront_monitoring_subscription.api]
+}
+
+# WAF 요청 수 제한 규칙(IP당 5분 200건) 차단: 5분 10건 이상(PR #119 리뷰). 정상 사용자가 막혔는지는 WAF 샘플 요청·로그로 확인함
+# - 1건 기준이면 접수 기간에 봇 차단만으로 경보·복구가 반복될 수 있음
+# - 정상 사용자 차단(2026-06-28 사례)은 같은 IP의 요청이 여러 건 함께 막히므로 10건 기준으로도 잡힘
+resource "aws_cloudwatch_metric_alarm" "waf_api_rate_limit" {
+  provider = aws.us_east_1
+
+  alarm_name = "${var.name_prefix}-waf-api-rate-limit-blocked"
+  alarm_description = join("\n", [
+    "api WAF 요청 수 제한 규칙(RateLimitPerIP, IP당 5분 200건)이 5분 동안 10건 이상 막음 (OBS-01-09)",
+    "WAF 콘솔 → api 웹 ACL → 샘플 요청에서 막힌 IP·경로 확인",
+    "관리자·평가 화면 경로이고 운영진 IP로 보이면 정상 사용자 차단(2026-06-28 사례). 프론트엔드 재조회 여부와 기준 상향 검토",
+    "취약점 탐색·봇 요청이면 조치 없음",
+  ])
+  namespace           = "AWS/WAFV2"
+  metric_name         = "BlockedRequests"
+  dimensions          = { WebACL = local.api_web_acl_name, Rule = "RateLimitPerIP" }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = 10
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_actions_us
+  ok_actions          = local.alarm_actions_us
+}
