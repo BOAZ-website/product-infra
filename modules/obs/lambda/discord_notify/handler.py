@@ -1,0 +1,320 @@
+"""SNS 경보를 Discord 웹훅으로 보내는 Lambda (docs/wbs/20-obs.md OBS-01-06).
+
+- SNS가 비동기로 호출함. Lambda 비동기 재시도는 0회이고, 이 코드 안에서 한 번만 다시 보냄
+- Discord 응답이 2xx가 아니면(429 포함) 예외를 냄. 실패 시 대상(on-failure destination)이 원래 이벤트를 이메일 전용 주제로 넘김
+- 형식이 틀린 이벤트(SNS 메시지 구조가 아닌 입력)도 예외를 냄
+- 웹훅 URL은 SSM SecureString을 호출마다 읽음(시즌 중 웹훅을 바꿔도 바로 반영됨). URL을 로그에 남기지 않음
+- 웹훅에 wait=true를 붙여 Discord가 메시지를 저장한 뒤 응답하게 함(기본값 false면 저장되지 않아도 2xx가 올 수 있음)
+- 표준 라이브러리만 씀(boto3는 Lambda 런타임에 포함). boto3는 함수 안에서 import해 테스트가 AWS 없이 돌게 함
+"""
+
+import http.client
+import json
+import math
+import os
+import re
+import time
+import urllib.parse
+import urllib.error
+import urllib.request
+from datetime import datetime, timedelta, timezone
+
+HTTP_TIMEOUT_SECONDS = 3
+RETRY_AFTER_CAP_SECONDS = 5
+DEFAULT_RETRY_WAIT_SECONDS = 1
+MAX_ATTEMPTS = 2  # 처음 1번 + 다시 보내기 1번
+DISCORD_CONTENT_LIMIT = 2000
+# SSM 조회 제한. 연결·응답 각 2초, SDK 총 시도 2번(첫 요청 포함, total_max_attempts)
+# - 최악 약 8초 + 재시도 전 대기 최대 1초(standard 모드 첫 재시도 대기 상한)
+SSM_TIMEOUT_SECONDS = 2
+SSM_MAX_ATTEMPTS = 2
+SSM_RETRY_WAIT_MAX_SECONDS = 1
+# 웹훅 URL은 이 접두사로 시작해야 함. 아니면 URL 없이 실패시킴(토큰이 오류 메시지에 남지 않게)
+WEBHOOK_PREFIXES = ("https://discord.com/api/webhooks/", "https://discordapp.com/api/webhooks/")
+# 공백·제어 문자가 있으면 http.client가 URL 경로(토큰 포함)를 넣은 InvalidURL을 냄. 비 ASCII 문자도 웹훅 URL에 없음
+# - 출력 가능한 ASCII(! ~ ~) 밖의 문자는 검사 단계에서 거부함
+WEBHOOK_FORBIDDEN_CHARS = re.compile(r"[^\x21-\x7e]")
+
+# 제목 형식. 나중에 바꾸기 쉽게 한 곳에 둠
+TITLE_FORMAT = "### {label} · {name}"
+
+STATE_TITLES = {
+    "ALARM": "🔴 경보",
+    "OK": "🟢 정상",  # 경보 → 정상만 "복구"로 바꿔 씀(_title)
+    "INSUFFICIENT_DATA": "⚪ 데이터 부족",
+}
+RECOVERED_TITLE = "🟢 복구"
+STATE_NAMES = {"ALARM": "경보", "OK": "정상", "INSUFFICIENT_DATA": "데이터 부족"}
+REGION_NAMES = {"ap-northeast-2": "서울", "us-east-1": "버지니아 북부(us-east-1)"}
+# SNS 경보 메시지의 Statistic은 대문자(AVERAGE)로 옴. 대문자로 맞춰 찾음
+STATISTIC_NAMES = {"AVERAGE": "평균", "SUM": "합계", "MINIMUM": "최소", "MAXIMUM": "최대", "SAMPLECOUNT": "개수"}
+OPERATORS = {
+    "GreaterThanOrEqualToThreshold": "≥",
+    "GreaterThanThreshold": ">",
+    "LessThanThreshold": "<",
+    "LessThanOrEqualToThreshold": "≤",
+}
+PERCENT_METRICS = {"CPUUtilization", "mem_used_percent", "disk_used_percent", "5xxErrorRate", "4xxErrorRate"}
+BYTE_METRICS = {"FreeStorageSpace", "FreeableMemory"}
+KST = timezone(timedelta(hours=9))
+
+class DeliveryError(Exception):
+    """Discord 전달 실패. 실패 시 대상으로 넘기기 위해 Lambda 밖으로 던짐."""
+
+
+def _webhook_url() -> str:
+    """SSM에서 웹훅 URL을 읽음. 캐시하지 않음(경보가 적어 호출마다 읽어도 됨)."""
+    import boto3  # Lambda 런타임에만 있음
+    from botocore.config import Config
+
+    config = Config(
+        connect_timeout=SSM_TIMEOUT_SECONDS,
+        read_timeout=SSM_TIMEOUT_SECONDS,
+        retries={"total_max_attempts": SSM_MAX_ATTEMPTS, "mode": "standard"},
+    )
+    response = boto3.client("ssm", config=config).get_parameter(Name=os.environ["WEBHOOK_PARAMETER_NAME"], WithDecryption=True)
+    return check_webhook_url(response["Parameter"]["Value"])
+
+
+def check_webhook_url(url) -> str:
+    """웹훅 URL 형식 검사. 틀리면 URL을 넣지 않은 DeliveryError."""
+    if not isinstance(url, str) or not url.startswith(WEBHOOK_PREFIXES) or WEBHOOK_FORBIDDEN_CHARS.search(url):
+        raise DeliveryError("웹훅 파라미터 형식이 잘못됨")
+    return url
+
+
+def with_wait(url: str) -> str:
+    """기존 쿼리를 지키면서 wait=true를 붙임."""
+    parts = urllib.parse.urlsplit(url)
+    query = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query, keep_blank_values=True) if k != "wait"]
+    query.append(("wait", "true"))
+    return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
+
+
+def _title(state: str, old: str | None) -> str:
+    if state == "OK" and old == "ALARM":
+        return RECOVERED_TITLE
+    return STATE_TITLES.get(state, state)
+
+
+def parse_sns_records(event) -> list[dict]:
+    """SNS 이벤트에서 Sns 항목 목록을 꺼냄. 구조가 다르면 ValueError."""
+    if not isinstance(event, dict):
+        raise ValueError("이벤트가 객체가 아님")
+    records = event.get("Records")
+    if not isinstance(records, list) or not records:
+        raise ValueError("Records가 없거나 비어 있음")
+    out = []
+    for record in records:
+        sns = record.get("Sns") if isinstance(record, dict) else None
+        if not isinstance(sns, dict) or not isinstance(sns.get("Message"), str):
+            raise ValueError("SNS 메시지 구조가 아님")
+        out.append(sns)
+    return out
+
+
+def _escape(text) -> str:
+    """경보 이름·설명에 든 Discord 마크다운 기호가 서식으로 해석되지 않게 함."""
+    return re.sub(r"([\\*_~`|\[\]])", r"\\\1", str(text))
+
+
+def _number(value, metric: str) -> str:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if metric in BYTE_METRICS:
+        if number >= 1024**3:
+            return f"{number / 1024**3:.1f}GiB"
+        return f"{number / 1024**2:.0f}MiB"
+    text = f"{number:.2f}".rstrip("0").rstrip(".")
+    return text + ("%" if metric in PERCENT_METRICS else "")
+
+
+def _condition(trigger: dict) -> str | None:
+    """Trigger를 '5분 평균 CPUUtilization ≥ 80%, 2번 연속' 같은 문장으로 바꿈."""
+    metric = trigger.get("MetricName")
+    operator = OPERATORS.get(trigger.get("ComparisonOperator"))
+    if not metric or not operator or trigger.get("Threshold") is None:
+        return None
+    parts = []
+    period = trigger.get("Period")
+    if isinstance(period, (int, float)) and period > 0:
+        parts.append(f"{int(period) // 60}분" if period % 60 == 0 else f"{int(period)}초")
+    statistic = trigger.get("Statistic") or trigger.get("ExtendedStatistic")
+    if statistic:
+        parts.append(STATISTIC_NAMES.get(str(statistic).upper(), statistic))
+    text = " ".join(parts + [f"{metric} {operator} {_number(trigger['Threshold'], metric)}"])
+    evaluations = trigger.get("EvaluationPeriods")
+    datapoints = trigger.get("DatapointsToAlarm") or evaluations
+    if isinstance(evaluations, int) and evaluations > 1:
+        text += f", {evaluations}번 연속" if datapoints == evaluations else f", {evaluations}번 중 {datapoints}번"
+    return text
+
+
+def _current_value(reason: str, metric: str) -> str | None:
+    """NewStateReason의 '[85.2 (25/11/25 03:00:00)]'에서 가장 최근 값을 꺼냄."""
+    match = re.search(r"\[(-?[0-9][0-9.]*(?:[eE][-+]?[0-9]+)?) \(", reason or "")
+    return _number(match.group(1), metric) if match else None
+
+
+def _region(alarm: dict) -> str | None:
+    arn = alarm.get("AlarmArn") or ""
+    parts = arn.split(":")
+    return parts[3] if len(parts) > 3 and parts[3] else None
+
+
+def _kst(value) -> str:
+    try:
+        moment = datetime.strptime(str(value), "%Y-%m-%dT%H:%M:%S.%f%z")
+    except ValueError:
+        return str(value)
+    return moment.astimezone(KST).strftime("%Y-%m-%d %H:%M KST")
+
+
+def _truncate(text: str) -> str:
+    if len(text) > DISCORD_CONTENT_LIMIT:
+        return text[: DISCORD_CONTENT_LIMIT - 3] + "..."
+    return text
+
+
+def _format_alarm(alarm: dict) -> str:
+    state = alarm.get("NewStateValue", "")
+    trigger = alarm.get("Trigger") if isinstance(alarm.get("Trigger"), dict) else {}
+    metric = trigger.get("MetricName", "")
+    region = _region(alarm)
+    description = [line.strip() for line in str(alarm.get("AlarmDescription") or "").splitlines() if line.strip()]
+
+    old = alarm.get("OldStateValue")
+    lines = [TITLE_FORMAT.format(label=_title(state, old), name=_escape(alarm["AlarmName"]))]
+    if state != "OK" and description:
+        lines.append(_escape(description[0]))
+
+    fields = []
+    value = _current_value(alarm.get("NewStateReason", ""), metric)
+    if value is not None:
+        fields.append(("현재 값", value))
+    elif state != "OK" and alarm.get("NewStateReason"):
+        fields.append(("사유", _escape(alarm["NewStateReason"])))
+    condition = _condition(trigger)
+    if state != "OK" and condition:
+        fields.append(("조건", condition))
+    if old:
+        fields.append(("상태 변화", f"{STATE_NAMES.get(old, old)} → {STATE_NAMES.get(state, state)}"))
+    if region:
+        fields.append(("리전", REGION_NAMES.get(region, region)))
+    elif alarm.get("Region"):
+        fields.append(("리전", _escape(alarm["Region"])))
+    if alarm.get("StateChangeTime"):
+        fields.append(("시각", _kst(alarm["StateChangeTime"])))
+    lines += [f"- {label}: {text}" for label, text in fields]
+
+    guide = description[1:]
+    if state != "OK" and guide:
+        # 대처 항목은 '먼저 볼 것' 아래에 4칸 들여 써서 하위 목록으로 보임
+        lines.append("- 먼저 볼 것")
+        for number, line in enumerate(guide, start=1):
+            body = re.sub(r"^([-*] |[0-9]+\. )", "", line)
+            lines.append(f"    {number}. {_escape(body)}")
+
+    if region:
+        name = urllib.parse.quote(alarm["AlarmName"], safe="")
+        url = f"https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:alarm/{name}"
+        lines += ["", f"[경보 보기]({url})"]
+    return "\n".join(lines)
+
+
+def _is_alarm(alarm) -> bool:
+    """CloudWatch 경보 메시지 형식인지. 상태 값이 문자열이 아니면 경보 양식으로 풀지 않음(사전 키 조회에서 TypeError 방지)."""
+    if not isinstance(alarm, dict):
+        return False
+    old = alarm.get("OldStateValue")
+    return (
+        isinstance(alarm.get("AlarmName"), str)
+        and isinstance(alarm.get("NewStateValue"), str)
+        and (old is None or isinstance(old, str))
+    )
+
+
+def format_message(sns: dict) -> str:
+    """CloudWatch 경보 메시지면 항목별로 풀어 쓰고, 아니면 제목과 본문을 그대로 씀."""
+    raw = sns["Message"]
+    try:
+        alarm = json.loads(raw)
+    except json.JSONDecodeError:
+        alarm = None
+
+    if _is_alarm(alarm):
+        try:
+            return _truncate(_format_alarm(alarm))
+        except (TypeError, AttributeError, KeyError, ValueError):
+            # 경보처럼 보이지만 다른 필드(Trigger, AlarmArn 등) 형식이 다르면 Lambda 실패 대신 일반 메시지로 보냄
+            pass
+    subject = sns.get("Subject") or "SNS 알림"
+    return _truncate(f"**{_escape(subject)}**\n{_escape(raw)}")
+
+
+def _post(url: str, content: str) -> tuple[int, float | None]:
+    """Discord에 보내고 (상태 코드, Retry-After 초)를 돌려줌. 연결 실패는 예외 그대로."""
+    body = json.dumps({"content": content, "allowed_mentions": {"parse": []}}).encode()
+    request = urllib.request.Request(url, data=body, method="POST", headers={"Content-Type": "application/json", "User-Agent": "boaz-alert-notifier"})
+    try:
+        with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
+            return response.status, None
+    except urllib.error.HTTPError as error:
+        retry_after = error.headers.get("Retry-After") if error.headers else None
+        return error.code, _retry_after_seconds(retry_after)
+
+
+def _retry_after_seconds(value) -> float | None:
+    """Retry-After를 초로 바꿈. 0 이상 유한한 숫자가 아니면 None(nan·음수는 time.sleep에서 ValueError가 남)."""
+    try:
+        wait = float(value)
+    except (TypeError, ValueError):
+        return None
+    return wait if math.isfinite(wait) and wait >= 0 else None
+
+
+def send(content: str, url: str, post=_post, sleep=time.sleep) -> None:
+    """최대 2번 보냄. 2xx면 끝. 429는 Retry-After만큼 기다리되 5초를 넘으면 바로 실패."""
+    last = "알 수 없음"
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        # 예외 메시지에는 URL 원문(토큰 포함)이 들어갈 수 있어 어느 분기도 메시지를 쓰지 않음(예외 이름만)
+        # 순서가 중요함: 여러 종류를 함께 상속하는 예외가 있음
+        # - RemoteDisconnected는 OSError이자 HTTPException, SSLCertVerificationError는 OSError이자 ValueError
+        try:
+            status, retry_after = post(url, content)
+        except http.client.InvalidURL:
+            # URL 형식 오류(HTTPException이지만 다시 보내도 같음). 원문과 예외 체인을 버림
+            raise DeliveryError("웹훅 URL 처리 실패") from None
+        except (OSError, TimeoutError, http.client.HTTPException) as error:
+            # 연결 실패·끊김, 잘못된 상태 줄 등(URLError도 OSError). 다시 보냄
+            status, retry_after, last = None, None, f"연결 실패: {type(error).__name__}"
+        except ValueError:
+            # urllib의 URL 처리 오류(unknown url type, UnicodeEncodeError 등). 다시 보내도 같음
+            raise DeliveryError("웹훅 URL 처리 실패") from None
+        except Exception as error:
+            # 예상하지 못한 예외도 메시지 없이 바꿈(토큰이 섞인 메시지가 Lambda 밖으로 나가지 않게)
+            raise DeliveryError(f"Discord 전송 중 예외: {type(error).__name__}") from None
+        else:
+            if 200 <= status < 300:
+                return
+            last = f"HTTP {status}"
+
+        if attempt == MAX_ATTEMPTS:
+            break
+        if status == 429:
+            wait = retry_after if retry_after is not None else DEFAULT_RETRY_WAIT_SECONDS
+            if wait > RETRY_AFTER_CAP_SECONDS:
+                raise DeliveryError(f"Discord 요청 제한, 대기 {wait}초가 상한 {RETRY_AFTER_CAP_SECONDS}초를 넘음")
+            sleep(wait)
+    raise DeliveryError(f"Discord 전달 실패({MAX_ATTEMPTS}번 시도): {last}")
+
+
+def lambda_handler(event, context):
+    records = parse_sns_records(event)
+    url = with_wait(_webhook_url())
+    for sns in records:
+        send(format_message(sns), url)
+    print(json.dumps({"delivered": len(records)}))
+    return {"delivered": len(records)}

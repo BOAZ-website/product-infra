@@ -18,18 +18,20 @@ locals {
   # 기존 경보 12개. 이름·설명·조건은 현행 값 그대로(describe-alarms, 2026-11-15)
   # - 이름은 import id라 바꾸면 교체가 됨. 공백·한글도 현행 그대로 둠
   # - target: 지표 차원 대상. ec2_a·ec2_b는 InstanceId(Name 태그로 조회), rds는 DBInstanceIdentifier
-  # - 생략한 값: datapoints_to_alarm·description null, treat_missing_data "missing", ok_actions 끔
+  # - 생략한 값: datapoints_to_alarm·description null, treat_missing_data "missing"
+  # - 정상 복구 알림(ok_actions)은 모든 경보에 켬(2026-11-25, #115). 콘솔 현행은 RDS 경보 2개만 켜져 있었음
+  #   모듈 기본값은 false라 경보마다 직접 적음. 나중에 import하는 경보는 현행 값대로 따로 정함
   obs_existing_alarms = {
-    ec2_a_status    = { name = "EC2-A-StatusCheckFailed", description = "EC2-A-StatusCheckFailed 발생", target = "ec2_a", namespace = "AWS/EC2", metric = "StatusCheckFailed", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 1 }
-    ec2_b_status    = { name = "EC2 - B -  StatusCheckFailed", description = "EC2 - B - StatusCheckFailed 1 이상 ", target = "ec2_b", namespace = "AWS/EC2", metric = "StatusCheckFailed", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 1 }
-    ec2_a_cpu       = { name = "EC2-A-CPU 과부하", description = "EC2 - A - CPU 과부하 ( 80% 초과 )", target = "ec2_a", namespace = "AWS/EC2", metric = "CPUUtilization", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 80 }
-    ec2_b_cpu       = { name = "EC2 - B - CPU 과부하", description = "EC2 - B - CPU 과부하 ( 80% 초과 )", target = "ec2_b", namespace = "AWS/EC2", metric = "CPUUtilization", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 80 }
-    ec2_a_memory    = { name = "EC2-A-Memory-80 초과", description = "EC2-A-Memory-80 초과", target = "ec2_a", namespace = "BOAZ/Backend", metric = "mem_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 80 }
-    ec2_b_memory    = { name = "EC2-B-메모리 과부하", description = "EC2 - B - 메모리 과부하 ( 80% 초과 )", target = "ec2_b", namespace = "BOAZ/Backend", metric = "mem_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanThreshold", threshold = 80 }
-    ec2_a_disk      = { name = "EC2-A-디스크 과부하", description = "EC2 디스크 과부하 ( 80% 초과 )", target = "ec2_a", namespace = "BOAZ/Backend", metric = "disk_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanThreshold", threshold = 80, extra_dimensions = { path = "/", device = "nvme0n1p1", fstype = "ext4" } }
-    ec2_b_disk      = { name = "EC2-B-디스크 과부하", description = "EC2 -B - 디스크 과부하 ( 80% 초과 )", target = "ec2_b", namespace = "BOAZ/Backend", metric = "disk_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanThreshold", threshold = 80, extra_dimensions = { path = "/", device = "nvme0n1p1", fstype = "ext4" } }
-    rds_cpu         = { name = "boaz-prod-db-High-CPUUtilization", target = "rds", namespace = "AWS/RDS", metric = "CPUUtilization", statistic = "Average", period = 300, evaluation_periods = 1, operator = "GreaterThanThreshold", threshold = 80 }
-    rds_connections = { name = "boaz-prod-db-High-DatabaseConnections", target = "rds", namespace = "AWS/RDS", metric = "DatabaseConnections", statistic = "Average", period = 300, evaluation_periods = 1, operator = "GreaterThanThreshold", threshold = 50 }
+    ec2_a_status    = { name = "EC2-A-StatusCheckFailed", description = "EC2-A-StatusCheckFailed 발생", target = "ec2_a", namespace = "AWS/EC2", metric = "StatusCheckFailed", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 1, ok_actions = true }
+    ec2_b_status    = { name = "EC2 - B -  StatusCheckFailed", description = "EC2 - B - StatusCheckFailed 1 이상 ", target = "ec2_b", namespace = "AWS/EC2", metric = "StatusCheckFailed", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 1, ok_actions = true }
+    ec2_a_cpu       = { name = "EC2-A-CPU 과부하", description = "EC2 - A - CPU 과부하 ( 80% 초과 )", target = "ec2_a", namespace = "AWS/EC2", metric = "CPUUtilization", statistic = "Average", period = 300, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 80, ok_actions = true }
+    ec2_b_cpu       = { name = "EC2 - B - CPU 과부하", description = "EC2 - B - CPU 과부하 ( 80% 초과 )", target = "ec2_b", namespace = "AWS/EC2", metric = "CPUUtilization", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 80, ok_actions = true }
+    ec2_a_memory    = { name = "EC2-A-Memory-80 초과", description = "EC2-A-Memory-80 초과", target = "ec2_a", namespace = "BOAZ/Backend", metric = "mem_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanOrEqualToThreshold", threshold = 80, ok_actions = true }
+    ec2_b_memory    = { name = "EC2-B-메모리 과부하", description = "EC2 - B - 메모리 과부하 ( 80% 초과 )", target = "ec2_b", namespace = "BOAZ/Backend", metric = "mem_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanThreshold", threshold = 80, ok_actions = true }
+    ec2_a_disk      = { name = "EC2-A-디스크 과부하", description = "EC2 디스크 과부하 ( 80% 초과 )", target = "ec2_a", namespace = "BOAZ/Backend", metric = "disk_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanThreshold", threshold = 80, extra_dimensions = { path = "/", device = "nvme0n1p1", fstype = "ext4" }, ok_actions = true }
+    ec2_b_disk      = { name = "EC2-B-디스크 과부하", description = "EC2 -B - 디스크 과부하 ( 80% 초과 )", target = "ec2_b", namespace = "BOAZ/Backend", metric = "disk_used_percent", statistic = "Average", period = 600, evaluation_periods = 1, datapoints_to_alarm = 1, operator = "GreaterThanThreshold", threshold = 80, extra_dimensions = { path = "/", device = "nvme0n1p1", fstype = "ext4" }, ok_actions = true }
+    rds_cpu         = { name = "boaz-prod-db-High-CPUUtilization", target = "rds", namespace = "AWS/RDS", metric = "CPUUtilization", statistic = "Average", period = 300, evaluation_periods = 1, operator = "GreaterThanThreshold", threshold = 80, ok_actions = true }
+    rds_connections = { name = "boaz-prod-db-High-DatabaseConnections", target = "rds", namespace = "AWS/RDS", metric = "DatabaseConnections", statistic = "Average", period = 300, evaluation_periods = 1, operator = "GreaterThanThreshold", threshold = 50, ok_actions = true }
     # 할당 20GB의 20%(4GiB)
     rds_free_storage = { name = "boaz-prod-db-Low-FreeStorageSpace", description = "RDS 남은 스토리지 4GB 미만 (할당 20GB의 20%)", target = "rds", namespace = "AWS/RDS", metric = "FreeStorageSpace", statistic = "Minimum", period = 300, evaluation_periods = 1, operator = "LessThanThreshold", threshold = 4 * 1024 * 1024 * 1024, treat_missing_data = "notBreaching", ok_actions = true }
     # 현행 80MB. decisions.md "경보 수신 이메일·임계값"의 초기값 50MB와 다름. 조정은 별도 PR
@@ -59,6 +61,10 @@ module "obs" {
   # RDS 로그 그룹(OBS-01-07). error는 import, slowquery는 새로 만듦(2026-11-25 조회 시 없음)
   rds_log_types          = ["error", "slowquery"]
   rds_log_retention_days = 90
+
+  # Discord 경보 전달 Lambda(OBS-01-06). 웹훅 파라미터는 수동 등록한 SecureString
+  discord_webhook_parameter_name = "/boaz/obs/discord-webhook-url"
+  lambda_log_retention_days      = 30
 
   existing_alarms = local.obs_existing_alarms
   group_vars      = local.group_vars.obs

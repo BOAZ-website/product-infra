@@ -1,0 +1,176 @@
+# Discord 경보 전달 Lambda(OBS-01-06, 이슈 #115)
+# - 서울 Lambda 1개를 서울·us-east-1 두 경보 주제가 구독함. 구독 자원은 주제가 있는 리전에, 호출 권한은 서울에 주제마다 1개
+# - Discord 전달이 실패하면 실패 시 대상(on-failure destination)이 이메일 전용 주제로 원래 이벤트를 넘김
+#   경보 주제(alerts)를 실패 대상으로 쓰면 실패 메시지가 다시 Lambda로 들어가므로 따로 만듦
+# - 웹훅 URL은 SSM SecureString(수동 등록, Terraform 관리 밖)을 실행 시 읽음. 값을 state에 넣지 않음
+# - 모두 새로 만드는 자원임. 함수·로그 그룹 이름을 바꾸면 교체가 되어 G4에 막히므로 처음부터 확정함
+# - 되돌리기: 콘솔에서 두 주제의 SNS→Lambda 구독을 끊고 당일 기록(20-obs.md "되돌리기")
+
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+locals {
+  discord_function_name  = "${var.name_prefix}-discord-notify"
+  discord_log_group_name = "/aws/lambda/${local.discord_function_name}"
+  discord_webhook_parameter_arn = join("", [
+    "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/",
+    trimprefix(var.discord_webhook_parameter_name, "/"), # 이름이 /로 시작하든 안 하든 ARN은 parameter/<이름>
+  ])
+
+  # Lambda를 호출하는 경보 주제. 키는 구독·권한 자원 주소에 씀
+  discord_source_topics = {
+    seoul     = aws_sns_topic.alerts.arn
+    us_east_1 = aws_sns_topic.alerts_us_east_1.arn
+  }
+}
+
+# 저장소 소스를 zip으로 묶음(decisions.md "Discord 알림 Lambda 코드 위치"). 파일 권한을 고정해 OS마다 해시가 달라지지 않게 함
+data "archive_file" "discord_notify" {
+  type             = "zip"
+  source_file      = "${path.module}/lambda/discord_notify/handler.py"
+  output_path      = "${path.root}/.terraform/archive/discord_notify.zip"
+  output_file_mode = "0644"
+}
+
+# 함수보다 먼저 만듦. Lambda가 자동으로 만들면 무기한 보관이 됨
+resource "aws_cloudwatch_log_group" "discord_notify" {
+  name              = local.discord_log_group_name
+  retention_in_days = var.lambda_log_retention_days
+}
+
+# --- 실패 시 대상: 이메일 전용 주제(서울) ---
+
+resource "aws_sns_topic" "alert_failures" {
+  name = "${var.name_prefix}-alert-delivery-failures"
+}
+
+# 경보 주제와 같은 그룹 주소. apply 직후 그룹 소유자가 확인 메일을 승인해야 활성화됨(48시간 안에 승인하지 않으면 SNS가 구독을 지움)
+# - 승인 전에는 Discord 전달이 실패해도 실패 메일이 오지 않음. Terraform은 이메일 승인을 기다리지 못하므로 이 공백은 허용함
+#   시즌 동안 경보 주제의 그룹 직접 구독이 남아 있어 경보 메일 자체는 받음. apply 직후 바로 승인함
+# - 기한을 넘기면 콘솔에서 구독 확인을 다시 요청(Request confirmation)함
+resource "aws_sns_topic_subscription" "alert_failures_email" {
+  for_each = var.group_vars.alert_emails
+
+  topic_arn = aws_sns_topic.alert_failures.arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
+# --- 실행 역할 ---
+
+# 정책은 jsonencode로 씀(mock provider 테스트에서 aws_iam_policy_document data가 JSON을 만들지 않음)
+resource "aws_iam_role" "discord_notify" {
+  name = "${local.discord_function_name}-role"
+  # IAM 역할 설명은 라틴 문자만 허용됨(한글 불가)
+  description = "Execution role for the Discord alert notifier Lambda (OBS-01-06)"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "discord_notify" {
+  name = "discord-notify"
+  role = aws_iam_role.discord_notify.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "WriteOwnLogs"
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "${aws_cloudwatch_log_group.discord_notify.arn}:*"
+      },
+      {
+        Sid      = "ReadWebhookParameter"
+        Effect   = "Allow"
+        Action   = "ssm:GetParameter"
+        Resource = local.discord_webhook_parameter_arn
+      },
+      # kms:Decrypt는 넣지 않음. 웹훅 파라미터는 AWS 관리형 키(alias/aws/ssm)로 암호화돼 있고(2026-11-25 확인),
+      # 이 키의 키 정책이 같은 계정에서 SSM을 거친 복호화를 이미 허용함. 고객 관리형 키로 바꾸면 그 키 ARN으로 좁혀 추가함
+      {
+        Sid      = "PublishDeliveryFailures"
+        Effect   = "Allow"
+        Action   = "sns:Publish"
+        Resource = aws_sns_topic.alert_failures.arn
+      },
+    ]
+  })
+}
+
+# --- 함수 ---
+
+resource "aws_lambda_function" "discord_notify" {
+  function_name    = local.discord_function_name
+  description      = "SNS 경보를 Discord 웹훅으로 전달(OBS-01-06)"
+  role             = aws_iam_role.discord_notify.arn
+  runtime          = "python3.12"
+  handler          = "handler.lambda_handler"
+  filename         = data.archive_file.discord_notify.output_path
+  source_code_hash = data.archive_file.discord_notify.output_base64sha256
+  timeout          = 30 # SSM 조회(최악 약 9초, 재시도 대기 포함) + Discord HTTP 제한 3초 × 2번 + Retry-After 대기 상한 5초 + 콜드 스타트보다 크게
+  memory_size      = 128
+
+  # 동시 실행 1. 경보가 한꺼번에 울려도 Discord에 차례로 보내 요청 제한(429)을 피함
+  # - SNS 호출은 비동기라 제한에 걸린 호출은 버려지지 않고 Lambda 대기열에서 다시 실행됨(함수 오류 재시도 0회와 별개)
+  # - 계정 동시 실행 한도 1000, 다른 예약 없음(2026-11-25 확인)
+  reserved_concurrent_executions = 1
+
+  environment {
+    variables = {
+      WEBHOOK_PARAMETER_NAME = var.discord_webhook_parameter_name
+    }
+  }
+
+  depends_on = [aws_cloudwatch_log_group.discord_notify, aws_iam_role_policy.discord_notify]
+}
+
+# 비동기 재시도 0회(기본 2회면 실패 메일이 몇 분 늦어짐). 재시도는 코드 안에서 1번만 함
+resource "aws_lambda_function_event_invoke_config" "discord_notify" {
+  function_name          = aws_lambda_function.discord_notify.function_name
+  maximum_retry_attempts = 0
+
+  destination_config {
+    on_failure {
+      destination = aws_sns_topic.alert_failures.arn
+    }
+  }
+}
+
+# --- 경보 주제 → Lambda ---
+
+resource "aws_lambda_permission" "discord_notify" {
+  for_each = local.discord_source_topics
+
+  statement_id  = "AllowSns-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.discord_notify.function_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = each.value
+}
+
+resource "aws_sns_topic_subscription" "discord_seoul" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.discord_notify.arn
+
+  # 첫 apply에서 비동기 설정(재시도 0회, 실패 시 대상)보다 먼저 이벤트가 들어오지 않게 함
+  depends_on = [aws_lambda_permission.discord_notify, aws_lambda_function_event_invoke_config.discord_notify]
+}
+
+resource "aws_sns_topic_subscription" "discord_us_east_1" {
+  provider = aws.us_east_1
+
+  topic_arn = aws_sns_topic.alerts_us_east_1.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.discord_notify.arn
+
+  # 첫 apply에서 비동기 설정(재시도 0회, 실패 시 대상)보다 먼저 이벤트가 들어오지 않게 함
+  depends_on = [aws_lambda_permission.discord_notify, aws_lambda_function_event_invoke_config.discord_notify]
+}

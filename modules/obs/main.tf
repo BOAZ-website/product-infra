@@ -5,7 +5,7 @@
 # 파일 구성
 # - main.tf: SNS 주제·이메일 구독(서울, us-east-1), 앱 로그 그룹, RDS 로그 그룹
 # - alarms.tf: RDS·EC2 경보(서울), CloudFront 경보(us-east-1)
-# - Discord 알림 Lambda(OBS-01-06)는 별도 PR에서 추가함(20-obs.md "진행 순서")
+# - discord.tf: Discord 경보 전달 Lambda, 실행 역할, 실패 시 이메일 전용 주제, 경보 주제 구독(OBS-01-06)
 #
 # - 콘솔로 만든 서울 SNS 주제·구독·로그 그룹·경보 12개는 import함(envs/prod/imports_obs.tf). 현행 값 그대로 적어 plan에 변경이 없어야 함
 # - 경보 대상 EC2·RDS는 data source로 조회만 하고 바꾸지 않음(OBS-01-05)
