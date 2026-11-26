@@ -1,6 +1,7 @@
 """Discord 경보 전달 Lambda 핸들러 단위 테스트(OBS-01-06). AWS·네트워크 없이 돈다."""
 
 import importlib.util
+import http.client
 import json
 import pathlib
 import re
@@ -305,6 +306,7 @@ SECRET_URL = "discord.com/api/webhooks/1/fake-secret-token"
         "https://discord.com/api/webhooks/1/fake secret-token",
         "https://discord.com/api/webhooks/1/fake-secret-token\n",
         "https://discord.com/api/webhooks/1/fake\x7fsecret-token",
+        "https://discord.com/api/webhooks/1/토큰fake-secret-token",
         "",
         None,
     ],
@@ -324,6 +326,25 @@ def test_send_hides_url_when_urllib_rejects_it():
     # 스킴이 빠진 URL이면 urllib.request.Request가 URL 원문이 든 ValueError를 냄(네트워크 호출 전)
     with pytest.raises(handler.DeliveryError) as info:
         handler.send("x", SECRET_URL, sleep=lambda s: None)
+    assert "fake-secret-token" not in str(info.value)
+    assert info.value.__cause__ is None and info.value.__suppress_context__
+
+
+@pytest.mark.parametrize(
+    "error",
+    [http.client.RemoteDisconnected("Remote end closed connection without response"), http.client.BadStatusLine("x")],
+)
+def test_send_retries_after_connection_drop(error):
+    # RemoteDisconnected는 OSError이자 HTTPException. URL 오류로 보고 바로 실패시키면 경보가 빠짐
+    post = FakePost(error, (204, None))
+    handler.send("x", URL, post=post, sleep=lambda s: None)
+    assert post.calls == 2
+
+
+def test_send_hides_url_when_non_ascii_reaches_urllib():
+    # 형식 검사를 거치지 않은 비 ASCII URL은 http.client 인코딩에서 UnicodeEncodeError(ValueError)가 남(.invalid 주소, 연결 전에 실패)
+    with pytest.raises(handler.DeliveryError) as info:
+        handler.send("x", "https://discord.invalid/api/webhooks/1/토큰fake-secret-token", sleep=lambda s: None)
     assert "fake-secret-token" not in str(info.value)
     assert info.value.__cause__ is None and info.value.__suppress_context__
 
