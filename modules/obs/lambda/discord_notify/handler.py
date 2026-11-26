@@ -10,6 +10,7 @@
 
 import http.client
 import json
+import math
 import os
 import re
 import time
@@ -244,7 +245,11 @@ def format_message(sns: dict) -> str:
         alarm = None
 
     if _is_alarm(alarm):
-        return _truncate(_format_alarm(alarm))
+        try:
+            return _truncate(_format_alarm(alarm))
+        except (TypeError, AttributeError, KeyError, ValueError):
+            # 경보처럼 보이지만 다른 필드(Trigger, AlarmArn 등) 형식이 다르면 Lambda 실패 대신 일반 메시지로 보냄
+            pass
     subject = sns.get("Subject") or "SNS 알림"
     return _truncate(f"**{_escape(subject)}**\n{_escape(raw)}")
 
@@ -258,26 +263,39 @@ def _post(url: str, content: str) -> tuple[int, float | None]:
             return response.status, None
     except urllib.error.HTTPError as error:
         retry_after = error.headers.get("Retry-After") if error.headers else None
-        try:
-            wait = float(retry_after) if retry_after is not None else None
-        except ValueError:
-            wait = None
-        return error.code, wait
+        return error.code, _retry_after_seconds(retry_after)
+
+
+def _retry_after_seconds(value) -> float | None:
+    """Retry-After를 초로 바꿈. 0 이상 유한한 숫자가 아니면 None(nan·음수는 time.sleep에서 ValueError가 남)."""
+    try:
+        wait = float(value)
+    except (TypeError, ValueError):
+        return None
+    return wait if math.isfinite(wait) and wait >= 0 else None
 
 
 def send(content: str, url: str, post=_post, sleep=time.sleep) -> None:
     """최대 2번 보냄. 2xx면 끝. 429는 Retry-After만큼 기다리되 5초를 넘으면 바로 실패."""
     last = "알 수 없음"
     for attempt in range(1, MAX_ATTEMPTS + 1):
+        # 예외 메시지에는 URL 원문(토큰 포함)이 들어갈 수 있어 어느 분기도 메시지를 쓰지 않음(예외 이름만)
+        # 순서가 중요함: 여러 종류를 함께 상속하는 예외가 있음
+        # - RemoteDisconnected는 OSError이자 HTTPException, SSLCertVerificationError는 OSError이자 ValueError
         try:
             status, retry_after = post(url, content)
-        except (ValueError, http.client.InvalidURL):
-            # urllib의 ValueError와 http.client의 InvalidURL 메시지에는 URL 원문(토큰 포함)이 들어감. 원문과 예외 체인을 버림
-            # - 바로 실패시키는 것은 URL 형식 오류만. 연결 끊김(RemoteDisconnected는 OSError이자 HTTPException)은 아래에서 다시 보냄
+        except http.client.InvalidURL:
+            # URL 형식 오류(HTTPException이지만 다시 보내도 같음). 원문과 예외 체인을 버림
             raise DeliveryError("웹훅 URL 처리 실패") from None
-        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as error:
-            # 응답 전 연결 끊김, 잘못된 상태 줄(BadStatusLine) 등. 메시지에 URL이 없어 이름만 남김
+        except (OSError, TimeoutError, http.client.HTTPException) as error:
+            # 연결 실패·끊김, 잘못된 상태 줄 등(URLError도 OSError). 다시 보냄
             status, retry_after, last = None, None, f"연결 실패: {type(error).__name__}"
+        except ValueError:
+            # urllib의 URL 처리 오류(unknown url type, UnicodeEncodeError 등). 다시 보내도 같음
+            raise DeliveryError("웹훅 URL 처리 실패") from None
+        except Exception as error:
+            # 예상하지 못한 예외도 메시지 없이 바꿈(토큰이 섞인 메시지가 Lambda 밖으로 나가지 않게)
+            raise DeliveryError(f"Discord 전송 중 예외: {type(error).__name__}") from None
         else:
             if 200 <= status < 300:
                 return
