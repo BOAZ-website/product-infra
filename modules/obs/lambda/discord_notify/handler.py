@@ -219,6 +219,18 @@ def _format_alarm(alarm: dict) -> str:
     return "\n".join(lines)
 
 
+def _is_alarm(alarm) -> bool:
+    """CloudWatch 경보 메시지 형식인지. 상태 값이 문자열이 아니면 경보 양식으로 풀지 않음(사전 키 조회에서 TypeError 방지)."""
+    if not isinstance(alarm, dict):
+        return False
+    old = alarm.get("OldStateValue")
+    return (
+        isinstance(alarm.get("AlarmName"), str)
+        and isinstance(alarm.get("NewStateValue"), str)
+        and (old is None or isinstance(old, str))
+    )
+
+
 def format_message(sns: dict) -> str:
     """CloudWatch 경보 메시지면 항목별로 풀어 쓰고, 아니면 제목과 본문을 그대로 씀."""
     raw = sns["Message"]
@@ -227,7 +239,7 @@ def format_message(sns: dict) -> str:
     except json.JSONDecodeError:
         alarm = None
 
-    if isinstance(alarm, dict) and "AlarmName" in alarm:
+    if _is_alarm(alarm):
         return _truncate(_format_alarm(alarm))
     subject = sns.get("Subject") or "SNS 알림"
     return _truncate(f"**{_escape(subject)}**\n{_escape(raw)}")
