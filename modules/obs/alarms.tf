@@ -106,6 +106,14 @@ data "aws_cloudfront_distribution" "api" {
   provider = aws.us_east_1
 
   id = local.api_distribution_id
+
+  # 웹 ACL이 없으면 아래 split(...)[2]가 인덱스 오류로 실패함. 원인을 바로 알 수 있게 먼저 검사함
+  lifecycle {
+    postcondition {
+      condition     = can(regex("^arn:aws:wafv2:[^:]*:[^:]*:global/webacl/[^/]+/[^/]+$", self.web_acl_id))
+      error_message = "api CloudFront 배포에 WAFv2 웹 ACL이 연결돼 있지 않습니다. WAF 차단 경보의 WebACL 차원을 만들 수 없습니다."
+    }
+  }
 }
 
 # 건수 = (502 비율 + 504 비율) ÷ 100 × 요청 수. 근사값이라 실제 1건이 0.97처럼 나올 수 있어 기준은 0.5 이상
@@ -165,12 +173,15 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_api_502_504" {
 }
 
 # WAF 요청 수 제한 규칙(IP당 5분 200건) 차단. 정상 사용자가 막혔는지는 WAF 샘플 요청·로그로 확인함
+# WAF 요청 수 제한 차단: 5분 10건 이상(PR #119 리뷰)
+# - 1건 기준이면 접수 기간에 봇 차단만으로 경보·복구가 반복될 수 있음
+# - 정상 사용자 차단(2026-06-28 사례)은 같은 IP의 요청이 여러 건 함께 막히므로 10건 기준으로도 잡힘
 resource "aws_cloudwatch_metric_alarm" "waf_api_rate_limit" {
   provider = aws.us_east_1
 
   alarm_name = "${var.name_prefix}-waf-api-rate-limit-blocked"
   alarm_description = join("\n", [
-    "api WAF 요청 수 제한 규칙(RateLimitPerIP, IP당 5분 200건)이 요청을 막음 (OBS-01-09)",
+    "api WAF 요청 수 제한 규칙(RateLimitPerIP, IP당 5분 200건)이 5분 동안 10건 이상 막음 (OBS-01-09)",
     "WAF 콘솔 → api 웹 ACL → 샘플 요청에서 막힌 IP·경로 확인",
     "관리자·평가 화면 경로이고 운영진 IP로 보이면 정상 사용자 차단(2026-06-28 사례). 프론트엔드 재조회 여부와 기준 상향 검토",
     "취약점 탐색·봇 요청이면 조치 없음",
@@ -182,7 +193,7 @@ resource "aws_cloudwatch_metric_alarm" "waf_api_rate_limit" {
   period              = 300
   evaluation_periods  = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  threshold           = 1
+  threshold           = 10
   treat_missing_data  = "notBreaching"
   alarm_actions       = local.alarm_actions_us
   ok_actions          = local.alarm_actions_us

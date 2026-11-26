@@ -130,3 +130,10 @@ python3 scripts/check_ec2b_redeploy.py --wait-target-health
 
 - 통과(exit 0)한 경우에만 `api_origin`을 `alb`로 바꾸는 PR을 머지하고 관리자가 apply함
 - 대상이나 포트가 다르거나 한 대라도 `healthy`가 아니면 시간 초과 시 exit 1을 반환함. 조회 실패는 exit 2를 반환함. 두 경우 모두 origin 교체를 중단함
+
+## 6. 전환 중·시즌 중 경보 확인(2026-12 시즌부터)
+
+- 원본 전환(season-up의 재배포와 CloudFront 원본 교체, season-down의 원복) 중에는 api 헬스체크 경보(`boaz-prod-api-health-check-failed`)와 502·504 경보(`boaz-prod-cloudfront-api-502-504-count`)가 울릴 수 있음. 예상된 경보로 보고, 전환 확인이 끝난 뒤 두 경보의 복구 알림이 Discord에 왔는지만 확인함. 전환 확인이 끝났는데도 경보 상태가 계속되면 장애로 보고 대응함
+- 시즌 중 ALB 뒤 서버 한 대가 빠지면 ALB가 남은 한 대로 보내므로 헬스체크는 성공하고 502도 나지 않을 수 있음. 전환 때는 `season-up.sh`가 두 대 모두 healthy가 될 때까지 기다리지만, 그 뒤 이탈은 따로 봐야 함
+  - 시즌 ALB 경보를 수동으로 만들 때 Target Group의 healthy 대상 수(`HealthyHostCount`) 2 미만 경보를 함께 만듦(ALB는 `season-up.sh`가 만들어 OBS Terraform에서 경보를 둘 수 없음)
+  - 경보를 만들기 전까지는 season-up 직후와 경보 대응 때 `aws elbv2 describe-target-health`로 두 대가 `healthy`인지 확인함
