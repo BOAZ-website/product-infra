@@ -42,7 +42,7 @@
 - 암호화 키: AWS 관리형 기본 RDS 키(`alias/aws/rds`)로 확인(2026-10-02 조사). 고객 생성 키 아님 → Terraform 키 관리 불필요, `storage_encrypted = true`와 현행 키로 맞춰 교체 방지
 - 파라미터 그룹 `boaz-prod-mysql84`: 기본값과 다른 값은 `time_zone = Asia/Seoul`(immediate) 하나뿐으로 확인(2026-10-02 조사). 엔진 MySQL 8.4.11
 - 느린 쿼리 로그: import 연기 중이라 콘솔로 켜고 당일 decisions.md에 기록함. season-up(2026-11-27) 전에 끝내지 못하면 내보내기는 시즌 뒤로 미룸
-  - 켜기 전 조건: 느린 쿼리 로그 그룹이 OBS apply로 만들어져 있음(OBS-01-07). 로그 그룹이 없으면 내보내기를 켜지 않음. RDB 담당 승인 조건은 2026-11-25 PO 동의로 빼고, 켠 뒤 RDB 담당에게 통보하고 decisions.md에 기록함
+  - 켜기 전 조건: 느린 쿼리 로그 그룹이 OBS apply로 만들어져 있음(OBS-01-07). 로그 그룹이 없으면 내보내기를 켜지 않음. RDB 담당 승인 조건은 2026-11-25 PO 동의로 빼고, RDB 작업 때 RDB 담당에게 알리며 decisions.md에 기록함
   - 파라미터 그룹 `boaz-prod-mysql84`에 `slow_query_log = 1`, `long_query_time = 1`, `log_output = FILE`을 넣음. 세 값 모두 재부팅 없이 반영됨. 다만 `long_query_time`은 세션 단위 값이라 이미 열려 있는 DB 연결에는 새 기준이 적용되지 않음. season-up이 EC2 두 대에 앱을 다시 배포해 연결을 새로 만들므로 season-up 전에 켬
   - 로그 내보내기에 `slowquery`를 추가함. 인스턴스가 수정 중 상태가 되므로 사용 가능 상태로 돌아온 것을 확인한 뒤 season-up을 시작함
   - 시험 쿼리(예: `SELECT SLEEP(2)`)로 느린 쿼리 로그 그룹에 기록이 남는지와 기록 내용을 확인함
