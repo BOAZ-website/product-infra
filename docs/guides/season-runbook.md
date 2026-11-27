@@ -7,6 +7,7 @@
 - 시즌 시작 중 "EC2-B 기동 → 최신 번들 재배포 성공 → Target Group 등록" 순서와, origin 교체 전 대상 상태 확인(CMP-02-03)을 다룸
 - 시즌 종료 절차, 배포 그룹 기본값과 실제 배포 방식 차이 등 나머지 내용은 DOC-09(Phase 5)에서 이 파일에 보탬
 - 실행 주체: 관리자. 1, 2, 4단계는 AWS 쓰기 권한이 필요함. 3단계 게이트와 5단계 확인은 읽기 전용 조회만 함
+- 시즌 전체의 단계·확인 항목(공고 준비부터 회고·개인정보 파기까지)과 배포 금지 기간은 engineering-playbook `process/recruiting-season.md`(모집 시즌 체크리스트)와 `process/release.md`가 기준. 이 문서는 그중 인프라 항목(INF, TF)의 실행 절차를 다룸. 시즌별 증빙은 `docs/records/YYYY-MM-season-readiness.md`
 
 ## 적용 시점
 
