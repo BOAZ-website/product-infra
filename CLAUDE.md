@@ -47,3 +47,9 @@ Notion 문서, PR·이슈 본문, 저장소 안 문서를 쓰거나 고칠 때 �
 - 작업 목록·명세서(기준 문서, 노션 원본): `docs/wbs/`
 - 그룹 import 공통 절차: `docs/guides/import-procedure.md`
 - 조사·결정·import 기록: `docs/records/`
+
+## 이슈와 PR 생성(engineering-playbook `conventions/issue-pr.md`)
+
+- 개발 작업은 GitHub 이슈를 먼저 만들고 Notion 티켓을 만든다. 이슈는 engineering-playbook `tools/new-issue.sh`로 만든다. Assignee, 작업 종류 라벨, Type, Priority, 보드("BOAZ-website project") 편입, Project 6개가 필수이며 스크립트가 한 번에 지정한다
+- PR 하나 = 이슈 하나. PR 본문에 `Closes #번호`를 적는다. 작업이 PR 여러 개로 나뉘면 `tools/new-issue.sh -p 상위번호`로 하위 이슈를 만들고 PR마다 하위 이슈 하나를 닫는다
+- PR은 Assignee(작성자)와 Reviewer(작성자가 아닌 사람 1명 이상)를 반드시 지정한다
