@@ -1,6 +1,7 @@
 ## 💡 개요
 
-* Issue Number: #
+* Issue Number: Closes #
+  <!-- 이슈 전체를 처리하면 Closes #번호(PR에 자동 연결, 머지 때 이슈 자동 종료), 이슈를 나눠 처리하는 중간 PR이면 Refs #번호. 규칙: engineering-playbook conventions/git.md "PR 제목" -->
 * import 그룹: <!-- network / iam / params / storage / compute / database / cdn / deploy / obs / 해당 없음 -->
 
 ## 🪐 주요 변경 사항
