@@ -69,6 +69,8 @@ locals {
 
     # 관리자 콘솔 배포(frontend_admin 저장소 production environment 배포만, IAM-01. environment 배포 브랜치는 main만)
     # 2026-07-15 이후 생성 저장소라 immutable subject 형식을 씀(bootstrap/ci_plan_role.tf와 같음)
+    # 28기 서류 평가 앱(frontend_recruiting_admin)이 관리자 버킷 루트를 쓰므로 그 저장소 production environment도 허용함(#134).
+    # 시즌이 끝나면 빼고, frontend_admin 배포 워크플로를 붙이기 전에는 반드시 정리함(두 저장소가 같은 버킷 루트를 덮어쓰지 않게)
     frontend_admin = {
       name        = "role-prod-github-actions-frontend-admin"
       description = "GitHub Actions OIDC deploy role for frontend_admin (admin console). IAM-01"
@@ -78,7 +80,10 @@ locals {
           Condition = {
             StringEquals = {
               "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-              "token.actions.githubusercontent.com:sub" = "repo:BOAZ-website@258640138/frontend_admin@1351152812:environment:production"
+              "token.actions.githubusercontent.com:sub" = [
+                "repo:BOAZ-website@258640138/frontend_admin@1351152812:environment:production",
+                "repo:BOAZ-website@258640138/frontend_recruiting_admin@1473617601:environment:production",
+              ]
             }
           }
           Effect    = "Allow"
