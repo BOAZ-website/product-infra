@@ -154,8 +154,8 @@ python3 scripts/check_ec2b_redeploy.py --wait-target-health
 ### 6-2. 서버 한 대 이탈
 
 - ALB 뒤 서버 한 대가 빠지면 남은 한 대가 응답하므로 헬스체크는 성공하고 502도 나지 않을 수 있음. `season-up.sh`는 전환 때만 두 대가 healthy가 될 때까지 기다림
-- 경보를 만들기 전(2026-11-27 season-up 뒤부터 2026-11-29 경보 생성까지)에는 하루 2번(오전·저녁) `describe-target-health`로 두 대가 `healthy`인지 확인함. 2026-11-27·29는 인프라 작업 담당, 2026-11-28은 PO
-- 2026-11-29 시즌 ALB 경보를 수동으로 만들 때 아래 경보를 함께 만듦(서울). ALB는 `season-up.sh`가 만들어 OBS Terraform에서 경보를 둘 수 없음
+- 2026-11-27 season-up 직후 경보를 만들었으므로(19:53 KST) 하루 2번 수동 확인은 하지 않음. 재시도 등으로 경보가 없는 동안에만 하루 2번(오전·저녁) `describe-target-health`로 두 대가 `healthy`인지 확인함
+- season-up 직후 아래 시즌 ALB 경보를 수동으로 만듦(서울, 2026-11-27 생성). 원복 뒤 다시 season-up 하면 새 ALB 기준으로 다시 만듦. ALB는 `season-up.sh`가 만들어 OBS Terraform에서 경보를 둘 수 없음
 
 | 항목 | 값 |
 | --- | --- |
